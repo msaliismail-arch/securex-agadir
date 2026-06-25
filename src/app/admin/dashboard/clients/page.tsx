@@ -322,8 +322,8 @@ export default function ClientsPage() {
                   ) : (
                     <div className="scroll-thin max-h-72 space-y-1.5 overflow-y-auto">
                       {detailAppts.map((a) => {
-                        const st = STATUS_META[a.status];
-                        const sc = COLOR_MAP[st.color];
+                        const st = STATUS_META[a.status] ?? { label: a.status, color: "gray" as CategoryColor, icon: "Clock" };
+                        const sc = COLOR_MAP[st.color] ?? COLOR_MAP.gray;
                         const catColor = COLOR_MAP[a.category?.color as CategoryColor] ?? COLOR_MAP.blue;
                         return (
                           <div

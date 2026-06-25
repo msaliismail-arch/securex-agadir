@@ -138,8 +138,14 @@ type FormState = {
 };
 
 const STATUS_KEYS: AppointmentStatus[] = [
-  "PENDING", "APPROVED", "REJECTED", "COMPLETED", "CANCELLED",
+  "PENDING", "APPROVED", "COMPLETED", "CANCELLED",
 ];
+
+/** Safe status lookup — falls back to a neutral badge for unknown statuses. */
+const STATUS_FALLBACK = { label: "Inconnu", color: "gray" as CategoryColor, icon: "Clock" };
+function statusMeta(status: string) {
+  return (STATUS_META as Record<string, typeof STATUS_FALLBACK>)[status] ?? STATUS_FALLBACK;
+}
 
 export default function AppointmentsPage() {
   const [appts, setAppts] = useState<Appointment[]>([]);
@@ -326,7 +332,7 @@ export default function AppointmentsPage() {
         toast.error(json.error || "Échec du changement de statut");
         return;
       }
-      toast.success(`RDV ${a.code} → ${STATUS_META[status].label}`);
+      toast.success(`RDV ${a.code} → ${statusMeta(status).label}`);
       await load();
     } finally {
       setBusy(false);
@@ -466,7 +472,7 @@ export default function AppointmentsPage() {
                 </TableHeader>
                 <TableBody>
                   {appts.map((a) => {
-                    const st = STATUS_META[a.status];
+                    const st = statusMeta(a.status);
                     const sc = COLOR_MAP[st.color];
                     const catColor = COLOR_MAP[a.category?.color as CategoryColor] ?? COLOR_MAP.green;
                     return (
@@ -878,8 +884,8 @@ export default function AppointmentsPage() {
 }
 
 function StatusBadge({ status }: { status: AppointmentStatus }) {
-  const st = STATUS_META[status];
-  const sc = COLOR_MAP[st.color];
+  const st = statusMeta(status);
+  const sc = COLOR_MAP[st.color] ?? COLOR_MAP.gray;
   return (
     <Badge className={cn(sc.soft, sc.fg, "text-[12px]")}>
       {st.label}

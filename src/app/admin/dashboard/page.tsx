@@ -98,8 +98,8 @@ function computeStats(
   const startToday = new Date(now); startToday.setHours(0, 0, 0, 0);
   const endToday = new Date(now); endToday.setHours(23, 59, 59, 999);
 
-  const counts: Record<AppointmentStatus, number> = {
-    PENDING: 0, APPROVED: 0, REJECTED: 0, COMPLETED: 0, CANCELLED: 0,
+  const counts: Record<string, number> = {
+    PENDING: 0, APPROVED: 0, COMPLETED: 0, CANCELLED: 0,
   };
   let todayAppts = 0;
   let revenue = 0;
@@ -134,7 +134,6 @@ function computeStats(
     total: appts.length,
     pending: counts.PENDING,
     approved: counts.APPROVED,
-    rejected: counts.REJECTED,
     completed: counts.COMPLETED,
     cancelled: counts.CANCELLED,
     todayAppts,
@@ -147,9 +146,8 @@ function computeStats(
     byCategory: Array.from(catMap.values()),
     byStatus: [
       { name: "En attente", value: counts.PENDING, color: "orange" },
-      { name: "Validé", value: counts.APPROVED, color: "green" },
+      { name: "Confirmé", value: counts.APPROVED, color: "green" },
       { name: "Terminé", value: counts.COMPLETED, color: "purple" },
-      { name: "Rejeté", value: counts.REJECTED, color: "red" },
       { name: "Annulé", value: counts.CANCELLED, color: "gray" },
     ],
   };
@@ -485,8 +483,8 @@ export default function DashboardHomePage() {
             ) : (
               <div className="scroll-thin max-h-80 space-y-2 overflow-y-auto pr-1">
                 {today.slice(0, 12).map((appt) => {
-                  const st = STATUS_META[appt.status];
-                  const sc = COLOR_MAP[st.color];
+                  const st = STATUS_META[appt.status] ?? { label: appt.status, color: "gray" as CategoryColor, icon: "Clock" };
+                  const sc = COLOR_MAP[st.color] ?? COLOR_MAP.gray;
                   return (
                     <div
                       key={appt.id}
