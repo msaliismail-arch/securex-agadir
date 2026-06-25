@@ -1,0 +1,169 @@
+// SÉCUREX CONNECT — Prisma schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      String   // SUPER | VALIDATION | RECEPTION
+  phone     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Client {
+  id           String       @id @default(cuid())
+  phone        String       @unique
+  name         String
+  email        String?
+  channel      String       @default("SMS") // SMS | EMAIL | WHATSAPP
+  vehicles     Vehicle[]
+  appointments Appointment[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Vehicle {
+  id           String       @id @default(cuid())
+  clientId     String
+  client       Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  plate        String
+  brand        String
+  model        String
+  year         Int
+  category     String       // VOITURE | MOTO | CAMION | UTILITAIRE
+  fuel         String?
+  appointments Appointment[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([clientId])
+}
+
+model Category {
+  id           String        @id @default(cuid())
+  name         String
+  slug         String        @unique
+  description  String
+  icon         String
+  color        String        // CategoryColor key
+  sort         Int           @default(0)
+  services     Service[]
+  appointments Appointment[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Service {
+  id          String        @id @default(cuid())
+  categoryId  String
+  category    Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String        @unique
+  description String
+  durationMin Int           @default(30)
+  price       Float
+  active      Boolean       @default(true)
+  appointments Appointment[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([categoryId])
+}
+
+model Appointment {
+  id            String       @id @default(cuid())
+  code          String       @unique // 6-char reference
+  clientId      String
+  client        Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  vehicleId     String?
+  vehicle       Vehicle?     @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  categoryId    String
+  category      Category     @relation(fields: [categoryId], references: [id])
+  serviceId     String
+  service       Service      @relation(fields: [serviceId], references: [id])
+  date          DateTime
+  slot          String       // HH:mm
+  status        String       @default("PENDING") // PENDING | APPROVED | REJECTED | COMPLETED | CANCELLED
+  qrToken       String?
+  qrGeneratedAt DateTime?
+  queueNumber   Int?
+  notes         String?
+  clientName    String
+  clientPhone   String
+  vehiclePlate  String
+  vehicleDesc   String
+  result        InspectionResult?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([clientId])
+  @@index([status])
+  @@index([date])
+}
+
+model InspectionResult {
+  id            String      @id @default(cuid())
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  overallResult String      // PASS | FAIL
+  brakes        String      @default("PASS")
+  lights        String      @default("PASS")
+  tires         String      @default("PASS")
+  emissions     String      @default("PASS")
+  bodywork      String      @default("PASS")
+  inspector     String?
+  notes         String?
+  createdAt     DateTime    @default(now())
+}
+
+model Announcement {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  pinned      Boolean  @default(false)
+  visible     Boolean  @default(true)
+  category    String   @default("INFO") // INFO | PROMO | MAINTENANCE | ALERT
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  adminId   String?
+  adminName String
+  adminRole String   // SUPER | VALIDATION | RECEPTION | SYSTEM
+  action    String
+  target    String?
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([adminRole])
+  @@index([createdAt])
+}
+
+model Setting {
+  id    String @id
+  value String
+}
+
+model OtpRequest {
+  id        String   @id @default(cuid())
+  key       String   // email or phone
+  code      String
+  consumed  Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([key])
+}

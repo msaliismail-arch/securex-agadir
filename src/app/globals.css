@@ -1,0 +1,191 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  /* SÉCUREX brand palette */
+  --color-navy: #1A2332;
+  --color-emerald-brand: #1F7A4D;
+  --color-info: #2D9CDB;
+  --color-warning: #F2994A;
+  --color-danger: #EB5757;
+  --color-surface: #FAF9F6;
+  --color-surface-2: #E8E6E1;
+}
+
+:root {
+  --radius: 0.75rem;
+  --background: #FAF9F6;
+  --foreground: #1A2332;
+  --card: #FFFFFF;
+  --card-foreground: #1A2332;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A2332;
+  /* primary = navy */
+  --primary: #1A2332;
+  --primary-foreground: #FFFFFF;
+  /* secondary = emerald brand */
+  --secondary: #1F7A4D;
+  --secondary-foreground: #FFFFFF;
+  --muted: #E8E6E1;
+  --muted-foreground: #6B7280;
+  --accent: #E8F4EE;
+  --accent-foreground: #1F7A4D;
+  --destructive: #EB5757;
+  --destructive-foreground: #FFFFFF;
+  --border: #E8E6E1;
+  --input: #E8E6E1;
+  --ring: #1F7A4D;
+  --chart-1: #2D9CDB;
+  --chart-2: #1F7A4D;
+  --chart-3: #F2994A;
+  --chart-4: #8B5CF6;
+  --chart-5: #06B6D4;
+  --sidebar: #1A2332;
+  --sidebar-foreground: #E8E6E1;
+  --sidebar-primary: #1F7A4D;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #233044;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #2A3647;
+  --sidebar-ring: #1F7A4D;
+}
+
+.dark {
+  --background: #0F1620;
+  --foreground: #FAF9F6;
+  --card: #1A2332;
+  --card-foreground: #FAF9F6;
+  --popover: #1A2332;
+  --popover-foreground: #FAF9F6;
+  --primary: #1F7A4D;
+  --primary-foreground: #FFFFFF;
+  --secondary: #233044;
+  --secondary-foreground: #FAF9F6;
+  --muted: #233044;
+  --muted-foreground: #9CA3AF;
+  --accent: #233044;
+  --accent-foreground: #FAF9F6;
+  --destructive: #EB5757;
+  --destructive-foreground: #FFFFFF;
+  --border: #2A3647;
+  --input: #2A3647;
+  --ring: #1F7A4D;
+  --sidebar: #0B1118;
+  --sidebar-foreground: #E8E6E1;
+  --sidebar-primary: #1F7A4D;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1A2332;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #2A3647;
+  --sidebar-ring: #1F7A4D;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Custom scrollbar for long lists */
+.scroll-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: #C7C4BC;
+  border-radius: 9999px;
+}
+.scroll-thin::-webkit-scrollbar-thumb:hover {
+  background: #6B7280;
+}
+
+/* Cyberpunk terminal grid + scanlines */
+.terminal-grid {
+  background-image:
+    linear-gradient(rgba(0, 255, 136, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 136, 0.06) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.terminal-scanlines::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.25) 3px,
+    rgba(0, 0, 0, 0) 4px
+  );
+  z-index: 1;
+}
+.terminal-glow {
+  text-shadow: 0 0 8px currentColor, 0 0 16px currentColor;
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes scan-down {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+.scan-line-anim {
+  animation: scan-down 6s linear infinite;
+}
