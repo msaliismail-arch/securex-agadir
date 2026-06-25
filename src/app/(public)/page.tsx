@@ -14,7 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatsCounter } from "@/components/public/stats-counter";
 import { Reveal } from "@/components/public/reveal";
-import { HeroCar } from "@/components/public/hero-car";
+import { HeroInspectionScene } from "@/components/public/hero-inspection-scene";
 
 const ICONS: Record<string, LucideIcon> = { Car, Truck, Bike, Bus };
 
@@ -126,10 +126,25 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* ============ HERO ============ */}
+      {/* ============ HERO — inspection center ambiance ============ */}
       <section className="relative overflow-hidden bg-mesh">
-        <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 left-0 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
+        {/* premium inspection-center backdrop: soft bay lighting + perspective floor */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute -bottom-32 left-0 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
+          {/* overhead bay light strip */}
+          <div className="absolute left-1/2 top-0 h-24 w-2/3 -translate-x-1/2 rounded-b-full bg-primary/[0.06] blur-2xl" />
+          {/* faint perspective floor lines */}
+          <svg className="absolute inset-x-0 bottom-0 h-1/3 w-full opacity-[0.07]" viewBox="0 0 1200 200" preserveAspectRatio="none" aria-hidden="true">
+            <g stroke="#00C896" strokeWidth="1.5">
+              <line x1="0" y1="200" x2="1200" y2="0" />
+              <line x1="300" y1="200" x2="600" y2="0" />
+              <line x1="600" y1="200" x2="900" y2="0" />
+              <line x1="900" y1="200" x2="1200" y2="0" />
+              <line x1="0" y1="200" x2="1200" y2="200" />
+            </g>
+          </svg>
+        </div>
 
         <div className="relative mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-24 lg:py-28">
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
@@ -184,9 +199,9 @@ export default async function HomePage() {
               </div>
             </Reveal>
 
-            {/* RIGHT — animated car scene */}
+            {/* RIGHT — realistic inspection scene */}
             <Reveal delay={0.15}>
-              <HeroCar />
+              <HeroInspectionScene />
             </Reveal>
           </div>
         </div>

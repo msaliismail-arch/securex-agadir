@@ -388,3 +388,30 @@ Stage Summary:
 - Animated car hero (signature feature) + removed the boring "Points inspectés" card per user request.
 - All 3 admin spaces remain visually independent, restyled to green/white.
 - Production-ready, no placeholders, no TODOs.
+
+---
+Task ID: R-HERO (Inspection Scene Redesign)
+Agent: Main (Staff Engineer)
+Task: Replace hero car with realistic inspection-center scene + fix direction (left→right) + add micro-animations
+
+Work Log:
+- Created src/components/public/hero-inspection-scene.tsx — premium layered SVG scene of a technical inspection center:
+  • Background: back wall, overhead light bar (pulsing), wall control panel with live indicator dots, wall signage, ambient brand glow, perspective floor with grid lines, inspection ramp, overhead boom arm + lamp (pulsing), rolling tool cart.
+  • Vehicle: modern stylized car (facing RIGHT, headlight on right + amber beam projecting forward, taillight red on left) that ENTERS from the LEFT, PAUSES in CENTER for inspection, then EXITS to the RIGHT on a 7s loop. Dark outline (#0F2A23) + deeper green gradient for contrast. Spinning wheels (green spokes), idle bounce, ground shadow, speed lines trailing behind (left) while moving.
+  • Professional inspector: figure with green hard hat, high-vis green vest over dark uniform, reflective stripes, holding a tablet that taps + screen flashes. Fades in beside the car (right side) during the inspection pause.
+  • Micro-animations (all requested): pulsing shield with concentric rings (trust/safety, top-left), gauge with sweeping needle (technical control, bottom-right), 4 sequential checkmarks that pop on inspection points — freins/éclairage/pneus/émissions (inspection validation), scan beam sweeping across the vehicle (vehicle verification), status dots lighting up in sequence (road safety / secure mobility).
+- Enhanced hero section background in (public)/page.tsx: added overhead bay light strip + faint perspective floor lines for "premium background inspired by a real technical inspection center".
+- Updated page.tsx import: HeroCar → HeroInspectionScene.
+- Fixed critical bug: the car motion.g had initial={false} which made framer jump to the LAST keyframe (x=360, off-screen) and never animate — car was invisible the whole time. Removed initial={false}; verified via transform sampling that the car now cycles -360→0→0→360 correctly.
+- Repositioned inspector to cx=404 (clearly right of the centered car) + enlarged it so it's no longer hidden behind the car.
+- Removed dead file src/components/public/hero-car.tsx (no longer imported).
+
+Verification (Agent Browser + VLM):
+- Car now visibly enters from LEFT, pauses CENTER (inspector + scan beam + checkmarks activate), exits RIGHT — confirmed via transform sampling (-359→...→0→...→360) and VLM ("green car visible in center, front/headlight faces right, inspector figure visible next to car, checkmarks/scan beam/gauge/shield visible").
+- Mobile responsive: scene renders below hero text on mobile, car + inspector visible.
+- Lint clean, dev log clean, / returns 200.
+
+Stage Summary:
+- The hero now shows a realistic technical-inspection-center scene: a vehicle undergoing inspection by a professional inspector, with all requested micro-animations (safety, verification, technical control, validation, trust, secure mobility).
+- Car direction FIXED: moves left → right (was broken/stuck off-screen due to initial={false} bug).
+- Premium SaaS quality (Stripe/Linear/Claude inspired), cold-green identity preserved.
