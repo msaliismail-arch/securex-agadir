@@ -107,7 +107,7 @@ model Appointment {
   service       Service      @relation(fields: [serviceId], references: [id])
   date          DateTime
   slot          String       // HH:mm
-  status        String       @default("PENDING") // PENDING | APPROVED | REJECTED | COMPLETED | CANCELLED
+  status        String       @default("PENDING") // PENDING (à confirmer) | APPROVED (confirmé) | COMPLETED | CANCELLED
   qrToken       String?
   qrGeneratedAt DateTime?
   checkedInAt   DateTime?   // one-time use: set on first successful check-in, blocks re-verification
@@ -122,9 +122,16 @@ model Appointment {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  @@index([clientId])
-  @@index([status])
-  @@index([date])
+  @@index([date, status])
+}
+
+/// Daily capacity — managed ONLY by RDV admin. Default 20 if not set.
+model DailyCapacity {
+  id          String   @id @default(cuid())
+  date        DateTime @unique // the calendar day (midnight)
+  capaciteMax Int      @default(20)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model InspectionResult {

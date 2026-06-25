@@ -156,8 +156,11 @@ export const RDV_STATUSES: AppointmentStatus[] = ["PENDING", "APPROVED", "COMPLE
 /** Default time slots (configurable via settings). */
 export const DEFAULT_SLOTS = [
   "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-  "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30",
+  "14:00", "14:30", "15:00", "15:30", "16:00", "16:30",
 ];
+
+/** Default daily capacity (RDV admin can override per-day via DailyCapacity). */
+export const DEFAULT_DAILY_CAPACITY = 20;
 
 /** Public nav. */
 export const PUBLIC_NAV = [

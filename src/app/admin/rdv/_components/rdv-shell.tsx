@@ -8,6 +8,7 @@ import {
   CalendarRange,
   Clock,
   CheckCircle2,
+  Gauge,
   LogOut,
   Menu,
   ShieldCheck,
@@ -28,6 +29,7 @@ const NAV_ITEMS = [
   { href: "/admin/rdv/calendar", label: "Vue calendrier", icon: CalendarRange },
   { href: "/admin/rdv/pending", label: "En attente", icon: Clock },
   { href: "/admin/rdv/approved", label: "Validés", icon: CheckCircle2 },
+  { href: "/admin/rdv/capacity", label: "Capacité", icon: Gauge },
 ];
 
 function isActivePath(pathname: string, href: string, exact?: boolean) {

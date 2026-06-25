@@ -10,8 +10,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import {
+  AlertCircle,
   CalendarDays,
   Check,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -569,6 +571,19 @@ function Step1({
 }
 
 /* --------------------------------- Step 2 --------------------------------- */
+interface CapacityDay {
+  capaciteMax: number;
+  confirmedCount: number;
+  isFull: boolean;
+}
+
+function ymdKey(d: Date): string {
+  // Normalize to local midnight then ISO UTC string — matches the /api/capacity
+  // key generation (cursor at local midnight → toISOString().slice(0,10)).
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return x.toISOString().slice(0, 10);
+}
+
 function Step2({
   category,
   selectedService,
@@ -587,6 +602,50 @@ function Step2({
   onSelectSlot: (s: string | null) => void;
 }) {
   const services = category.services ?? [];
+
+  // Capacity map keyed by "YYYY-MM-DD" (filled lazily as the user navigates months).
+  const [capacityDays, setCapacityDays] = useState<Record<string, CapacityDay>>({});
+  const [visibleMonth, setVisibleMonth] = useState<Date>(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+
+  // Fetch capacity for the visible month range (with a ±1 week buffer so the
+  // trailing days shown from adjacent months are also covered).
+  useEffect(() => {
+    let active = true;
+    const start = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), -7);
+    const end = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 14);
+    const fromStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
+    const toStr = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, "0")}-${String(end.getDate()).padStart(2, "0")}`;
+    (async () => {
+      try {
+        const res = await fetch(`/api/capacity?from=${fromStr}&to=${toStr}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!active) return;
+        const map: Record<string, CapacityDay> = {};
+        for (const day of data.days ?? []) {
+          map[day.date] = {
+            capaciteMax: day.capaciteMax,
+            confirmedCount: day.confirmedCount,
+            isFull: day.isFull,
+          };
+        }
+        setCapacityDays((prev) => ({ ...prev, ...map }));
+      } catch {
+        // silent — capacity data is best-effort, calendar still works without it
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [visibleMonth]);
+
+  const selectedKey = selectedDate ? ymdKey(selectedDate) : null;
+  const selectedCap = selectedKey ? capacityDays[selectedKey] : undefined;
+  const remaining = selectedCap ? selectedCap.capaciteMax - selectedCap.confirmedCount : undefined;
+
   return (
     <div className="space-y-8">
       <SectionHeading
@@ -655,18 +714,66 @@ function Step2({
               mode="single"
               selected={selectedDate}
               onSelect={onSelectDate}
+              month={visibleMonth}
+              onMonthChange={setVisibleMonth}
               disabled={(date) => {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 const d = new Date(date);
                 d.setHours(0, 0, 0, 0);
-                return d < today || date.getDay() === 0;
+                if (d < today || date.getDay() === 0) return true;
+                const key = ymdKey(date);
+                return capacityDays[key]?.isFull === true;
               }}
               fromDate={new Date()}
               locale={fr}
               className="mx-auto"
             />
           </div>
+
+          {/* Capacity indicator for the selected day */}
+          {selectedDate && selectedCap && (
+            <div
+              className={cn(
+                "mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs",
+                (remaining ?? 0) <= 0
+                  ? "border-destructive/30 bg-destructive/5"
+                  : (remaining ?? 0) < 3
+                    ? "border-orange-300 bg-orange-50 dark:bg-orange-950/20"
+                    : "border-primary/30 bg-primary/5"
+              )}
+              role="status"
+              aria-live="polite"
+            >
+              {(remaining ?? 0) <= 0 ? (
+                <>
+                  <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                  <span className="font-semibold text-destructive">Journée complète</span>
+                  <span className="text-muted-foreground">
+                    · {selectedCap.confirmedCount}/{selectedCap.capaciteMax} RDV confirmés
+                  </span>
+                </>
+              ) : (remaining ?? 0) < 3 ? (
+                <>
+                  <Clock className="h-3.5 w-3.5 text-orange-600" />
+                  <span className="font-semibold text-orange-700 dark:text-orange-400">
+                    Places restantes : {remaining}/{selectedCap.capaciteMax}
+                  </span>
+                  <span className="text-muted-foreground">— réservez vite</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                  <span className="font-semibold text-primary">
+                    Places restantes : {remaining}/{selectedCap.capaciteMax}
+                  </span>
+                  <span className="text-muted-foreground">
+                    · {selectedCap.confirmedCount} confirmé{selectedCap.confirmedCount > 1 ? "s" : ""}
+                  </span>
+                </>
+              )}
+            </div>
+          )}
 
           <h3 className="mb-3 mt-6 flex items-center gap-2 text-sm font-semibold text-foreground">
             <span className="h-4 w-1 rounded bg-brand-gradient" /> Créneau horaire
@@ -679,18 +786,31 @@ function Step2({
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {DEFAULT_SLOTS.map((slot) => {
                 const isSelected = selectedSlot === slot;
+                const now = new Date();
+                const isToday = selectedDate.toDateString() === now.toDateString();
+                const [h, m] = slot.split(":").map(Number);
+                const slotPast =
+                  isToday && h * 60 + m <= now.getHours() * 60 + now.getMinutes();
                 return (
                   <button
                     key={slot}
                     type="button"
-                    onClick={() => onSelectSlot(slot)}
+                    disabled={slotPast}
+                    onClick={() => {
+                      if (!slotPast) onSelectSlot(slot);
+                    }}
+                    aria-disabled={slotPast}
+                    title={slotPast ? "Créneau passé — indisponible" : undefined}
                     className={cn(
-                      "rounded-lg border-2 px-2 py-2.5 text-sm font-medium transition-all",
-                      isSelected
-                        ? "border-primary bg-brand-gradient text-white shadow-soft"
-                        : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-accent"
+                      "flex items-center justify-center gap-1 rounded-lg border-2 px-2 py-2.5 text-sm font-medium transition-all",
+                      slotPast
+                        ? "cursor-not-allowed border-border bg-muted/30 text-muted-foreground opacity-40"
+                        : isSelected
+                          ? "border-primary bg-brand-gradient text-white shadow-soft"
+                          : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-accent"
                     )}
                   >
+                    {slotPast && <Lock className="h-3 w-3" aria-hidden />}
                     {slot}
                   </button>
                 );

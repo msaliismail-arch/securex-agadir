@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { hashPassword } from "@/lib/auth";
 import { generateCode, normalizePhone, isValidMaPhone } from "@/lib/utils";
+import { DEFAULT_DAILY_CAPACITY } from "@/lib/constants";
 
 /** Public booking: create appointment + register/login client with email+password. */
 export async function POST(req: Request) {
@@ -27,6 +28,33 @@ export async function POST(req: Request) {
   const phone = normalizePhone(clientPhone);
   const email = clientEmail.toLowerCase().trim();
 
+  // === RULE 3: Block past time slots (same day only) ===
+  const apptDate = new Date(date);
+  const now = new Date();
+  const isToday = apptDate.toDateString() === now.toDateString();
+  if (isToday) {
+    const [slotH, slotM] = slot.split(":").map(Number);
+    const slotMinutes = slotH * 60 + slotM;
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    if (slotMinutes <= nowMinutes) {
+      return NextResponse.json({ error: "Ce créneau horaire est déjà passé. Veuillez choisir un créneau ultérieur." }, { status: 400 });
+    }
+  }
+
+  // === RULE 2: Capacity check — only CONFIRMED (APPROVED) appointments count ===
+  const dayStart = new Date(apptDate); dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(apptDate); dayEnd.setHours(23, 59, 59, 999);
+  const confirmedCount = await db.appointment.count({
+    where: { date: { gte: dayStart, lte: dayEnd }, status: "APPROVED" },
+  });
+  const capRecord = await db.dailyCapacity.findUnique({ where: { date: dayStart } });
+  const capaciteMax = capRecord?.capaciteMax ?? DEFAULT_DAILY_CAPACITY;
+  if (confirmedCount >= capaciteMax) {
+    return NextResponse.json({
+      error: `Ce jour est complet (${confirmedCount}/${capaciteMax} rendez-vous confirmés). Veuillez choisir une autre date.`,
+    }, { status: 400 });
+  }
+
   // Ensure code is unique
   let code = generateCode();
   let tries = 0;
@@ -34,8 +62,6 @@ export async function POST(req: Request) {
     code = generateCode();
     tries++;
   }
-
-  const apptDate = new Date(date);
 
   // Upsert client by phone OR email — if new, create with email+password
   let client = await db.client.findFirst({ where: { OR: [{ phone }, { email }] } });
@@ -70,9 +96,7 @@ export async function POST(req: Request) {
     });
   }
 
-  // queue number for the day
-  const dayStart = new Date(apptDate); dayStart.setHours(0, 0, 0, 0);
-  const dayEnd = new Date(apptDate); dayEnd.setHours(23, 59, 59, 999);
+  // queue number for the day (dayStart/dayEnd already computed above for capacity check)
   const countToday = await db.appointment.count({ where: { date: { gte: dayStart, lte: dayEnd } } });
 
   const appt = await db.appointment.create({
