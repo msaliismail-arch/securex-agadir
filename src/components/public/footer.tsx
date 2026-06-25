@@ -142,7 +142,7 @@ export function PublicFooter() {
         </div>
 
         <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-xs text-foreground/50 sm:flex-row">
-          <p>© {new Date().getFullYear()} SÉCUREX CONNECT. Tous droits réservés.</p>
+          <p>© 2026 SÉCUREX CONNECT. Tous droits réservés.</p>
           <div className="flex items-center gap-4">
             <Link href="/contact" className="transition-colors hover:text-foreground/80">
               Mentions légales

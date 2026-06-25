@@ -381,60 +381,62 @@ export default function CategoriesPage() {
             return (
               <Card key={cat.id} className={cn("overflow-hidden border-l-4 shadow-card", c.border)}>
                 <Collapsible open={isOpen} onOpenChange={() => toggleCat(cat.id)}>
-                  <CollapsibleTrigger asChild>
-                    <button className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-muted/40">
-                      <span className={cn("inline-flex h-10 w-10 items-center justify-center rounded-md", c.soft, c.fg)}>
-                        <Icon className="h-5 w-5" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="truncate text-[15px] font-semibold text-foreground">
-                            {cat.name}
-                          </h3>
-                          <Badge variant="outline" className={cn("text-[10px]", c.fg, c.border)}>
-                            {cat.slug}
-                          </Badge>
-                          <Badge variant="secondary" className="text-[10px]">
-                            {svcs.length} service{svcs.length > 1 ? "s" : ""}
-                          </Badge>
+                  <div className="flex w-full items-center gap-3 p-4">
+                    <CollapsibleTrigger asChild>
+                      <button className="flex flex-1 items-center gap-3 text-left transition-colors hover:bg-muted/40 rounded-md -m-1 p-1">
+                        <span className={cn("inline-flex h-10 w-10 items-center justify-center rounded-md", c.soft, c.fg)}>
+                          <Icon className="h-5 w-5" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="truncate text-[15px] font-semibold text-foreground">
+                              {cat.name}
+                            </h3>
+                            <Badge variant="outline" className={cn("text-[10px]", c.fg, c.border)}>
+                              {cat.slug}
+                            </Badge>
+                            <Badge variant="secondary" className="text-[10px]">
+                              {svcs.length} service{svcs.length > 1 ? "s" : ""}
+                            </Badge>
+                          </div>
+                          {cat.description && (
+                            <p className="truncate text-[12px] text-muted-foreground">
+                              {cat.description}
+                            </p>
+                          )}
                         </div>
-                        {cat.description && (
-                          <p className="truncate text-[12px] text-muted-foreground">
-                            {cat.description}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          onClick={() => openEditCat(cat)}
-                          aria-label="Modifier"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() =>
-                            setDeleteTarget({ kind: "category", id: cat.id, name: cat.name })
-                          }
-                          aria-label="Supprimer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <span className="ml-1 shrink-0 text-muted-foreground">
-                        {isOpen ? (
-                          <ChevronDown className="h-4 w-4" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4" />
-                        )}
-                      </span>
-                    </button>
-                  </CollapsibleTrigger>
+                        <span className="ml-1 shrink-0 text-muted-foreground">
+                          {isOpen ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </span>
+                      </button>
+                    </CollapsibleTrigger>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        onClick={() => openEditCat(cat)}
+                        aria-label="Modifier"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() =>
+                          setDeleteTarget({ kind: "category", id: cat.id, name: cat.name })
+                        }
+                        aria-label="Supprimer"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                   <CollapsibleContent>
                     <div className="border-t border-border bg-muted/20 p-4">
                       <div className="mb-3 flex items-center justify-between">
