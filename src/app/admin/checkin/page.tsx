@@ -99,12 +99,14 @@ export default function CheckinPage() {
         if (!el) return;
         const scanner = new Html5Qrcode("reader", { verbose: false });
         scannerRef.current = scanner;
-        await scanner.start(
+        // Race the camera start against a 5s timeout — if the camera isn't
+        // available (sandbox, denied, no device), show the fallback instead
+        // of hanging forever on "Démarrage…".
+        const startPromise = scanner.start(
           { facingMode: "environment" },
           { fps: 10, qrbox: { width: 250, height: 250 } },
           (decoded) => {
             const now = Date.now();
-            // Debounce: ignore same token within 3s
             if (
               lastScanRef.current &&
               lastScanRef.current.token === decoded &&
@@ -113,7 +115,6 @@ export default function CheckinPage() {
               return;
             }
             lastScanRef.current = { token: decoded, at: now };
-            // Stop camera then verify
             try {
               scanner
                 .stop()
@@ -133,10 +134,24 @@ export default function CheckinPage() {
             // per-frame error: ignore
           },
         );
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("CAMERA_TIMEOUT")), 5000),
+        );
+        await Promise.race([startPromise, timeoutPromise]);
         if (!cancelled) setCameraActive(true);
-      } catch (e: any) {
+      } catch {
         if (!cancelled) {
           setCameraActive(false);
+          // Clean up scanner if it was partially started
+          try {
+            const s = scannerRef.current;
+            if (s) {
+              s.stop().then(() => s.clear()).catch(() => {});
+            }
+          } catch {
+            // ignore
+          }
+          scannerRef.current = null;
           setScanError(
             "Caméra inaccessible. Autorisez l'accès à la caméra ou utilisez la saisie manuelle.",
           );

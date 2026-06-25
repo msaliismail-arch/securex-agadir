@@ -1,26 +1,31 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getSession, createSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
+import { hashPassword } from "@/lib/auth";
 import { generateCode, normalizePhone, isValidMaPhone } from "@/lib/utils";
 
-/** Public booking: create appointment + auto-register client/vehicle. */
+/** Public booking: create appointment + register/login client with email+password. */
 export async function POST(req: Request) {
   const body = await req.json();
   const {
-    clientName, clientPhone, clientEmail,
+    clientName, clientPhone, clientEmail, clientPassword,
     vehiclePlate, vehicleBrand, vehicleModel, vehicleYear, vehicleCategory,
     categoryId, serviceId, date, slot,
     channel,
   } = body;
 
-  // Validation
-  if (!clientName || !clientPhone || !vehiclePlate || !categoryId || !serviceId || !date || !slot) {
-    return NextResponse.json({ error: "Tous les champs requis doivent être renseignés" }, { status: 400 });
+  // Validation — phone (+212) AND email AND password all required
+  if (!clientName || !clientPhone || !clientEmail || !clientPassword || !vehiclePlate || !categoryId || !serviceId || !date || !slot) {
+    return NextResponse.json({ error: "Tous les champs requis doivent être renseignés (nom, téléphone, email, mot de passe)" }, { status: 400 });
   }
   if (!isValidMaPhone(clientPhone)) {
     return NextResponse.json({ error: "Numéro de téléphone marocain invalide (format +212)" }, { status: 400 });
   }
+  if (clientPassword.length < 6) {
+    return NextResponse.json({ error: "Le mot de passe doit contenir au moins 6 caractères" }, { status: 400 });
+  }
   const phone = normalizePhone(clientPhone);
+  const email = clientEmail.toLowerCase().trim();
 
   // Ensure code is unique
   let code = generateCode();
@@ -32,16 +37,21 @@ export async function POST(req: Request) {
 
   const apptDate = new Date(date);
 
-  // Upsert client
-  let client = await db.client.findUnique({ where: { phone } });
+  // Upsert client by phone OR email — if new, create with email+password
+  let client = await db.client.findFirst({ where: { OR: [{ phone }, { email }] } });
   if (!client) {
     client = await db.client.create({
-      data: { phone, name: clientName, email: clientEmail || null, channel: channel || "SMS" },
+      data: {
+        phone, name: clientName, email,
+        passwordHash: await hashPassword(clientPassword),
+        channel: channel || "SMS",
+      },
     });
   } else {
+    // Existing client — update info but keep existing password hash
     client = await db.client.update({
       where: { id: client.id },
-      data: { name: clientName, email: clientEmail || client.email, channel: channel || client.channel },
+      data: { name: clientName, phone, email, channel: channel || client.channel },
     });
   }
 

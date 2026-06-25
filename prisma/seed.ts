@@ -70,6 +70,7 @@ const servicesByCategory: Record<string, { name: string; slug: string; descripti
   ],
 };
 
+const CLIENT_PASSWORD = "Client@2026";
 const clients = [
   { phone: "+212661112233", name: "Mehdi Tazi", email: "mehdi.tazi@gmail.com", channel: "SMS", vehicles: [{ plate: "12345-A-6", brand: "Dacia", model: "Logan", year: 2019, category: "VOITURE", fuel: "Diesel" }] },
   { phone: "+212662223344", name: "Salma Ouazzani", email: "salma.ouazzani@gmail.com", channel: "WHATSAPP", vehicles: [{ plate: "44781-B-1", brand: "Renault", model: "Clio", year: 2020, category: "VOITURE", fuel: "Essence" }] },
@@ -150,15 +151,16 @@ async function main() {
   }
   console.log(`  ✓ categories & services`);
 
-  // Clients + vehicles
+  // Clients + vehicles (with hashed passwords for email auth)
+  const clientPasswordHash = await bcrypt.hash(CLIENT_PASSWORD, 10);
   for (const cl of clients) {
     const { vehicles, ...cdata } = cl;
-    const created = await db.client.create({ data: cdata });
+    const created = await db.client.create({ data: { ...cdata, passwordHash: clientPasswordHash } });
     for (const v of vehicles) {
       await db.vehicle.create({ data: { ...v, clientId: created.id } });
     }
   }
-  console.log(`  ✓ clients & vehicles`);
+  console.log(`  ✓ clients & vehicles (password: ${CLIENT_PASSWORD})`);
 
   // Appointments across statuses
   const allClients = await db.client.findMany({ include: { vehicles: true } });

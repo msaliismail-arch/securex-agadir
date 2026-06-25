@@ -2,14 +2,10 @@
 
 import * as React from "react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
   Loader2,
-  Phone,
   ShieldCheck,
   CalendarDays,
   Award,
@@ -22,21 +18,22 @@ import {
   CheckCircle2,
   Plus,
   Clock,
+  Mail,
+  Lock,
+  User,
+  Phone,
+  Eye,
+  EyeOff,
+  LogIn,
+  UserPlus,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { COLOR_MAP, DEMO_OTP } from "@/lib/constants";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { COLOR_MAP } from "@/lib/constants";
 import { cn, formatDate, isValidMaPhone, normalizePhone } from "@/lib/utils";
 import {
   type AppointmentItem,
@@ -47,13 +44,6 @@ import {
 } from "@/components/client/types";
 import { StatusBadge } from "@/components/client/badges";
 import { QrDialog } from "@/components/client/qr-dialog";
-
-const phoneSchema = z.object({
-  phone: z
-    .string({ required_error: "Téléphone requis" })
-    .refine(isValidMaPhone, "Numéro marocain invalide (format +212)"),
-});
-type PhoneValues = z.infer<typeof phoneSchema>;
 
 export default function EspaceClientPage() {
   const [sessionChecked, setSessionChecked] = React.useState(false);
@@ -91,66 +81,7 @@ export default function EspaceClientPage() {
 
 /* --------------------------------- Login ---------------------------------- */
 function LoginScreen() {
-  const [step, setStep] = useState<"phone" | "otp">("phone");
-  const [submitting, setSubmitting] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [clientName, setClientName] = useState<string | null>(null);
-  const [otp, setOtp] = useState("");
-
-  const form = useForm<PhoneValues>({
-    resolver: zodResolver(phoneSchema),
-    defaultValues: { phone: "+212 " },
-    mode: "onTouched",
-  });
-
-  const sendOtp = form.handleSubmit(async (values) => {
-    setSubmitting(true);
-    try {
-      const res = await fetch("/api/auth/client-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: values.phone }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.error || "Erreur lors de l'envoi du code");
-      }
-      setPhone(normalizePhone(values.phone));
-      setClientName(data?.name ?? null);
-      setStep("otp");
-      toast.success("Code OTP envoyé par " + (data?.demoOtp ? "simulation" : "SMS"));
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erreur lors de l'envoi du code");
-    } finally {
-      setSubmitting(false);
-    }
-  });
-
-  const verifyOtp = async () => {
-    if (otp.length !== 6) {
-      toast.error("Veuillez saisir les 6 chiffres du code.");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const res = await fetch("/api/auth/client-verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, code: otp }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.error || "Code OTP invalide ou expiré");
-      }
-      toast.success("Connexion réussie. Bienvenue !");
-      // Full reload so the layout's session check re-runs and the shell appears.
-      window.location.href = "/espace-client";
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erreur de vérification");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const [tab, setTab] = useState<"login" | "register">("login");
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col items-center px-4 py-10 md:py-16">
@@ -166,108 +97,297 @@ function LoginScreen() {
           </div>
           <h1 className="text-2xl font-bold text-foreground md:text-3xl">Espace Client</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            {step === "phone"
-              ? "Connectez-vous pour suivre vos rendez-vous et certificats."
-              : `Bonjour${clientName ? `, ${clientName}` : ""}. Saisissez le code reçu par SMS.`}
+            Connectez-vous pour suivre vos rendez-vous et certificats.
           </p>
         </div>
 
-        <Card className="glass-card">
+        <Card className="glass-card border-primary/20 shadow-card">
           <CardContent className="p-6">
-            {step === "phone" ? (
-              <Form {...form}>
-                <form onSubmit={sendOtp} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Téléphone</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                              placeholder="+212 6 12 34 56 78"
-                              className="pl-9"
-                              inputMode="tel"
-                              autoComplete="tel"
-                              {...field}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" className="w-full bg-brand-gradient text-white hover:opacity-90" disabled={submitting}>
-                    {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Recevoir le code
-                  </Button>
-                </form>
-              </Form>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Code de vérification</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Saisissez les 6 chiffres reçus au {phone}.
-                  </p>
-                </div>
-                <div className="flex justify-center">
-                  <InputOTP
-                    maxLength={6}
-                    value={otp}
-                    onChange={setOtp}
-                    containerClassName="justify-center"
-                  >
-                    <InputOTPGroup>
-                      <InputOTPSlot index={0} className="h-12 w-12 text-lg" />
-                      <InputOTPSlot index={1} className="h-12 w-12 text-lg" />
-                      <InputOTPSlot index={2} className="h-12 w-12 text-lg" />
-                      <InputOTPSlot index={3} className="h-12 w-12 text-lg" />
-                      <InputOTPSlot index={4} className="h-12 w-12 text-lg" />
-                      <InputOTPSlot index={5} className="h-12 w-12 text-lg" />
-                    </InputOTPGroup>
-                  </InputOTP>
-                </div>
-                <Button onClick={verifyOtp} className="w-full bg-brand-gradient text-white hover:opacity-90" disabled={submitting || otp.length !== 6}>
-                  {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Se connecter
-                </Button>
-                <button
-                  type="button"
-                  className="w-full text-center text-xs text-muted-foreground hover:text-primary"
-                  onClick={() => {
-                    setStep("phone");
-                    setOtp("");
-                  }}
-                >
-                  ← Modifier le numéro
-                </button>
-              </div>
-            )}
+            <Tabs value={tab} onValueChange={(v) => setTab(v as "login" | "register")}>
+              <TabsList className="mb-5 grid w-full grid-cols-2">
+                <TabsTrigger value="login" className="gap-1.5">
+                  <LogIn className="h-4 w-4" /> Connexion
+                </TabsTrigger>
+                <TabsTrigger value="register" className="gap-1.5">
+                  <UserPlus className="h-4 w-4" /> Inscription
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="login">
+                <LoginForm />
+              </TabsContent>
+              <TabsContent value="register">
+                <RegisterForm />
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
         <div className="mt-4 flex items-start gap-2 rounded-lg border border-info/30 bg-info/5 p-3 text-xs text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-info" />
           <div>
-            <p className="font-medium text-foreground">Mode démonstration</p>
+            <p className="font-medium text-foreground">Espace sécurisé</p>
             <p className="mt-0.5">
-              Code OTP de test : <span className="font-mono font-bold text-primary">{DEMO_OTP}</span>. Veuillez
-              d&apos;abord prendre un rendez-vous pour qu&apos;un compte soit créé.
+              Vos données personnelles et l&apos;historique de vos contrôles sont protégés
+              et accessibles uniquement avec votre compte.
             </p>
           </div>
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          Pas encore de rendez-vous ?{" "}
+          Pas encore de compte ?{" "}
           <a href="/rendez-vous" className="font-medium text-primary hover:underline">
-            Prendre rendez-vous
+            Créez-en un lors de votre premier rendez-vous
           </a>
+          .
         </p>
       </motion.div>
     </div>
+  );
+}
+
+/* ------------------------------ Login Form -------------------------------- */
+function LoginForm() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password) {
+      toast.error("Veuillez saisir votre email et votre mot de passe.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/client-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || "Identifiants incorrects");
+      }
+      toast.success(`Bienvenue${data?.name ? `, ${data.name}` : ""} !`);
+      // Full reload so the layout's session check re-runs and the shell appears.
+      window.location.reload();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur de connexion");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="login-email">Email</Label>
+        <div className="relative">
+          <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            id="login-email"
+            type="email"
+            autoComplete="email"
+            placeholder="vous@exemple.com"
+            className="pl-9"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="login-password">Mot de passe</Label>
+        <div className="relative">
+          <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            id="login-password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            placeholder="••••••••"
+            className="pl-9 pr-9"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={submitting}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((s) => !s)}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+            aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+            tabIndex={-1}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+
+      <Button
+        type="submit"
+        className="w-full bg-brand-gradient text-white hover:opacity-90"
+        disabled={submitting}
+      >
+        {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Se connecter
+      </Button>
+    </form>
+  );
+}
+
+/* ----------------------------- Register Form ------------------------------ */
+function RegisterForm() {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("+212 ");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedName) {
+      toast.error("Veuillez saisir votre nom complet.");
+      return;
+    }
+    if (!isValidMaPhone(phone)) {
+      toast.error("Numéro marocain invalide (format +212).");
+      return;
+    }
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      toast.error("Adresse email invalide.");
+      return;
+    }
+    if (password.length < 6) {
+      toast.error("Le mot de passe doit contenir au moins 6 caractères.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/client-register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: trimmedName,
+          phone: normalizePhone(phone),
+          email: trimmedEmail,
+          password,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 409) {
+          throw new Error("Email ou téléphone déjà utilisé");
+        }
+        throw new Error(data?.error || "Inscription impossible");
+      }
+      toast.success(`Compte créé. Bienvenue${data?.name ? `, ${data.name}` : ""} !`);
+      window.location.reload();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors de l'inscription");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="reg-name">Nom complet</Label>
+        <div className="relative">
+          <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            id="reg-name"
+            type="text"
+            autoComplete="name"
+            placeholder="Mehdi Tazi"
+            className="pl-9"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="reg-phone">Téléphone</Label>
+        <div className="relative">
+          <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            id="reg-phone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="+212 6 12 34 56 78"
+            className="pl-9"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">Format marocain : +212 6/7 XX XX XX XX.</p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="reg-email">Email</Label>
+        <div className="relative">
+          <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            id="reg-email"
+            type="email"
+            autoComplete="email"
+            placeholder="vous@exemple.com"
+            className="pl-9"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="reg-password">Mot de passe</Label>
+        <div className="relative">
+          <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            id="reg-password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="new-password"
+            placeholder="6 caractères minimum"
+            className="pl-9 pr-9"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={submitting}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((s) => !s)}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+            aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+            tabIndex={-1}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground">6 caractères minimum.</p>
+      </div>
+
+      <Button
+        type="submit"
+        className="w-full bg-brand-gradient text-white hover:opacity-90"
+        disabled={submitting}
+      >
+        {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Créer mon compte
+      </Button>
+    </form>
   );
 }
 

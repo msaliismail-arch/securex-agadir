@@ -15,7 +15,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Eye,
+  EyeOff,
   Loader2,
+  Lock,
   Mail,
   MessageSquare,
   Phone,
@@ -75,33 +78,41 @@ const channelOptions = [
   { value: "EMAIL", label: "E-mail", icon: Mail, hint: "E-mails de confirmation" },
 ] as const;
 
-const formSchema = z.object({
-  clientName: z
-    .string({ required_error: "Le nom est requis" })
-    .min(3, "Nom complet trop court (3 caractères min.)")
-    .max(80, "Nom trop long"),
-  clientPhone: z
-    .string({ required_error: "Le téléphone est requis" })
-    .refine(isValidMaPhone, "Numéro marocain invalide (ex: +212 6 12 34 56 78)"),
-  clientEmail: z
-    .string()
-    .email("Adresse e-mail invalide")
-    .optional()
-    .or(z.literal("")),
-  vehiclePlate: z
-    .string({ required_error: "Immatriculation requise" })
-    .refine(isValidMaPlate, "Plaque invalide (ex: 12345-A-6 ou 1-A-12345)"),
-  vehicleBrand: z.string().min(2, "Marque requise"),
-  vehicleModel: z.string().min(1, "Modèle requis"),
-  vehicleYear: z
-    .coerce.number({ invalid_type_error: "Année invalide" })
-    .int("Année invalide")
-    .min(1980, "Année trop ancienne")
-    .max(new Date().getFullYear() + 1, "Année invalide"),
-  channel: z.enum(["SMS", "EMAIL", "WHATSAPP"], {
-    required_error: "Choisissez un canal de notification",
-  }),
-});
+const formSchema = z
+  .object({
+    clientName: z
+      .string({ required_error: "Le nom est requis" })
+      .min(2, "Nom complet trop court (2 caractères min.)")
+      .max(80, "Nom trop long"),
+    clientPhone: z
+      .string({ required_error: "Le téléphone est requis" })
+      .refine(isValidMaPhone, "Numéro marocain invalide (ex: +212 6 12 34 56 78)"),
+    clientEmail: z
+      .string({ required_error: "L'e-mail est requis" })
+      .email("Adresse e-mail invalide"),
+    clientPassword: z
+      .string({ required_error: "Le mot de passe est requis" })
+      .min(6, "Le mot de passe doit contenir au moins 6 caractères"),
+    clientPasswordConfirm: z
+      .string({ required_error: "Veuillez confirmer le mot de passe" }),
+    vehiclePlate: z
+      .string({ required_error: "Immatriculation requise" })
+      .refine(isValidMaPlate, "Plaque invalide (ex: 12345-A-6 ou 1-A-12345)"),
+    vehicleBrand: z.string().min(2, "Marque requise"),
+    vehicleModel: z.string().min(1, "Modèle requis"),
+    vehicleYear: z
+      .coerce.number({ invalid_type_error: "Année invalide" })
+      .int("Année invalide")
+      .min(1980, "Année trop ancienne")
+      .max(new Date().getFullYear() + 1, "Année invalide"),
+    channel: z.enum(["SMS", "EMAIL", "WHATSAPP"], {
+      required_error: "Choisissez un canal de notification",
+    }),
+  })
+  .refine((data) => data.clientPassword === data.clientPasswordConfirm, {
+    message: "Les mots de passe ne correspondent pas",
+    path: ["clientPasswordConfirm"],
+  });
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -171,6 +182,8 @@ function BookingWizard() {
       clientName: "",
       clientPhone: "+212 ",
       clientEmail: "",
+      clientPassword: "",
+      clientPasswordConfirm: "",
       vehiclePlate: "",
       vehicleBrand: "",
       vehicleModel: "",
@@ -194,7 +207,8 @@ function BookingWizard() {
       const body = {
         clientName: values.clientName.trim(),
         clientPhone: values.clientPhone.trim(),
-        clientEmail: values.clientEmail?.trim() || null,
+        clientEmail: values.clientEmail.trim(),
+        clientPassword: values.clientPassword,
         vehiclePlate: values.vehiclePlate.trim().toUpperCase(),
         vehicleBrand: values.vehicleBrand.trim(),
         vehicleModel: values.vehicleModel.trim(),
@@ -211,6 +225,12 @@ function BookingWizard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      if (res.status === 409) {
+        toast.error(
+          "Un compte existe déjà avec cet email ou téléphone. Connectez-vous à votre espace client ou utilisez d'autres identifiants."
+        );
+        return;
+      }
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data?.error || "Erreur lors de la réservation");
@@ -685,12 +705,14 @@ function Step2({
 
 /* --------------------------------- Step 3 --------------------------------- */
 function Step3({ form }: { form: ReturnType<typeof useForm<FormValues>> }) {
+  const [showPwd, setShowPwd] = useState(false);
+  const [showPwdConfirm, setShowPwdConfirm] = useState(false);
   return (
     <div>
       <SectionHeading
         eyebrow="Étape 3"
         title="Informations client & véhicule"
-        subtitle="Renseignez vos coordonnées et celles de votre véhicule."
+        subtitle="Renseignez vos coordonnées, créez votre compte client, et complétez celles de votre véhicule."
       />
       <Form {...form}>
         <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
@@ -741,19 +763,91 @@ function Step3({ form }: { form: ReturnType<typeof useForm<FormValues>> }) {
                   name="clientEmail"
                   render={({ field }) => (
                     <FormItem className="sm:col-span-2">
-                      <FormLabel>E-mail (optionnel)</FormLabel>
+                      <FormLabel>E-mail *</FormLabel>
                       <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="vous@exemple.com"
-                          autoComplete="email"
-                          {...field}
-                        />
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            type="email"
+                            placeholder="vous@exemple.com"
+                            className="pl-9"
+                            autoComplete="email"
+                            {...field}
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="clientPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mot de passe *</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            type={showPwd ? "text" : "password"}
+                            placeholder="••••••••"
+                            className="pl-9 pr-10"
+                            autoComplete="new-password"
+                            {...field}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPwd((v) => !v)}
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1.5 text-muted-foreground hover:text-foreground"
+                            aria-label={showPwd ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                          >
+                            {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </FormControl>
+                      <FormDescription>6 caractères minimum.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="clientPasswordConfirm"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirmer le mot de passe *</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            type={showPwdConfirm ? "text" : "password"}
+                            placeholder="••••••••"
+                            className="pl-9 pr-10"
+                            autoComplete="new-password"
+                            {...field}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPwdConfirm((v) => !v)}
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1.5 text-muted-foreground hover:text-foreground"
+                            aria-label={showPwdConfirm ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                          >
+                            {showPwdConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="flex items-start gap-2.5 rounded-lg border border-primary/20 bg-primary/5 p-3.5 text-xs text-muted-foreground">
+                <Lock className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <p>
+                  Ces identifiants vous permettront d&apos;accéder à votre espace client pour suivre vos
+                  rendez-vous et télécharger vos certificats.
+                </p>
               </div>
               <FormField
                 control={form.control}
@@ -940,7 +1034,7 @@ function Step4({
               <div className="grid gap-2 sm:grid-cols-2">
                 <RecapLine label="Nom">{values.clientName}</RecapLine>
                 <RecapLine label="Téléphone">{values.clientPhone}</RecapLine>
-                {values.clientEmail && <RecapLine label="E-mail">{values.clientEmail}</RecapLine>}
+                <RecapLine label="E-mail">{values.clientEmail}</RecapLine>
                 <RecapLine label="Notifications">{values.channel}</RecapLine>
               </div>
             </div>

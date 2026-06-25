@@ -34,8 +34,9 @@ model WebsiteContent {
 model Client {
   id           String       @id @default(cuid())
   phone        String       @unique
+  email        String       @unique
   name         String
-  email        String?      @unique
+  passwordHash String
   channel      String       @default("SMS") // SMS | EMAIL | WHATSAPP
   vehicles     Vehicle[]
   appointments Appointment[]

@@ -1,25 +1,38 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { normalizePhone, isValidMaPhone } from "@/lib/utils";
+import { verifyPassword, createSession } from "@/lib/auth";
 
-/** Client login: validate phone, issue OTP. */
+/**
+ * Client login: email + password (bcrypt-verified).
+ * Replaces the old phone + OTP flow. Session TTL: 3h.
+ */
 export async function POST(req: Request) {
   const body = await req.json();
-  const { phone } = body as { phone?: string };
+  const { email, password } = body as { email?: string; password?: string };
 
-  if (!phone || !isValidMaPhone(phone)) {
-    return NextResponse.json({ error: "Numéro de téléphone marocain invalide" }, { status: 400 });
+  if (!email || !password) {
+    return NextResponse.json({ error: "Email et mot de passe requis" }, { status: 400 });
   }
 
-  const normalized = normalizePhone(phone);
-  const client = await db.client.findUnique({ where: { phone: normalized } });
+  const client = await db.client.findUnique({
+    where: { email: email.toLowerCase().trim() },
+  });
   if (!client) {
-    return NextResponse.json({ error: "Aucun compte client trouvé pour ce numéro. Prenez d'abord un rendez-vous." }, { status: 404 });
+    return NextResponse.json({ error: "Aucun compte trouvé pour cet email" }, { status: 404 });
   }
 
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-  await db.otpRequest.deleteMany({ where: { key: normalized } });
-  await db.otpRequest.create({ data: { key: normalized, code: "123456", expiresAt } });
+  const ok = await verifyPassword(password, client.passwordHash);
+  if (!ok) {
+    return NextResponse.json({ error: "Mot de passe incorrect" }, { status: 401 });
+  }
 
-  return NextResponse.json({ ok: true, name: client.name, demoOtp: "123456" });
+  await createSession({
+    sub: client.id,
+    role: "CLIENT",
+    name: client.name,
+    email: client.email,
+    phone: client.phone,
+  });
+
+  return NextResponse.json({ ok: true, redirect: "/espace-client", name: client.name });
 }
