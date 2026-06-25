@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   ShieldCheck,
+  UserCircle,
   X,
 } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
@@ -90,7 +91,15 @@ function SidebarInner({
         })}
       </nav>
 
-      <div className="px-3 py-4 border-t border-sidebar-border">
+      <div className="px-3 py-4 border-t border-sidebar-border space-y-1">
+        <Link
+          href="/admin/profile"
+          onClick={onNavigate}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        >
+          <UserCircle className="h-4 w-4" />
+          Mon profil
+        </Link>
         <Button
           variant="ghost"
           onClick={onLogout}

@@ -22,19 +22,22 @@ export async function POST(req: Request) {
   const guard = await requireAdminRole(["SUPER"]);
   if (!guard.ok) return guard.res;
   const body = await req.json();
-  const { username, email, name, role, phone, password } = body;
-  if (!username || !email || !name || !role || !ADMIN_ROLES[role as AdminRole]) {
+  const { username, email, firstName, lastName, role, phone, password } = body;
+  if (!username || !email || !firstName?.trim() || !lastName?.trim() || !role || !ADMIN_ROLES[role as AdminRole]) {
     return NextResponse.json({ error: "Champs invalides" }, { status: 400 });
   }
   if (!password || password.length < 6) {
     return NextResponse.json({ error: "Mot de passe requis (min. 6 caractères)" }, { status: 400 });
   }
+  const name = `${firstName.trim()} ${lastName.trim()}`;
   try {
     const passwordHash = await hashPassword(password);
     const user = await db.adminUser.create({
       data: {
         username: username.trim().toLowerCase(),
         email: email.toLowerCase().trim(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         name, role, phone: phone || null,
         passwordHash,
       },
@@ -54,11 +57,16 @@ export async function PATCH(req: Request) {
   const guard = await requireAdminRole(["SUPER"]);
   if (!guard.ok) return guard.res;
   const body = await req.json();
-  const { id, username, email, name, role, phone, active, password } = body;
+  const { id, username, email, firstName, lastName, role, phone, active, password } = body;
   if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
-  const data: any = { name, role, phone, active };
+  const data: any = { role, phone, active };
   if (username) data.username = username.trim().toLowerCase();
   if (email) data.email = email.toLowerCase().trim();
+  if (firstName?.trim() && lastName?.trim()) {
+    data.firstName = firstName.trim();
+    data.lastName = lastName.trim();
+    data.name = `${firstName.trim()} ${lastName.trim()}`;
+  }
   if (password && password.length >= 6) {
     data.passwordHash = await hashPassword(password);
   }
@@ -66,7 +74,7 @@ export async function PATCH(req: Request) {
   await audit({
     adminId: guard.session.sub, adminName: guard.session.name, adminRole: guard.session.role,
     action: "ADMIN_USER_UPDATE", target: id,
-    details: `Admin modifié: ${name}${password ? " (+mot de passe)" : ""}`,
+    details: `Admin modifié: ${data.name ?? ""}${password ? " (+mot de passe)" : ""}`,
     ipAddress: clientIp(req),
   });
   return NextResponse.json(stripSecrets(user));

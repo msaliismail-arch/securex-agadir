@@ -71,6 +71,8 @@ type AdminUser = {
   id: string;
   username: string;
   email: string;
+  firstName: string;
+  lastName: string;
   name: string;
   role: AdminRole;
   phone: string | null;
@@ -128,7 +130,8 @@ export default function UsersPage() {
       open: true,
       mode: "create",
       data: {
-        name: "",
+        firstName: "",
+        lastName: "",
         username: "",
         email: "",
         role: "RDV",
@@ -150,8 +153,8 @@ export default function UsersPage() {
 
   async function save() {
     const d = dialog.data;
-    if (!d.name || !d.email || !d.role || !d.username) {
-      toast.error("Nom, identifiant, email et rôle sont requis");
+    if (!d.firstName?.trim() || !d.lastName?.trim() || !d.email || !d.role || !d.username) {
+      toast.error("Prénom, nom, identifiant, email et rôle sont requis");
       return;
     }
     if (dialog.mode === "create") {
@@ -168,7 +171,8 @@ export default function UsersPage() {
     setBusy(true);
     try {
       const body: Record<string, unknown> = {
-        name: d.name,
+        firstName: d.firstName,
+        lastName: d.lastName,
         username: (d.username ?? "").trim().toLowerCase(),
         email: d.email.toLowerCase().trim(),
         role: d.role,
@@ -310,12 +314,12 @@ export default function UsersPage() {
                           <div className="flex items-center gap-2.5">
                             <Avatar className="h-9 w-9 border border-border">
                               <AvatarFallback className={cn("text-[11px] font-semibold", rc.soft, rc.fg)}>
-                                {initials(u.name)}
+                                {initials(u.name || (u.firstName + " " + u.lastName))}
                               </AvatarFallback>
                             </Avatar>
                             <div>
                               <div className="flex items-center gap-1.5">
-                                <span className="font-semibold text-foreground">{u.name}</span>
+                                <span className="font-semibold text-foreground">{u.name || `${u.firstName} ${u.lastName}`}</span>
                                 {isMe && (
                                   <Badge variant="outline" className="text-[9px] text-primary">
                                     Vous
@@ -396,13 +400,23 @@ export default function UsersPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Nom complet *</Label>
-              <Input
-                value={dialog.data.name ?? ""}
-                onChange={(e) => setDialog((p) => ({ ...p, data: { ...p.data, name: e.target.value } }))}
-                placeholder="Youssef El Amrani"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Prénom *</Label>
+                <Input
+                  value={dialog.data.firstName ?? ""}
+                  onChange={(e) => setDialog((p) => ({ ...p, data: { ...p.data, firstName: e.target.value } }))}
+                  placeholder="Ousak"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nom *</Label>
+                <Input
+                  value={dialog.data.lastName ?? ""}
+                  onChange={(e) => setDialog((p) => ({ ...p, data: { ...p.data, lastName: e.target.value } }))}
+                  placeholder="Almin"
+                />
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Identifiant *</Label>

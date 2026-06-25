@@ -7,9 +7,9 @@ const db = new PrismaClient();
 // Real admin accounts with username + hashed password (2FA removed per spec).
 const ADMIN_PASSWORD = "Securex@2026";
 const admins = [
-  { username: "superadmin", email: "admin.general@securex-connect.ma", name: "Youssef El Amrani", role: "SUPER", phone: "+212661234567" },
-  { username: "rdvadmin", email: "rdv@securex-connect.ma", name: "Fatima Zahra Benali", role: "RDV", phone: "+212662345678" },
-  { username: "reception", email: "reception@securex-connect.ma", name: "Karim Idrissi", role: "RECEPTION", phone: "+212663456789" },
+  { username: "superadmin", email: "ousak.almin@securex-connect.ma", firstName: "Ousak", lastName: "Almin", role: "SUPER", phone: "+212661234567" },
+  { username: "rdvadmin", email: "rdv@securex-connect.ma", firstName: "Fatima Zahra", lastName: "Benali", role: "RDV", phone: "+212662345678" },
+  { username: "reception", email: "reception@securex-connect.ma", firstName: "Karim", lastName: "Idrissi", role: "RECEPTION", phone: "+212663456789" },
 ];
 
 // Editable website content (Super Admin "Gestion du site").
@@ -112,7 +112,10 @@ async function main() {
   // Admins (with hashed passwords)
   const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
   for (const a of admins) {
-    await db.adminUser.create({ data: { ...a, passwordHash } });
+    const { firstName, lastName, ...rest } = a;
+    await db.adminUser.create({
+      data: { ...rest, firstName, lastName, name: `${firstName} ${lastName}`, passwordHash },
+    });
   }
   console.log(`  ✓ ${admins.length} admins (password: ${ADMIN_PASSWORD})`);
 

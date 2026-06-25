@@ -40,6 +40,8 @@ export async function POST(req: Request) {
     sub: admin.id,
     role: admin.role as AdminRole,
     name: admin.name,
+    firstName: admin.firstName,
+    lastName: admin.lastName,
     email: admin.email,
     username: admin.username,
   });

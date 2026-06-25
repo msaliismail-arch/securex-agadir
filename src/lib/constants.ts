@@ -83,7 +83,7 @@ export const ADMIN_ROLES: Record<
     accent: "#00C896",
     color: "green",
     username: "superadmin",
-    email: "admin.general@securex-connect.ma",
+    email: "ousak.almin@securex-connect.ma",
     permissions: [
       "Accès complet à tous les modules",
       "Gestion du site web (contenu éditable)",

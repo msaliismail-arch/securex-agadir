@@ -12,8 +12,10 @@ model AdminUser {
   id            String   @id @default(cuid())
   username      String   @unique
   email         String
-  name          String
-  role          String   // SUPER | RDV
+  firstName     String
+  lastName      String
+  name          String   // derived: firstName + " " + lastName (kept for compat)
+  role          String   // SUPER | RDV | RECEPTION
   phone         String?
   passwordHash  String
   twoFactorCode String?  // deprecated — 2FA removed; kept for schema compat

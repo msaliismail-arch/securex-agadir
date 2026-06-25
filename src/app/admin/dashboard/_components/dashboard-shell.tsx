@@ -19,6 +19,7 @@ import {
   Loader2,
   Globe2,
   ExternalLink,
+  UserCircle,
 } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { Logo } from "@/components/shared/logo";
@@ -158,8 +159,15 @@ function SidebarContent({
         })}
       </nav>
 
-      {/* Logout */}
-      <div className="border-t border-sidebar-border p-3">
+      {/* Profile + Logout */}
+      <div className="border-t border-sidebar-border p-3 space-y-1">
+        <Link
+          href="/admin/profile"
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        >
+          <UserCircle className="h-4 w-4" />
+          Mon profil
+        </Link>
         <Button
           variant="ghost"
           onClick={logout}

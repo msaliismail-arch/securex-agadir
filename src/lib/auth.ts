@@ -20,6 +20,8 @@ export interface SessionPayload {
   sub: string;
   role: SessionRole;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email?: string;
   phone?: string;
   username?: string;

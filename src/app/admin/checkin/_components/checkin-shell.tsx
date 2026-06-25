@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, ScanLine } from "lucide-react";
+import { LogOut, ScanLine, UserCircle } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,17 @@ export function CheckinShell({
               )}
             </div>
             <ThemeToggle />
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
+            >
+              <Link href="/admin/profile">
+                <UserCircle className="h-3.5 w-3.5 mr-1.5" />
+                Profil
+              </Link>
+            </Button>
             <Button
               variant="outline"
               size="sm"
