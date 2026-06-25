@@ -40,8 +40,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ found: false, message: "Aucune réservation trouvée pour ce code." }, { status: 200 });
   }
 
-  // ONE-TIME USE: reject if already checked in
-  if (appt.checkedInAt) {
+  // ONE-TIME USE: reject if already checked in (only for valid appointments)
+  if (appt.checkedInAt && (appt.status === "APPROVED" || appt.status === "COMPLETED")) {
     const when = new Date(appt.checkedInAt).toLocaleString("fr-FR", {
       day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
     });
@@ -58,18 +58,22 @@ export async function POST(req: Request) {
     }, { status: 200 });
   }
 
-  // Mark as checked in — one-time use enforced
-  await db.appointment.update({
-    where: { id: appt.id },
-    data: {
-      checkedInAt: new Date(),
-      checkedInBy: guard.session.name,
-    },
-  });
+  // Only consume the one-time use for VALID appointments (APPROVED / COMPLETED).
+  // PENDING / CANCELLED appointments don't burn the code — the client can come
+  // back after confirmation.
+  if (appt.status === "APPROVED" || appt.status === "COMPLETED") {
+    await db.appointment.update({
+      where: { id: appt.id },
+      data: {
+        checkedInAt: new Date(),
+        checkedInBy: guard.session.name,
+      },
+    });
+  }
 
   await audit({
     adminId: guard.session.sub, adminName: guard.session.name, adminRole: guard.session.role,
-    action: "CHECKIN_SUCCESS", target: appt.id, details: `Vérification RDV ${appt.code} (${appt.status}) — usage unique consommé`,
+    action: "CHECKIN_SUCCESS", target: appt.id, details: `Vérification RDV ${appt.code} (${appt.status})${appt.status === "APPROVED" || appt.status === "COMPLETED" ? " — usage unique consommé" : ""}`,
     ipAddress: clientIp(req),
   });
 
