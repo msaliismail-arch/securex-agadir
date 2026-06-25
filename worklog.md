@@ -622,3 +622,40 @@ Stage Summary:
 - Reception login: reception / Securex@2026 / 2FA 293715 → /admin/checkin.
 - Hero first screen now uses a realistic AI-generated photo of a vehicle inspector inspecting a car, with a green brand overlay — matching the user's request for "a real photo of a person doing vehicle inspection as background".
 - Lint clean, dev server clean, all routes 200.
+
+---
+Task ID: R4 (Real Contact Info + Remove 2FA + Email Unique)
+Agent: Main (Staff Engineer)
+Task: Update real contact info, remove 2FA verification codes from admins, enforce unique email per client
+
+Work Log:
+- Updated BRAND in lib/constants.ts with real contact info:
+  • Address: 14 Avenue Cadi Ayad, Zone Industrielle, Agadir 80000, Maroc
+  • Phone: +212 5 28 22 04 12
+  • Email: securexagadir@yahoo.fr
+  • Hours: Lun–Ven 08h00–16h00 · Sam 08h00–12h00 · Dim Fermé
+  • Updated MAPS_EMBED + MAPS_LINK with new address.
+- Updated prisma/seed.ts settings with the same real contact info + hours (08:00-16:00, 08:00-12:00, Fermé).
+- Removed 2FA verification codes from admin auth:
+  • prisma/schema.prisma: twoFactorCode changed from `String` (required) to `String?` (nullable, deprecated).
+  • /api/auth/admin-login: REWRITTEN to single-step — username + password (bcrypt verify) → createSession directly → {ok, redirect, role, name}. No more pending session, no 2FA step.
+  • /api/auth/admin-verify: DELETED (no longer needed).
+  • /admin/login/page.tsx: REWRITTEN to single-step form (username + password + "Se connecter" button). Removed step 2 (2FA InputOTP), removed "Étape 1/2" indicator, footer now says "connexion chiffrée · session 3h".
+  • /api/admin/users POST/PATCH: removed twoFactorCode from request handling.
+  • /admin/dashboard/users/page.tsx: removed 2FA field from dialog (Dialog type, openCreate, openEdit, save function, JSX input block). Removed show2fa state.
+  • prisma/seed.ts: removed twoFactorCode from admin data.
+- Enforced unique email per client:
+  • prisma/schema.prisma Client model: `email String? @unique` (was `email String?` — optional, not unique). SQLite allows multiple NULLs so optional emails still work.
+- Force-reset + re-seeded (3 admins, no 2FA codes).
+
+Verification (Agent Browser):
+- Homepage + contact page: show real info — +212 5 28 22 04 12, securexagadir@yahoo.fr, 14 Avenue Cadi Ayad Zone Industrielle Agadir 80000, Lun–Ven 8h–16h · Sam 8h–12h · Dim fermé.
+- Admin settings page: form prefilled with real address, phone, email, hours (08:00-16:00 / 08:00-12:00 / Fermé).
+- Admin login: SINGLE step (username + password → "SE CONNECTER"). No 2FA field. Logged in as superadmin / Securex@2026 → /admin/dashboard immediately. No 2FA step.
+- Lint clean, dev server clean, all routes 200.
+
+Stage Summary:
+- Real contact info live everywhere (address, phone, email, hours).
+- 2FA verification codes REMOVED from all 3 admins. Login = username + password only (single step).
+- Client email is now @unique (enforced at DB level). Client phone was already @unique.
+- Admin credentials (no more 2FA): superadmin / Securex@2026, rdvadmin / Securex@2026, reception / Securex@2026.

@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { verifyPassword, createPendingSession, destroyPendingSession } from "@/lib/auth";
+import { verifyPassword, createSession } from "@/lib/auth";
+import { ADMIN_ROLES, type AdminRole } from "@/lib/constants";
 import { audit } from "@/lib/audit";
 import { clientIp } from "@/lib/api-auth";
 
 /**
- * Step 1 of admin login: username + password.
- * On success, issues a short-lived (5 min) pending session token (NOT a real
- * session) so step 2 (/api/auth/admin-verify) can complete the 2FA check.
- * The 2FA code is NEVER sent back to the client.
+ * Admin login: username + password (bcrypt-verified).
+ * Single-step — 2FA verification codes have been removed per spec.
+ * The role is derived from the admin account in DB.
+ * Session TTL: 3h (set in lib/auth.ts).
  */
 export async function POST(req: Request) {
   const body = await req.json();
@@ -30,29 +31,30 @@ export async function POST(req: Request) {
     await audit({
       adminId: admin.id, adminName: admin.name, adminRole: admin.role,
       action: "ADMIN_LOGIN_FAILED", target: admin.id,
-      details: "Mot de passe incorrect (étape 1)", ipAddress: clientIp(req),
+      details: "Mot de passe incorrect", ipAddress: clientIp(req),
     });
     return NextResponse.json({ error: "Identifiants incorrects" }, { status: 401 });
   }
 
-  // Step 1 OK — issue pending token (5 min). Client must now enter 2FA code.
-  await createPendingSession({
+  await createSession({
     sub: admin.id,
-    username: admin.username,
-    role: admin.role,
+    role: admin.role as AdminRole,
     name: admin.name,
     email: admin.email,
+    username: admin.username,
+  });
+
+  await audit({
+    adminId: admin.id, adminName: admin.name, adminRole: admin.role,
+    action: "ADMIN_LOGIN", target: admin.id,
+    details: `Connexion ${ADMIN_ROLES[admin.role as AdminRole]?.label ?? admin.role}`,
+    ipAddress: clientIp(req),
   });
 
   return NextResponse.json({
-    pending: true,
-    name: admin.name,
+    ok: true,
+    redirect: ADMIN_ROLES[admin.role as AdminRole].route,
     role: admin.role,
+    name: admin.name,
   });
-}
-
-/** Cancel a pending 2FA session (e.g. user clicks "back"). */
-export async function DELETE() {
-  await destroyPendingSession();
-  return NextResponse.json({ ok: true });
 }

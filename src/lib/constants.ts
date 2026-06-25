@@ -5,30 +5,31 @@
 export const BRAND = {
   name: "SÉCUREX CONNECT",
   tagline: "Contrôle Technique Automobile Agréé",
-  address: "14 rue Cadi Ayad, Q.I., Agadir",
+  address: "14 Avenue Cadi Ayad, Zone Industrielle, Agadir 80000, Maroc",
   city: "Agadir",
-  phone: "+212 528 84 12 34",
-  phoneRaw: "+212528841234",
-  email: "contact@securex-connect.ma",
-  hours: "Lun–Ven 8h–18h · Sam 8h–13h",
-  hoursWeek: "08:00–18:00",
-  hoursSat: "08:00–13:00",
+  phone: "+212 5 28 22 04 12",
+  phoneRaw: "+212528220412",
+  email: "securexagadir@yahoo.fr",
+  hours: "Lun–Ven 8h–16h · Sam 8h–12h · Dim fermé",
+  hoursWeek: "08:00–16:00",
+  hoursSat: "08:00–12:00",
+  hoursSun: "Fermé",
   social: {
     facebook: "https://facebook.com/securexconnect",
     instagram: "https://instagram.com/securexconnect",
     linkedin: "https://linkedin.com/company/securexconnect",
     tiktok: "https://tiktok.com/@securexconnect",
   },
-  mapsQuery: "14 rue Cadi Ayad, Quartier Industriel, Agadir, Maroc",
+  mapsQuery: "14 Avenue Cadi Ayad, Zone Industrielle, Agadir 80000, Maroc",
   /** Cold professional green identity */
   primary: "#00C896",
   secondary: "#E8FFF8",
 } as const;
 
 export const MAPS_EMBED =
-  "https://www.google.com/maps?q=14%20rue%20Cadi%20Ayad%2C%20Quartier%20Industriel%2C%20Agadir%2C%20Maroc&output=embed";
+  "https://www.google.com/maps?q=14%20Avenue%20Cadi%20Ayad%2C%20Zone%20Industrielle%2C%20Agadir%2080000%2C%20Maroc&output=embed";
 export const MAPS_LINK =
-  "https://www.google.com/maps/search/?api=1&query=14%20rue%20Cadi%20Ayad%2C%20Agadir%2C%20Maroc";
+  "https://www.google.com/maps/search/?api=1&query=14%20Avenue%20Cadi%20Ayad%2C%20Zone%20Industrielle%2C%20Agadir%2080000%2C%20Maroc";
 
 /** Category color system — consistent app-wide. */
 export type CategoryColor =

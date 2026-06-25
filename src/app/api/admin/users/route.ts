@@ -22,15 +22,12 @@ export async function POST(req: Request) {
   const guard = await requireAdminRole(["SUPER"]);
   if (!guard.ok) return guard.res;
   const body = await req.json();
-  const { username, email, name, role, phone, password, twoFactorCode } = body;
+  const { username, email, name, role, phone, password } = body;
   if (!username || !email || !name || !role || !ADMIN_ROLES[role as AdminRole]) {
     return NextResponse.json({ error: "Champs invalides" }, { status: 400 });
   }
   if (!password || password.length < 6) {
     return NextResponse.json({ error: "Mot de passe requis (min. 6 caractères)" }, { status: 400 });
-  }
-  if (!twoFactorCode || twoFactorCode.length < 4) {
-    return NextResponse.json({ error: "Code 2FA requis (min. 4 caractères)" }, { status: 400 });
   }
   try {
     const passwordHash = await hashPassword(password);
@@ -40,7 +37,6 @@ export async function POST(req: Request) {
         email: email.toLowerCase().trim(),
         name, role, phone: phone || null,
         passwordHash,
-        twoFactorCode: twoFactorCode.trim(),
       },
     });
     await audit({
@@ -58,7 +54,7 @@ export async function PATCH(req: Request) {
   const guard = await requireAdminRole(["SUPER"]);
   if (!guard.ok) return guard.res;
   const body = await req.json();
-  const { id, username, email, name, role, phone, active, password, twoFactorCode } = body;
+  const { id, username, email, name, role, phone, active, password } = body;
   if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
   const data: any = { name, role, phone, active };
   if (username) data.username = username.trim().toLowerCase();
@@ -66,14 +62,11 @@ export async function PATCH(req: Request) {
   if (password && password.length >= 6) {
     data.passwordHash = await hashPassword(password);
   }
-  if (twoFactorCode && twoFactorCode.length >= 4) {
-    data.twoFactorCode = twoFactorCode.trim();
-  }
   const user = await db.adminUser.update({ where: { id }, data });
   await audit({
     adminId: guard.session.sub, adminName: guard.session.name, adminRole: guard.session.role,
     action: "ADMIN_USER_UPDATE", target: id,
-    details: `Admin modifié: ${name}${password ? " (+mot de passe)" : ""}${twoFactorCode ? " (+code 2FA)" : ""}`,
+    details: `Admin modifié: ${name}${password ? " (+mot de passe)" : ""}`,
     ipAddress: clientIp(req),
   });
   return NextResponse.json(stripSecrets(user));

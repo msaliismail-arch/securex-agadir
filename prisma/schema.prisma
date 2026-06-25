@@ -16,7 +16,7 @@ model AdminUser {
   role          String   // SUPER | RDV
   phone         String?
   passwordHash  String
-  twoFactorCode String   // per-admin 2FA verification code (never shown on site)
+  twoFactorCode String?  // deprecated — 2FA removed; kept for schema compat
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -35,7 +35,7 @@ model Client {
   id           String       @id @default(cuid())
   phone        String       @unique
   name         String
-  email        String?
+  email        String?      @unique
   channel      String       @default("SMS") // SMS | EMAIL | WHATSAPP
   vehicles     Vehicle[]
   appointments Appointment[]

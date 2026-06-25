@@ -87,7 +87,7 @@ const ROLE_BADGE: Record<AdminRole, { color: CategoryColor; icon: React.Componen
 type Dialog = {
   open: boolean;
   mode: "create" | "edit";
-  data: Partial<AdminUser> & { password?: string; twoFactorCode?: string };
+  data: Partial<AdminUser> & { password?: string };
 };
 
 export default function UsersPage() {
@@ -96,7 +96,6 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
-  const [show2fa, setShow2fa] = useState(false);
   const [dialog, setDialog] = useState<Dialog>({
     open: false,
     mode: "create",
@@ -136,20 +135,17 @@ export default function UsersPage() {
         phone: "",
         active: true,
         password: "",
-        twoFactorCode: "",
       },
     });
     setShowPwd(false);
-    setShow2fa(false);
   }
   function openEdit(u: AdminUser) {
     setDialog({
       open: true,
       mode: "edit",
-      data: { ...u, password: "", twoFactorCode: "" },
+      data: { ...u, password: "" },
     });
     setShowPwd(false);
-    setShow2fa(false);
   }
 
   async function save() {
@@ -163,17 +159,9 @@ export default function UsersPage() {
         toast.error("Mot de passe requis (6 caractères min.) à la création");
         return;
       }
-      if (!d.twoFactorCode || d.twoFactorCode.length !== 6) {
-        toast.error("Code 2FA requis (6 chiffres) à la création");
-        return;
-      }
     } else {
       if (d.password && d.password.length < 6) {
         toast.error("Le nouveau mot de passe doit faire au moins 6 caractères");
-        return;
-      }
-      if (d.twoFactorCode && d.twoFactorCode.length !== 6) {
-        toast.error("Le code 2FA doit comporter 6 chiffres");
         return;
       }
     }
@@ -189,10 +177,8 @@ export default function UsersPage() {
       };
       if (dialog.mode === "create") {
         body.password = d.password;
-        body.twoFactorCode = d.twoFactorCode;
       } else {
         if (d.password) body.password = d.password;
-        if (d.twoFactorCode) body.twoFactorCode = d.twoFactorCode;
       }
       const res = dialog.mode === "create"
         ? await fetch("/api/admin/users", {
@@ -470,40 +456,6 @@ export default function UsersPage() {
                 {dialog.mode === "create"
                   ? "Minimum 6 caractères. Sera chiffré (bcrypt) en base."
                   : "Renseignez uniquement pour réinitialiser le mot de passe."}
-              </p>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">
-                Code de vérification 2FA {dialog.mode === "create" ? "*" : "(réinitialiser)"}
-              </Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type={show2fa ? "text" : "password"}
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={6}
-                  value={dialog.data.twoFactorCode ?? ""}
-                  onChange={(e) => {
-                    const v = e.target.value.replace(/[^0-9]/g, "").slice(0, 6);
-                    setDialog((p) => ({ ...p, data: { ...p.data, twoFactorCode: v } }));
-                  }}
-                  placeholder={dialog.mode === "create" ? "••••••" : "Laisser vide pour conserver l'actuel"}
-                  className="pl-9 pr-9 font-mono tracking-[0.4em]"
-                  autoComplete="off"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShow2fa((v) => !v)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground transition hover:text-foreground"
-                  aria-label={show2fa ? "Masquer" : "Afficher"}
-                  tabIndex={-1}
-                >
-                  {show2fa ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                Code privé — jamais affiché sur le site. 6 chiffres.
               </p>
             </div>
             <div className="space-y-1.5">

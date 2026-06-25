@@ -4,13 +4,12 @@ import { generateQrToken } from "../src/lib/qr";
 
 const db = new PrismaClient();
 
-// Real admin accounts with username + hashed password + per-admin 2FA code.
-// 2FA codes are NEVER displayed on the site — provided to each admin privately.
+// Real admin accounts with username + hashed password (2FA removed per spec).
 const ADMIN_PASSWORD = "Securex@2026";
 const admins = [
-  { username: "superadmin", email: "admin.general@securex-connect.ma", name: "Youssef El Amrani", role: "SUPER", phone: "+212661234567", twoFactorCode: "847291" },
-  { username: "rdvadmin", email: "rdv@securex-connect.ma", name: "Fatima Zahra Benali", role: "RDV", phone: "+212662345678", twoFactorCode: "503846" },
-  { username: "reception", email: "reception@securex-connect.ma", name: "Karim Idrissi", role: "RECEPTION", phone: "+212663456789", twoFactorCode: "293715" },
+  { username: "superadmin", email: "admin.general@securex-connect.ma", name: "Youssef El Amrani", role: "SUPER", phone: "+212661234567" },
+  { username: "rdvadmin", email: "rdv@securex-connect.ma", name: "Fatima Zahra Benali", role: "RDV", phone: "+212662345678" },
+  { username: "reception", email: "reception@securex-connect.ma", name: "Karim Idrissi", role: "RECEPTION", phone: "+212663456789" },
 ];
 
 // Editable website content (Super Admin "Gestion du site").
@@ -109,12 +108,12 @@ async function main() {
   await db.otpRequest.deleteMany();
   await db.websiteContent.deleteMany();
 
-  // Admins (with hashed passwords + 2FA codes)
+  // Admins (with hashed passwords)
   const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
   for (const a of admins) {
     await db.adminUser.create({ data: { ...a, passwordHash } });
   }
-  console.log(`  ✓ ${admins.length} admins (password: ${ADMIN_PASSWORD}, 2FA codes set)`);
+  console.log(`  ✓ ${admins.length} admins (password: ${ADMIN_PASSWORD})`);
 
   // Website content (editable by Super Admin)
   for (const [k, v] of Object.entries(websiteContent)) {
@@ -122,17 +121,17 @@ async function main() {
   }
   console.log(`  ✓ ${Object.keys(websiteContent).length} website content blocks`);
 
-  // Settings
+  // Settings — real contact info
   const settings: Record<string, string> = {
-    "contact.address": "14 rue Cadi Ayad, Q.I., Agadir",
-    "contact.phone": "+212 528 84 12 34",
-    "contact.email": "contact@securex-connect.ma",
+    "contact.address": "14 Avenue Cadi Ayad, Zone Industrielle, Agadir 80000, Maroc",
+    "contact.phone": "+212 5 28 22 04 12",
+    "contact.email": "securexagadir@yahoo.fr",
     "contact.facebook": "https://facebook.com/securexconnect",
     "contact.instagram": "https://instagram.com/securexconnect",
     "contact.linkedin": "https://linkedin.com/company/securexconnect",
     "contact.tiktok": "https://tiktok.com/@securexconnect",
-    "hours.week": "08:00-18:00",
-    "hours.sat": "08:00-13:00",
+    "hours.week": "08:00-16:00",
+    "hours.sat": "08:00-12:00",
     "hours.sun": "Fermé",
     "slot.duration": "30",
   };
