@@ -41,9 +41,12 @@ export function CheckinShell({
             <Logo size={36} withText={false} />
             <div className="flex flex-col leading-none">
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-warning/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-warning border border-warning/20">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-primary border border-primary/20">
                   <ScanLine className="h-3.5 w-3.5" />
-                  Agent Scan QR
+                  Vérification QR
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-info/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-info border border-info/20">
+                  Super Admin
                 </span>
               </div>
               <span className="mt-1 text-[10px] text-muted-foreground">SÉCUREX CONNECT · Agadir</span>
@@ -65,7 +68,7 @@ export function CheckinShell({
               size="sm"
               onClick={handleLogout}
               disabled={loggingOut}
-              className="border-warning/30 text-warning hover:bg-warning/10 hover:text-warning"
+              className="border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
             >
               <LogOut className="h-3.5 w-3.5 mr-1.5" />
               Déconnexion
@@ -79,7 +82,7 @@ export function CheckinShell({
       </main>
 
       <footer className="mt-auto py-3 text-center text-[10px] text-muted-foreground border-t border-border">
-        Espace Réception · Vérification des réservations · SÉCUREX CONNECT
+        Vérification QR des passages véhicule · Super Admin · SÉCUREX CONNECT
       </footer>
     </div>
   );

@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import {
   Shield,
   ShieldCheck,
-  ShieldAlert,
   ChevronRight,
   ArrowLeft,
   Lock,
@@ -21,15 +20,14 @@ type RoleKey = AdminRole;
 
 const ROLE_ICONS: Record<RoleKey, React.ComponentType<{ className?: string }>> = {
   SUPER: ShieldCheck,
-  VALIDATION: Shield,
-  RECEPTION: ShieldAlert,
+  RDV: Shield,
 };
 
 const BOOT_LINES = [
   "> SÉCUREX CONNECT — SYSTÈME DE CONTRÔLE v3.0",
   "> Initialisation du terminal sécurisé...",
   "> Vérification des autorisations... OK",
-  "> 3 comptes administrateur détectés",
+  "> 2 comptes administrateur détectés",
   "> Sélectionnez votre niveau d'accès :",
 ];
 
@@ -132,7 +130,7 @@ export default function SelectAccountPage() {
         </div>
       </div>
 
-      <main className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col px-5 pb-12 pt-16 sm:px-8 sm:pt-20">
+      <main className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col px-5 pb-12 pt-16 sm:px-8 sm:pt-20">
         {/* Brand line */}
         <div className="mb-6 flex items-center gap-2.5">
           <ServerCog className="h-5 w-5 text-[#00C896]" style={{ filter: "drop-shadow(0 0 6px #00C89688)" }} />
@@ -165,7 +163,7 @@ export default function SelectAccountPage() {
 
         {/* Role cards */}
         <motion.section
-          className="grid flex-1 gap-4 sm:gap-5 md:grid-cols-3"
+          className="grid flex-1 gap-4 sm:gap-5 md:grid-cols-2"
           initial="hidden"
           animate={bootDone ? "visible" : "hidden"}
           variants={{

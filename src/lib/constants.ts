@@ -57,8 +57,8 @@ export const COLOR_MAP: Record<
   red: { fg: "text-red-700", bg: "bg-red-600", soft: "bg-red-50", border: "border-red-200", ring: "ring-red-500", hex: "#EB5757", label: "Rouge" },
 };
 
-/** Admin roles. */
-export type AdminRole = "SUPER" | "VALIDATION" | "RECEPTION";
+/** Admin roles — exactly 2 roles per spec. */
+export type AdminRole = "SUPER" | "RDV";
 
 export const ADMIN_ROLES: Record<
   AdminRole,
@@ -69,6 +69,7 @@ export const ADMIN_ROLES: Record<
     route: string;
     accent: string; // hex for terminal
     color: CategoryColor;
+    username: string;
     email: string;
     permissions: string[];
   }
@@ -80,60 +81,45 @@ export const ADMIN_ROLES: Record<
     route: "/admin/dashboard",
     accent: "#00C896",
     color: "green",
+    username: "superadmin",
     email: "admin.general@securex-connect.ma",
     permissions: [
-      "Accès complet à toutes les modules",
+      "Accès complet à tous les modules",
       "Gestion du site web (contenu éditable)",
       "Gestion catégories, services & tarifs",
       "Gestion annonces & notifications",
-      "Gestion utilisateurs & permissions",
+      "Gestion des administrateurs & permissions",
       "Gestion de tous les rendez-vous & véhicules",
       "Rapports d'inspection & certificats",
       "Statistiques avancées & analytics",
       "Journal d'audit immuable",
       "Paramètres système & identité visuelle",
+      "Vérification QR des passages véhicule",
     ],
   },
-  VALIDATION: {
+  RDV: {
     level: 2,
-    label: "Agent de Validation",
-    short: "VALIDATION",
+    label: "RDV Admin",
+    short: "RDV",
     route: "/admin/rdv",
     accent: "#2D9CDB",
     color: "blue",
-    email: "validation.rdv@securex-connect.ma",
+    username: "rdvadmin",
+    email: "rdv@securex-connect.ma",
     permissions: [
-      "Validation des demandes d'inspection",
-      "Approbation / rejet des contrôles",
-      "Génération du QR de validation",
-      "Gestion des rapports d'inspection",
-      "Tableau & calendrier des rendez-vous",
-    ],
-  },
-  RECEPTION: {
-    level: 1,
-    label: "Agent Scan QR/Code",
-    short: "RECEPTION",
-    route: "/admin/checkin",
-    accent: "#F2994A",
-    color: "orange",
-    email: "reception@securex-connect.ma",
-    permissions: [
-      "Scan des QR codes (caméra)",
-      "Vérification des codes d'inspection",
-      "Confirmation des passages véhicule",
-      "Compteur de validations du jour",
+      "Consultation des rendez-vous",
+      "Modification du statut uniquement",
+      "En attente · Confirmé · Terminé · Annulé",
     ],
   },
 };
 
 export const DEMO_OTP = "123456";
 
-/** Appointment statuses. */
+/** Appointment statuses — French labels per spec. */
 export type AppointmentStatus =
   | "PENDING"
   | "APPROVED"
-  | "REJECTED"
   | "COMPLETED"
   | "CANCELLED";
 
@@ -142,11 +128,13 @@ export const STATUS_META: Record<
   { label: string; color: CategoryColor; icon: string }
 > = {
   PENDING: { label: "En attente", color: "orange", icon: "Clock" },
-  APPROVED: { label: "Validé", color: "green", icon: "CheckCircle2" },
-  REJECTED: { label: "Rejeté", color: "red", icon: "XCircle" },
+  APPROVED: { label: "Confirmé", color: "green", icon: "CheckCircle2" },
   COMPLETED: { label: "Terminé", color: "purple", icon: "Award" },
   CANCELLED: { label: "Annulé", color: "gray", icon: "Ban" },
 };
+
+/** Statuses the RDV admin can set. */
+export const RDV_STATUSES: AppointmentStatus[] = ["PENDING", "APPROVED", "COMPLETED", "CANCELLED"];
 
 /** Default time slots (configurable via settings). */
 export const DEFAULT_SLOTS = [

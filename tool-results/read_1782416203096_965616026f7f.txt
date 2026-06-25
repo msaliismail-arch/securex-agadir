@@ -1,0 +1,618 @@
+     1→import Link from "next/link";
+     2→import {
+     3→  CalendarCheck, FileText, SearchCheck, Award, ShieldCheck, Clock, Zap,
+     4→  Users, Star, Phone, Mail, MapPin, Navigation, Facebook, Instagram, Linkedin,
+     5→  ChevronRight, Wrench, Gauge, BadgeCheck, MessageCircle, Car, Truck, Bike, Bus, Sparkles,
+     6→  type LucideIcon,
+     7→} from "lucide-react";
+     8→import { db } from "@/lib/db";
+     9→import { getWebsiteContent } from "@/lib/content";
+    10→import { BRAND, COLOR_MAP, MAPS_EMBED, MAPS_LINK, type CategoryColor } from "@/lib/constants";
+    11→import { formatMAD } from "@/lib/utils";
+    12→import { Button } from "@/components/ui/button";
+    13→import { Card } from "@/components/ui/card";
+    14→import { Badge } from "@/components/ui/badge";
+    15→import { StatsCounter } from "@/components/public/stats-counter";
+    16→import { Reveal } from "@/components/public/reveal";
+    17→import { HeroInspectionScene } from "@/components/public/hero-inspection-scene";
+    18→
+    19→const ICONS: Record<string, LucideIcon> = { Car, Truck, Bike, Bus };
+    20→
+    21→const STEPS: { icon: LucideIcon; title: string; desc: string }[] = [
+    22→  { icon: CalendarCheck, title: "Prenez rendez-vous", desc: "Réservez en ligne en moins de 2 minutes, choisissez votre créneau." },
+    23→  { icon: FileText, title: "Préparez vos documents", desc: "Carte grise, assurance et pièce d'identité du propriétaire." },
+    24→  { icon: SearchCheck, title: "Contrôle par nos experts", desc: "Inspection complète par nos techniciens certifiés, en 30 minutes." },
+    25→  { icon: Award, title: "Recevez votre certificat", desc: "Certificat officiel remis immédiatement après validation." },
+    26→];
+    27→
+    28→const FEATURES: { icon: LucideIcon; title: string; desc: string }[] = [
+    29→  { icon: Zap, title: "Équipements de pointe", desc: "Bancs d'essai et outils de diagnostic dernière génération." },
+    30→  { icon: BadgeCheck, title: "Techniciens certifiés", desc: "Une équipe agréée et formée aux normes les plus strictes." },
+    31→  { icon: ShieldCheck, title: "Certificat officiel", desc: "Document reconnu par les autorités marocaines." },
+    32→  { icon: Clock, title: "Rapide & fiable", desc: "Un contrôle complet en seulement 30 minutes en moyenne." },
+    33→  { icon: MessageCircle, title: "Rappel SMS / WhatsApp", desc: "Ne laissez plus passer la date d'expiration de votre contrôle." },
+    34→  { icon: Gauge, title: "Tarifs transparents", desc: "Des prix clairs, affichés à l'avance, sans surprise." },
+    35→];
+    36→
+    37→const TESTIMONIALS: {
+    38→  name: string; role: string; quote: string; rating: number; color: CategoryColor;
+    39→}[] = [
+    40→  { name: "Mehdi Tazi", role: "Agadir", quote: "Service rapide et professionnel. J'ai pris RDV en ligne et tout s'est déroulé sans attente. Je recommande vivement SÉCUREX CONNECT.", rating: 5, color: "blue" },
+    41→  { name: "Salma Ouazzani", role: "Dcheira", quote: "Accueil chaleureux, équipe compétente. Le rappel par WhatsApp avant l'expiration m'a été très utile. Centre sérieux.", rating: 5, color: "green" },
+    42→  { name: "Hicham Berrada", role: "Inezgane", quote: "Installation moderne et propre. Le certificat m'a été remis immédiatement. Tarifs très corrects par rapport à la qualité.", rating: 5, color: "orange" },
+    43→];
+    44→
+    45→/** Render a title with the highlight word wrapped in .text-brand-gradient. */
+    46→function HighlightTitle({ title, highlight }: { title: string; highlight?: string }) {
+    47→  if (!highlight) return <>{title}</>;
+    48→  const idx = title.toLowerCase().indexOf(highlight.toLowerCase());
+    49→  if (idx === -1) return <>{title}</>;
+    50→  const before = title.slice(0, idx);
+    51→  const match = title.slice(idx, idx + highlight.length);
+    52→  const after = title.slice(idx + highlight.length);
+    53→  return (
+    54→    <>
+    55→      {before}
+    56→      <span className="text-brand-gradient">{match}</span>
+    57→      {after}
+    58→    </>
+    59→  );
+    60→}
+    61→
+    62→export default async function HomePage() {
+    63→  const [content, categories, announcements] = await Promise.all([
+    64→    getWebsiteContent(),
+    65→    db.category.findMany({
+    66→      orderBy: { sort: "asc" },
+    67→      include: { services: { where: { active: true }, orderBy: { price: "asc" } } },
+    68→    }),
+    69→    db.announcement.findMany({
+    70→      where: { visible: true },
+    71→      orderBy: [{ pinned: "desc" }, { publishedAt: "desc" }],
+    72→    }),
+    73→  ]);
+    74→
+    75→  const heroTitle = content["hero.title"] ?? "Contrôle technique automobile agréé à Agadir";
+    76→  const heroHighlight = content["hero.titleHighlight"] || "agréé";
+    77→  const heroSubtitle =
+    78→    content["hero.subtitle"] ??
+    79→    "Sécurité, fiabilité et conformité pour tous vos véhicules. Prenez rendez-vous en ligne et recevez votre certificat officiel en 30 minutes.";
+    80→  const heroBadge = content["hero.badge"] ?? "Agréé Ministère du Transport";
+    81→  const ctaPrimary = content["hero.ctaPrimary"] ?? "Prendre rendez-vous";
+    82→  const ctaSecondary = content["hero.ctaSecondary"] ?? "Voir les tarifs";
+    83→
+    84→  const stats = [
+    85→    {
+    86→      value: Number(content["stats.controls"] ?? "15000"),
+    87→      suffix: content["stats.controlsSuffix"] ?? "+",
+    88→      label: content["stats.controlsLabel"] ?? "Contrôles réalisés",
+    89→    },
+    90→    {
+    91→      value: Number(content["stats.satisfaction"] ?? "49"),
+    92→      suffix: content["stats.satisfactionSuffix"] ?? "/50",
+    93→      label: content["stats.satisfactionLabel"] ?? "Satisfaction client",
+    94→    },
+    95→    {
+    96→      value: Number(content["stats.duration"] ?? "30"),
+    97→      suffix: content["stats.durationSuffix"] ?? " min",
+    98→      label: content["stats.durationLabel"] ?? "Durée moyenne",
+    99→    },
+   100→    {
+   101→      value: Number(content["stats.certified"] ?? "100"),
+   102→      suffix: content["stats.certifiedSuffix"] ?? "%",
+   103→      label: content["stats.certifiedLabel"] ?? "Agréé & conforme",
+   104→    },
+   105→  ];
+   106→
+   107→  const stepsTitle = content["steps.title"] ?? "Comment ça marche ?";
+   108→  const stepsSubtitle =
+   109→    content["steps.subtitle"] ?? "Quatre étapes pour un contrôle technique sans tracas.";
+   110→
+   111→  const featuresTitle = content["features.title"] ?? "Pourquoi nous choisir ?";
+   112→  const featuresSubtitle =
+   113→    content["features.subtitle"] ??
+   114→    "Une expérience de contrôle technique moderne, fiable et sans surprise.";
+   115→
+   116→  const testimonialsTitle = content["testimonials.title"] ?? "Ils nous font confiance";
+   117→
+   118→  const contactTitle = content["contact.title"] ?? "Nous trouver à Agadir";
+   119→  const contactSubtitle =
+   120→    content["contact.subtitle"] ?? "Facile d'accès au Quartier Industriel d'Agadir.";
+   121→
+   122→  const ctaTitle = content["cta.title"] ?? "Prêt à passer le contrôle technique ?";
+   123→  const ctaSubtitle =
+   124→    content["cta.subtitle"] ??
+   125→    "Réservez votre créneau en ligne dès maintenant et évitez l'attente. Certification officielle garantie.";
+   126→
+   127→  return (
+   128→    <>
+   129→      {/* ============ HERO — inspection center ambiance ============ */}
+   130→      <section className="relative overflow-hidden bg-mesh">
+   131→        {/* premium inspection-center backdrop: soft bay lighting + perspective floor */}
+   132→        <div className="pointer-events-none absolute inset-0">
+   133→          <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+   134→          <div className="absolute -bottom-32 left-0 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
+   135→          {/* overhead bay light strip */}
+   136→          <div className="absolute left-1/2 top-0 h-24 w-2/3 -translate-x-1/2 rounded-b-full bg-primary/[0.06] blur-2xl" />
+   137→          {/* faint perspective floor lines */}
+   138→          <svg className="absolute inset-x-0 bottom-0 h-1/3 w-full opacity-[0.07]" viewBox="0 0 1200 200" preserveAspectRatio="none" aria-hidden="true">
+   139→            <g stroke="#00C896" strokeWidth="1.5">
+   140→              <line x1="0" y1="200" x2="1200" y2="0" />
+   141→              <line x1="300" y1="200" x2="600" y2="0" />
+   142→              <line x1="600" y1="200" x2="900" y2="0" />
+   143→              <line x1="900" y1="200" x2="1200" y2="0" />
+   144→              <line x1="0" y1="200" x2="1200" y2="200" />
+   145→            </g>
+   146→          </svg>
+   147→        </div>
+   148→
+   149→        <div className="relative mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-24 lg:py-28">
+   150→          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+   151→            {/* LEFT — copy */}
+   152→            <Reveal>
+   153→              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary">
+   154→                <ShieldCheck className="h-3.5 w-3.5" />
+   155→                {heroBadge}
+   156→              </div>
+   157→
+   158→              <h1 className="mt-6 text-4xl font-bold leading-[1.08] tracking-tight text-foreground md:text-5xl lg:text-6xl">
+   159→                <HighlightTitle title={heroTitle} highlight={heroHighlight} />
+   160→              </h1>
+   161→
+   162→              <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+   163→                {heroSubtitle}
+   164→              </p>
+   165→
+   166→              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+   167→                <Button
+   168→                  asChild
+   169→                  size="lg"
+   170→                  className="h-12 bg-brand-gradient px-7 text-base text-white shadow-glow hover:opacity-90"
+   171→                >
+   172→                  <Link href="/rendez-vous">
+   173→                    <CalendarCheck className="mr-2 h-5 w-5" /> {ctaPrimary}
+   174→                  </Link>
+   175→                </Button>
+   176→                <Button
+   177→                  asChild
+   178→                  size="lg"
+   179→                  variant="outline"
+   180→                  className="h-12 border-primary/30 px-7 text-base text-primary hover:bg-primary/5"
+   181→                >
+   182→                  <Link href="/tarifs">
+   183→                    {ctaSecondary}
+   184→                    <ChevronRight className="ml-1 h-4 w-4" />
+   185→                  </Link>
+   186→                </Button>
+   187→              </div>
+   188→
+   189→              <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-3 text-sm text-muted-foreground">
+   190→                <span className="flex items-center gap-2">
+   191→                  <Clock className="h-4 w-4 text-primary" /> Contrôle en 30 min
+   192→                </span>
+   193→                <span className="flex items-center gap-2">
+   194→                  <Award className="h-4 w-4 text-primary" /> Certificat officiel
+   195→                </span>
+   196→                <span className="flex items-center gap-2">
+   197→                  <Users className="h-4 w-4 text-primary" /> 15 000+ contrôles réalisés
+   198→                </span>
+   199→              </div>
+   200→            </Reveal>
+   201→
+   202→            {/* RIGHT — realistic inspection scene */}
+   203→            <Reveal delay={0.15}>
+   204→              <HeroInspectionScene />
+   205→            </Reveal>
+   206→          </div>
+   207→        </div>
+   208→      </section>
+   209→
+   210→      {/* ============ STATS BAND ============ */}
+   211→      <section className="border-y border-border bg-secondary/40">
+   212→        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-4 px-6 py-12 md:grid-cols-4 md:gap-6">
+   213→          {stats.map((s) => (
+   214→            <Reveal key={s.label}>
+   215→              <div className="rounded-2xl glass-card p-6 text-center shadow-soft">
+   216→                <div className="text-3xl font-bold text-primary md:text-4xl">
+   217→                  <StatsCounter value={s.value} suffix={s.suffix} />
+   218→                </div>
+   219→                <p className="mt-1.5 text-sm text-muted-foreground">{s.label}</p>
+   220→              </div>
+   221→            </Reveal>
+   222→          ))}
+   223→        </div>
+   224→      </section>
+   225→
+   226→      {/* ============ HOW IT WORKS ============ */}
+   227→      <section className="mx-auto max-w-7xl px-6 py-20">
+   228→        <Reveal>
+   229→          <div className="mx-auto max-w-2xl text-center">
+   230→            <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+   231→              Processus simple
+   232→            </p>
+   233→            <h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+   234→              {stepsTitle}
+   235→            </h2>
+   236→            <p className="mt-3 text-muted-foreground">{stepsSubtitle}</p>
+   237→          </div>
+   238→        </Reveal>
+   239→
+   240→        <div className="relative mt-14 grid gap-8 md:grid-cols-4">
+   241→          <div className="absolute left-0 right-0 top-8 hidden h-px bg-border md:block" />
+   242→          {STEPS.map((step, i) => (
+   243→            <Reveal key={step.title} delay={i * 0.08}>
+   244→              <div className="relative text-center">
+   245→                <div className="relative z-10 mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-gradient text-white shadow-glow">
+   246→                  <step.icon className="h-7 w-7" />
+   247→                </div>
+   248→                <span className="mt-4 inline-block text-xs font-bold uppercase tracking-wider text-primary">
+   249→                  Étape {i + 1}
+   250→                </span>
+   251→                <h3 className="mt-1 text-lg font-semibold text-foreground">{step.title}</h3>
+   252→                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.desc}</p>
+   253→              </div>
+   254→            </Reveal>
+   255→          ))}
+   256→        </div>
+   257→      </section>
+   258→
+   259→      {/* ============ CATEGORIES + TARIFS ============ */}
+   260→      <section className="bg-secondary/40 py-20">
+   261→        <div className="mx-auto max-w-7xl px-6">
+   262→          <Reveal>
+   263→            <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
+   264→              <div className="max-w-2xl">
+   265→                <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+   266→                  Nos services
+   267→                </p>
+   268→                <h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+   269→                  Catégories de véhicules &amp; tarifs
+   270→                </h2>
+   271→                <p className="mt-3 text-muted-foreground">
+   272→                  Des tarifs clairs et transparents pour chaque type de véhicule.
+   273→                </p>
+   274→              </div>
+   275→              <Button
+   276→                asChild
+   277→                variant="outline"
+   278→                className="border-primary/30 text-primary hover:bg-primary/5"
+   279→              >
+   280→                <Link href="/tarifs">
+   281→                  Tous les tarifs <ChevronRight className="ml-1 h-4 w-4" />
+   282→                </Link>
+   283→              </Button>
+   284→            </div>
+   285→          </Reveal>
+   286→
+   287→          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+   288→            {categories.map((cat, i) => {
+   289→              const c = COLOR_MAP[cat.color as CategoryColor] ?? COLOR_MAP.green;
+   290→              const Icon = ICONS[cat.icon] || Car;
+   291→              const minPrice = cat.services.length
+   292→                ? Math.min(...cat.services.map((s) => s.price))
+   293→                : 0;
+   294→              return (
+   295→                <Reveal key={cat.id} delay={i * 0.06}>
+   296→                  <Card className="group relative h-full overflow-hidden border-border p-6 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-card">
+   297→                    <div className={`absolute inset-x-0 top-0 h-1 ${c.bg}`} />
+   298→                    <div
+   299→                      className={`flex h-14 w-14 items-center justify-center rounded-xl ${c.soft} ${c.fg}`}
+   300→                    >
+   301→                      <Icon className="h-7 w-7" />
+   302→                    </div>
+   303→                    <h3 className="mt-5 text-lg font-semibold text-foreground">{cat.name}</h3>
+   304→                    <p className="mt-1.5 min-h-[40px] text-sm leading-relaxed text-muted-foreground">
+   305→                      {cat.description}
+   306→                    </p>
+   307→                    <div className="mt-4 flex items-baseline gap-1">
+   308→                      <span className="text-xs text-muted-foreground">à partir de</span>
+   309→                      <span className={`text-2xl font-bold ${c.fg}`}>{formatMAD(minPrice)}</span>
+   310→                    </div>
+   311→                    <Button
+   312→                      asChild
+   313→                      variant="outline"
+   314→                      className={`mt-5 w-full border ${c.border} ${c.fg} hover:${c.soft}`}
+   315→                    >
+   316→                      <Link href={`/rendez-vous?category=${cat.slug}`}>
+   317→                        Réserver <ChevronRight className="ml-1 h-4 w-4" />
+   318→                      </Link>
+   319→                    </Button>
+   320→                  </Card>
+   321→                </Reveal>
+   322→              );
+   323→            })}
+   324→          </div>
+   325→        </div>
+   326→      </section>
+   327→
+   328→      {/* ============ WHY CHOOSE US ============ */}
+   329→      <section className="mx-auto max-w-7xl px-6 py-20">
+   330→        <Reveal>
+   331→          <div className="mx-auto max-w-2xl text-center">
+   332→            <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+   333→              Notre engagement
+   334→            </p>
+   335→            <h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+   336→              {featuresTitle}
+   337→            </h2>
+   338→            <p className="mt-3 text-muted-foreground">{featuresSubtitle}</p>
+   339→          </div>
+   340→        </Reveal>
+   341→
+   342→        <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+   343→          {FEATURES.map((f, i) => (
+   344→            <Reveal key={f.title} delay={i * 0.06}>
+   345→              <Card className="h-full border-border p-6 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-card">
+   346→                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+   347→                  <f.icon className="h-6 w-6" />
+   348→                </div>
+   349→                <h3 className="mt-4 text-base font-semibold text-foreground">{f.title}</h3>
+   350→                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
+   351→              </Card>
+   352→            </Reveal>
+   353→          ))}
+   354→        </div>
+   355→      </section>
+   356→
+   357→      {/* ============ ANNOUNCEMENTS ============ */}
+   358→      {announcements.length > 0 && (
+   359→        <section className="bg-secondary/40 py-20">
+   360→          <div className="mx-auto max-w-7xl px-6">
+   361→            <Reveal>
+   362→              <div className="mx-auto max-w-2xl text-center">
+   363→                <p className="text-sm font-semibold uppercase tracking-wider text-orange-500">
+   364→                  Actualités
+   365→                </p>
+   366→                <h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+   367→                  Annonces &amp; promotions
+   368→                </h2>
+   369→                <p className="mt-3 text-muted-foreground">
+   370→                  Restez informé de nos offres et informations importantes.
+   371→                </p>
+   372→              </div>
+   373→            </Reveal>
+   374→
+   375→            <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+   376→              {announcements.slice(0, 3).map((a, i) => (
+   377→                <Reveal key={a.id} delay={i * 0.06}>
+   378→                  <Card
+   379→                    className={`relative h-full border-border p-6 shadow-soft ${
+   380→                      a.pinned ? "ring-1 ring-orange-300" : ""
+   381→                    }`}
+   382→                  >
+   383→                    {a.pinned && (
+   384→                      <Badge className="absolute -top-2.5 right-4 bg-orange-500 text-white">
+   385→                        Épinglé
+   386→                      </Badge>
+   387→                    )}
+   388→                    <Badge
+   389→                      variant="outline"
+   390→                      className="mb-3 border-orange-200 bg-orange-50 text-orange-700"
+   391→                    >
+   392→                      {a.category}
+   393→                    </Badge>
+   394→                    <h3 className="text-lg font-semibold text-foreground">{a.title}</h3>
+   395→                    <p className="mt-2 line-clamp-4 text-sm leading-relaxed text-muted-foreground">
+   396→                      {a.content}
+   397→                    </p>
+   398→                    <p className="mt-4 text-xs text-muted-foreground">
+   399→                      {new Date(a.publishedAt).toLocaleDateString("fr-FR", {
+   400→                        day: "2-digit",
+   401→                        month: "long",
+   402→                        year: "numeric",
+   403→                      })}
+   404→                    </p>
+   405→                  </Card>
+   406→                </Reveal>
+   407→              ))}
+   408→            </div>
+   409→          </div>
+   410→        </section>
+   411→      )}
+   412→
+   413→      {/* ============ TESTIMONIALS ============ */}
+   414→      <section className="mx-auto max-w-7xl px-6 py-20">
+   415→        <Reveal>
+   416→          <div className="mx-auto max-w-2xl text-center">
+   417→            <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+   418→              Témoignages
+   419→            </p>
+   420→            <h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+   421→              {testimonialsTitle}
+   422→            </h2>
+   423→          </div>
+   424→        </Reveal>
+   425→
+   426→        <div className="mt-12 grid gap-6 md:grid-cols-3">
+   427→          {TESTIMONIALS.map((t, i) => {
+   428→            const c = COLOR_MAP[t.color];
+   429→            return (
+   430→              <Reveal key={t.name} delay={i * 0.08}>
+   431→                <Card className="h-full border-border p-6 shadow-soft">
+   432→                  <div className="flex gap-1">
+   433→                    {Array.from({ length: t.rating }).map((_, k) => (
+   434→                      <Star key={k} className="h-4 w-4 fill-amber-400 text-amber-400" />
+   435→                    ))}
+   436→                  </div>
+   437→                  <p className="mt-4 text-sm leading-relaxed text-foreground/80">
+   438→                    “{t.quote}”
+   439→                  </p>
+   440→                  <div className="mt-5 flex items-center gap-3">
+   441→                    <div
+   442→                      className={`flex h-10 w-10 items-center justify-center rounded-full ${c.soft} ${c.fg} text-sm font-bold`}
+   443→                    >
+   444→                      {t.name
+   445→                        .split(" ")
+   446→                        .map((n) => n[0])
+   447→                        .join("")}
+   448→                    </div>
+   449→                    <div>
+   450→                      <p className="text-sm font-semibold text-foreground">{t.name}</p>
+   451→                      <p className="text-xs text-muted-foreground">{t.role}</p>
+   452→                    </div>
+   453→                  </div>
+   454→                </Card>
+   455→              </Reveal>
+   456→            );
+   457→          })}
+   458→        </div>
+   459→      </section>
+   460→
+   461→      {/* ============ LOCATION ============ */}
+   462→      <section className="bg-secondary/40 py-20">
+   463→        <div className="mx-auto max-w-7xl px-6">
+   464→          <Reveal>
+   465→            <div className="mx-auto max-w-2xl text-center">
+   466→              <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+   467→                Contact &amp; localisation
+   468→              </p>
+   469→              <h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+   470→                {contactTitle}
+   471→              </h2>
+   472→              <p className="mt-3 text-muted-foreground">{contactSubtitle}</p>
+   473→            </div>
+   474→          </Reveal>
+   475→
+   476→          <div className="mt-12 grid gap-8 lg:grid-cols-2">
+   477→            <Reveal>
+   478→              <div className="overflow-hidden rounded-2xl border border-border shadow-card">
+   479→                <iframe
+   480→                  title="Localisation SÉCUREX CONNECT Agadir"
+   481→                  src={MAPS_EMBED}
+   482→                  width="100%"
+   483→                  height="100%"
+   484→                  loading="lazy"
+   485→                  referrerPolicy="no-referrer-when-downgrade"
+   486→                  className="min-h-[360px] w-full"
+   487→                />
+   488→              </div>
+   489→            </Reveal>
+   490→
+   491→            <Reveal delay={0.1}>
+   492→              <Card className="h-full border-border p-8 shadow-soft">
+   493→                <div className="space-y-6">
+   494→                  <ContactRow icon={MapPin} title="Adresse" accent>
+   495→                    <p className="text-sm text-muted-foreground">{BRAND.address}</p>
+   496→                  </ContactRow>
+   497→                  <ContactRow icon={Phone} title="Téléphone" accent>
+   498→                    <a
+   499→                      href={`tel:${BRAND.phoneRaw}`}
+   500→                      className="text-sm text-muted-foreground transition-colors hover:text-primary"
+   501→                    >
+   502→                      {BRAND.phone}
+   503→                    </a>
+   504→                  </ContactRow>
+   505→                  <ContactRow icon={Mail} title="Email" accent>
+   506→                    <a
+   507→                      href={`mailto:${BRAND.email}`}
+   508→                      className="text-sm text-muted-foreground transition-colors hover:text-primary"
+   509→                    >
+   510→                      {BRAND.email}
+   511→                    </a>
+   512→                  </ContactRow>
+   513→                  <ContactRow icon={Clock} title="Horaires" accent>
+   514→                    <p className="text-sm text-muted-foreground">{BRAND.hours}</p>
+   515→                  </ContactRow>
+   516→
+   517→                  <div className="flex flex-wrap gap-3 pt-2">
+   518→                    <Button asChild className="bg-brand-gradient text-white shadow-soft hover:opacity-90">
+   519→                      <a href={MAPS_LINK} target="_blank" rel="noopener noreferrer">
+   520→                        <Navigation className="mr-1.5 h-4 w-4" /> Itinéraire
+   521→                      </a>
+   522→                    </Button>
+   523→                    <Button asChild variant="outline" className="border-primary/30 text-primary hover:bg-primary/5">
+   524→                      <Link href="/contact">Nous contacter</Link>
+   525→                    </Button>
+   526→                  </div>
+   527→
+   528→                  <div className="flex gap-3 border-t border-border pt-5">
+   529→                    <SocialLink href={BRAND.social.facebook} label="Facebook" />
+   530→                    <SocialLink href={BRAND.social.instagram} label="Instagram" />
+   531→                    <SocialLink href={BRAND.social.linkedin} label="LinkedIn" />
+   532→                  </div>
+   533→                </div>
+   534→              </Card>
+   535→            </Reveal>
+   536→          </div>
+   537→        </div>
+   538→      </section>
+   539→
+   540→      {/* ============ FINAL CTA ============ */}
+   541→      <section className="bg-brand-gradient py-20">
+   542→        <div className="mx-auto max-w-4xl px-6 text-center">
+   543→          <Sparkles className="mx-auto h-10 w-10 text-white" />
+   544→          <h2 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-4xl">
+   545→            {ctaTitle}
+   546→          </h2>
+   547→          <p className="mx-auto mt-4 max-w-xl text-white/85">{ctaSubtitle}</p>
+   548→          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+   549→            <Button
+   550→              asChild
+   551→              size="lg"
+   552→              className="h-12 bg-white px-8 text-base text-primary shadow-float hover:bg-white/90"
+   553→            >
+   554→              <Link href="/rendez-vous">
+   555→                <CalendarCheck className="mr-2 h-5 w-5" /> {ctaPrimary}
+   556→              </Link>
+   557→            </Button>
+   558→            <Button
+   559→              asChild
+   560→              size="lg"
+   561→              variant="outline"
+   562→              className="h-12 border-white/40 bg-white/10 px-8 text-base text-white hover:bg-white/20 hover:text-white"
+   563→            >
+   564→              <Link href="/contact">Poser une question</Link>
+   565→            </Button>
+   566→          </div>
+   567→        </div>
+   568→      </section>
+   569→    </>
+   570→  );
+   571→}
+   572→
+   573→/* ---------- small helpers ---------- */
+   574→
+   575→function ContactRow({
+   576→  icon: Icon,
+   577→  title,
+   578→  children,
+   579→  accent,
+   580→}: {
+   581→  icon: LucideIcon;
+   582→  title: string;
+   583→  children: React.ReactNode;
+   584→  accent?: boolean;
+   585→}) {
+   586→  return (
+   587→    <div className="flex gap-4">
+   588→      <div
+   589→        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+   590→          accent ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+   591→        }`}
+   592→      >
+   593→        <Icon className="h-5 w-5" />
+   594→      </div>
+   595→      <div>
+   596→        <p className="text-sm font-semibold text-foreground">{title}</p>
+   597→        {children}
+   598→      </div>
+   599→    </div>
+   600→  );
+   601→}
+   602→
+   603→function SocialLink({ href, label }: { href: string; label: string }) {
+   604→  return (
+   605→    <a
+   606→      href={href}
+   607→      target="_blank"
+   608→      rel="noopener noreferrer"
+   609→      aria-label={label}
+   610→      className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground shadow-soft transition-all hover:bg-primary hover:text-white hover:shadow-glow"
+   611→    >
+   612→      {label === "Facebook" && <Facebook className="h-4 w-4" />}
+   613→      {label === "Instagram" && <Instagram className="h-4 w-4" />}
+   614→      {label === "LinkedIn" && <Linkedin className="h-4 w-4" />}
+   615→    </a>
+   616→  );
+   617→}
+   618→

@@ -10,6 +10,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   User,
   Phone,
   Car,
@@ -25,9 +32,13 @@ import {
   StickyNote,
 } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/utils";
+import { STATUS_META, RDV_STATUSES, type AppointmentStatus } from "@/lib/constants";
 import type { Appointment } from "./types";
 import { CategoryBadge, StatusBadge } from "./badges";
 import { QrDisplay } from "./qr-display";
+import { useIsStatusOnly } from "./rdv-context";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface Props {
   open: boolean;
@@ -35,7 +46,6 @@ interface Props {
   appointment: Appointment | null;
   adminName: string;
   onValidate?: (appt: Appointment) => void;
-  onReject?: (appt: Appointment) => void;
   onComplete?: (appt: Appointment) => void;
 }
 
@@ -43,12 +53,43 @@ export function DetailSheet({
   open,
   onOpenChange,
   appointment,
-  adminName,
   onValidate,
-  onReject,
   onComplete,
 }: Props) {
+  const statusOnly = useIsStatusOnly();
+  const [busy, setBusy] = useState(false);
+
   if (!appointment) return null;
+
+  async function changeStatus(appt: Appointment, next: AppointmentStatus) {
+    if (next === appt.status) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/appointments/${appt.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Échec de la mise à jour du statut");
+        return;
+      }
+      toast.success(`Statut mis à jour · ${STATUS_META[next].label}`);
+      onValidate?.(data as Appointment);
+    } catch {
+      toast.error("Erreur réseau — réessayez");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Show status-only footer when the admin can only change status
+  const showStatusOnlyFooter = statusOnly;
+
+  // Show full action footer only when SUPER (or statusOnly is false) AND status is PENDING/APPROVED
+  const showFullFooter =
+    !statusOnly && (appointment.status === "PENDING" || appointment.status === "APPROVED");
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -187,32 +228,44 @@ export function DetailSheet({
           </div>
         </div>
 
-        {/* Footer actions */}
-        {(appointment.status === "PENDING" ||
-          appointment.status === "APPROVED") && (
+        {/* Footer: status-only */}
+        {showStatusOnlyFooter && (
+          <div className="sticky bottom-0 border-t border-border bg-card p-4 space-y-2">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Modifier le statut
+            </div>
+            <Select
+              value={appointment.status}
+              disabled={busy}
+              onValueChange={(v) => changeStatus(appointment, v as AppointmentStatus)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {RDV_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {STATUS_META[s].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Footer: full actions (SUPER only) */}
+        {showFullFooter && (
           <div className="sticky bottom-0 border-t border-border bg-card p-4 flex flex-wrap gap-2">
             {appointment.status === "PENDING" && (
-              <>
-                <Button
-                  className="flex-1 bg-brand-gradient text-white hover:opacity-90"
-                  onClick={() => {
-                    onValidate?.(appointment);
-                    onOpenChange(false);
-                  }}
-                >
-                  <CheckCircle2 className="h-4 w-4 mr-2" /> Valider
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
-                  onClick={() => {
-                    onReject?.(appointment);
-                    onOpenChange(false);
-                  }}
-                >
-                  <XCircle className="h-4 w-4 mr-2" /> Rejeter
-                </Button>
-              </>
+              <Button
+                className="flex-1 bg-brand-gradient text-white hover:opacity-90"
+                onClick={() => {
+                  onValidate?.(appointment);
+                  onOpenChange(false);
+                }}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" /> Valider
+              </Button>
             )}
             {appointment.status === "APPROVED" && (
               <Button
@@ -285,3 +338,4 @@ function SubResult({ label, v }: { label: string; v: string }) {
     </div>
   );
 }
+

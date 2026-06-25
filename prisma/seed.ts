@@ -4,12 +4,12 @@ import { generateQrToken } from "../src/lib/qr";
 
 const db = new PrismaClient();
 
-// Real admin accounts with hashed passwords (per role).
+// Real admin accounts with username + hashed password + per-admin 2FA code.
+// 2FA codes are NEVER displayed on the site — provided to each admin privately.
 const ADMIN_PASSWORD = "Securex@2026";
 const admins = [
-  { email: "admin.general@securex-connect.ma", name: "Youssef El Amrani", role: "SUPER", phone: "+212661234567" },
-  { email: "validation.rdv@securex-connect.ma", name: "Fatima Zahra Benali", role: "VALIDATION", phone: "+212662345678" },
-  { email: "reception@securex-connect.ma", name: "Karim Idrissi", role: "RECEPTION", phone: "+212663456789" },
+  { username: "superadmin", email: "admin.general@securex-connect.ma", name: "Youssef El Amrani", role: "SUPER", phone: "+212661234567", twoFactorCode: "847291" },
+  { username: "rdvadmin", email: "rdv@securex-connect.ma", name: "Fatima Zahra Benali", role: "RDV", phone: "+212662345678", twoFactorCode: "503846" },
 ];
 
 // Editable website content (Super Admin "Gestion du site").
@@ -108,12 +108,12 @@ async function main() {
   await db.otpRequest.deleteMany();
   await db.websiteContent.deleteMany();
 
-  // Admins (with hashed passwords)
+  // Admins (with hashed passwords + 2FA codes)
   const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
   for (const a of admins) {
     await db.adminUser.create({ data: { ...a, passwordHash } });
   }
-  console.log(`  ✓ ${admins.length} admins (password: ${ADMIN_PASSWORD})`);
+  console.log(`  ✓ ${admins.length} admins (password: ${ADMIN_PASSWORD}, 2FA codes set)`);
 
   // Website content (editable by Super Admin)
   for (const [k, v] of Object.entries(websiteContent)) {
@@ -173,7 +173,7 @@ async function main() {
     { status: "APPROVED", dayOffset: -2, slot: "15:30", idx: 3, generateQr: true },
     { status: "COMPLETED", dayOffset: -7, slot: "09:00", idx: 0, generateQr: true },
     { status: "COMPLETED", dayOffset: -10, slot: "16:00", idx: 1, generateQr: true },
-    { status: "REJECTED", dayOffset: -5, slot: "11:30", idx: 2 },
+    { status: "CANCELLED", dayOffset: -5, slot: "11:30", idx: 2 },
     { status: "CANCELLED", dayOffset: -3, slot: "14:30", idx: 4 },
     { status: "PENDING", dayOffset: 5, slot: "10:30", idx: 4 },
     { status: "APPROVED", dayOffset: 1, slot: "08:30", idx: 1, generateQr: true },

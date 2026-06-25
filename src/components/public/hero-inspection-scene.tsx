@@ -22,7 +22,7 @@ const EXIT = 0.72;
 export function HeroInspectionScene() {
   return (
     <div
-      className="relative h-[380px] w-full overflow-hidden rounded-3xl glass-card shadow-float sm:h-[460px]"
+      className="relative h-[380px] w-full overflow-hidden rounded-3xl border border-white/40 bg-white/5 shadow-float backdrop-blur-sm sm:h-[460px]"
       aria-label="Scène de contrôle technique : véhicule inspecté par un professionnel"
       role="img"
     >

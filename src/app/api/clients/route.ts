@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { requireAdminRole } from "@/lib/api-auth";
 
 export async function GET(req: Request) {
-  const guard = await requireAdminRole(["SUPER", "VALIDATION"]);
+  const guard = await requireAdminRole(["SUPER", "RDV"]);
   if (!guard.ok) return guard.res;
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q");

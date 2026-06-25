@@ -8,7 +8,7 @@ import { audit } from "@/lib/audit";
  * Returns the appointment + result so the reception screen can render success/fail.
  */
 export async function POST(req: Request) {
-  const guard = await requireAdminRole(["RECEPTION", "SUPER", "VALIDATION"]);
+  const guard = await requireAdminRole(["SUPER"]);
   if (!guard.ok) return guard.res;
 
   const body = await req.json();

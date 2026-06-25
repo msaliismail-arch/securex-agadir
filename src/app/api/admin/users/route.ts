@@ -5,39 +5,52 @@ import { audit } from "@/lib/audit";
 import { hashPassword } from "@/lib/auth";
 import { ADMIN_ROLES, type AdminRole } from "@/lib/constants";
 
+/** Strip secrets from an admin user object (never expose passwordHash or twoFactorCode). */
+function stripSecrets(u: any) {
+  const { passwordHash, twoFactorCode, ...safe } = u;
+  return safe;
+}
+
 export async function GET() {
   const guard = await requireAdminRole(["SUPER"]);
   if (!guard.ok) return guard.res;
   const users = await db.adminUser.findMany({ orderBy: { createdAt: "desc" } });
-  // Never expose passwordHash
-  return NextResponse.json(users.map(({ passwordHash, ...u }) => u));
+  return NextResponse.json(users.map(stripSecrets));
 }
 
 export async function POST(req: Request) {
   const guard = await requireAdminRole(["SUPER"]);
   if (!guard.ok) return guard.res;
   const body = await req.json();
-  const { email, name, role, phone, password } = body;
-  if (!email || !name || !role || !ADMIN_ROLES[role as AdminRole]) {
+  const { username, email, name, role, phone, password, twoFactorCode } = body;
+  if (!username || !email || !name || !role || !ADMIN_ROLES[role as AdminRole]) {
     return NextResponse.json({ error: "Champs invalides" }, { status: 400 });
   }
   if (!password || password.length < 6) {
     return NextResponse.json({ error: "Mot de passe requis (min. 6 caractères)" }, { status: 400 });
   }
+  if (!twoFactorCode || twoFactorCode.length < 4) {
+    return NextResponse.json({ error: "Code 2FA requis (min. 4 caractères)" }, { status: 400 });
+  }
   try {
     const passwordHash = await hashPassword(password);
     const user = await db.adminUser.create({
-      data: { email: email.toLowerCase().trim(), name, role, phone: phone || null, passwordHash },
+      data: {
+        username: username.trim().toLowerCase(),
+        email: email.toLowerCase().trim(),
+        name, role, phone: phone || null,
+        passwordHash,
+        twoFactorCode: twoFactorCode.trim(),
+      },
     });
     await audit({
       adminId: guard.session.sub, adminName: guard.session.name, adminRole: guard.session.role,
-      action: "ADMIN_USER_CREATE", target: user.id, details: `Admin créé: ${name} (${role})`,
+      action: "ADMIN_USER_CREATE", target: user.id, details: `Admin créé: ${name} (${role}, @${username})`,
       ipAddress: clientIp(req),
     });
-    const { passwordHash: _ph, ...safe } = user;
-    return NextResponse.json(safe, { status: 201 });
+    return NextResponse.json(stripSecrets(user), { status: 201 });
   } catch {
-    return NextResponse.json({ error: "Email déjà utilisé" }, { status: 400 });
+    return NextResponse.json({ error: "Identifiant ou email déjà utilisé" }, { status: 400 });
   }
 }
 
@@ -45,20 +58,25 @@ export async function PATCH(req: Request) {
   const guard = await requireAdminRole(["SUPER"]);
   if (!guard.ok) return guard.res;
   const body = await req.json();
-  const { id, name, role, phone, active, password } = body;
+  const { id, username, email, name, role, phone, active, password, twoFactorCode } = body;
   if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
   const data: any = { name, role, phone, active };
+  if (username) data.username = username.trim().toLowerCase();
+  if (email) data.email = email.toLowerCase().trim();
   if (password && password.length >= 6) {
     data.passwordHash = await hashPassword(password);
+  }
+  if (twoFactorCode && twoFactorCode.length >= 4) {
+    data.twoFactorCode = twoFactorCode.trim();
   }
   const user = await db.adminUser.update({ where: { id }, data });
   await audit({
     adminId: guard.session.sub, adminName: guard.session.name, adminRole: guard.session.role,
-    action: "ADMIN_USER_UPDATE", target: id, details: `Admin modifié: ${name}${password ? " (+mot de passe)" : ""}`,
+    action: "ADMIN_USER_UPDATE", target: id,
+    details: `Admin modifié: ${name}${password ? " (+mot de passe)" : ""}${twoFactorCode ? " (+code 2FA)" : ""}`,
     ipAddress: clientIp(req),
   });
-  const { passwordHash: _ph, ...safe } = user;
-  return NextResponse.json(safe);
+  return NextResponse.json(stripSecrets(user));
 }
 
 export async function DELETE(req: Request) {

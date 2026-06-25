@@ -185,7 +185,7 @@ export default function RdvCalendarPage() {
           {/* Legend */}
           <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] text-muted-foreground">
             <span className="font-semibold uppercase tracking-wide">Légende :</span>
-            {(["PENDING", "APPROVED", "COMPLETED", "REJECTED", "CANCELLED"] as AppointmentStatus[]).map((s) => {
+            {(["PENDING", "APPROVED", "COMPLETED", "CANCELLED"] as AppointmentStatus[]).map((s) => {
               const meta = STATUS_META[s];
               const c = COLOR_MAP[meta.color as CategoryColor];
               return (

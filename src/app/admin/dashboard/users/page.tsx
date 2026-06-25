@@ -10,9 +10,9 @@ import {
   Save,
   ShieldCheck,
   Shield,
-  ShieldAlert,
   Eye,
   EyeOff,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -68,6 +68,7 @@ import { cn, initials } from "@/lib/utils";
 
 type AdminUser = {
   id: string;
+  username: string;
   email: string;
   name: string;
   role: AdminRole;
@@ -78,14 +79,13 @@ type AdminUser = {
 
 const ROLE_BADGE: Record<AdminRole, { color: CategoryColor; icon: React.ComponentType<{ className?: string }> }> = {
   SUPER: { color: "green", icon: ShieldCheck },
-  VALIDATION: { color: "blue", icon: Shield },
-  RECEPTION: { color: "orange", icon: ShieldAlert },
+  RDV: { color: "blue", icon: Shield },
 };
 
 type Dialog = {
   open: boolean;
   mode: "create" | "edit";
-  data: Partial<AdminUser> & { password?: string };
+  data: Partial<AdminUser> & { password?: string; twoFactorCode?: string };
 };
 
 export default function UsersPage() {
@@ -94,6 +94,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
+  const [show2fa, setShow2fa] = useState(false);
   const [dialog, setDialog] = useState<Dialog>({
     open: false,
     mode: "create",
@@ -127,24 +128,32 @@ export default function UsersPage() {
       mode: "create",
       data: {
         name: "",
+        username: "",
         email: "",
-        role: "RECEPTION",
+        role: "RDV",
         phone: "",
         active: true,
         password: "",
+        twoFactorCode: "",
       },
     });
     setShowPwd(false);
+    setShow2fa(false);
   }
   function openEdit(u: AdminUser) {
-    setDialog({ open: true, mode: "edit", data: { ...u, password: "" } });
+    setDialog({
+      open: true,
+      mode: "edit",
+      data: { ...u, password: "", twoFactorCode: "" },
+    });
     setShowPwd(false);
+    setShow2fa(false);
   }
 
   async function save() {
     const d = dialog.data;
-    if (!d.name || !d.email || !d.role) {
-      toast.error("Nom, email et rôle sont requis");
+    if (!d.name || !d.email || !d.role || !d.username) {
+      toast.error("Nom, identifiant, email et rôle sont requis");
       return;
     }
     if (dialog.mode === "create") {
@@ -152,22 +161,36 @@ export default function UsersPage() {
         toast.error("Mot de passe requis (6 caractères min.) à la création");
         return;
       }
-    } else if (d.password && d.password.length < 6) {
-      toast.error("Le nouveau mot de passe doit faire au moins 6 caractères");
-      return;
+      if (!d.twoFactorCode || d.twoFactorCode.length !== 6) {
+        toast.error("Code 2FA requis (6 chiffres) à la création");
+        return;
+      }
+    } else {
+      if (d.password && d.password.length < 6) {
+        toast.error("Le nouveau mot de passe doit faire au moins 6 caractères");
+        return;
+      }
+      if (d.twoFactorCode && d.twoFactorCode.length !== 6) {
+        toast.error("Le code 2FA doit comporter 6 chiffres");
+        return;
+      }
     }
     setBusy(true);
     try {
       const body: Record<string, unknown> = {
         name: d.name,
+        username: (d.username ?? "").trim().toLowerCase(),
         email: d.email.toLowerCase().trim(),
         role: d.role,
         phone: d.phone || null,
         active: d.active ?? true,
       };
-      // In edit mode only send password if the user typed a new one.
-      if (dialog.mode === "create" || (dialog.mode === "edit" && d.password)) {
+      if (dialog.mode === "create") {
         body.password = d.password;
+        body.twoFactorCode = d.twoFactorCode;
+      } else {
+        if (d.password) body.password = d.password;
+        if (d.twoFactorCode) body.twoFactorCode = d.twoFactorCode;
       }
       const res = dialog.mode === "create"
         ? await fetch("/api/admin/users", {
@@ -279,6 +302,7 @@ export default function UsersPage() {
                 <TableHeader className="sticky top-0 z-10 bg-card">
                   <TableRow>
                     <TableHead className="text-[11px] uppercase">Administrateur</TableHead>
+                    <TableHead className="text-[11px] uppercase">Identifiant</TableHead>
                     <TableHead className="text-[11px] uppercase">Email</TableHead>
                     <TableHead className="text-[11px] uppercase">Rôle</TableHead>
                     <TableHead className="text-[11px] uppercase">Téléphone</TableHead>
@@ -288,7 +312,7 @@ export default function UsersPage() {
                 </TableHeader>
                 <TableBody>
                   {sortedUsers.map((u) => {
-                    const rb = ROLE_BADGE[u.role] ?? ROLE_BADGE.RECEPTION;
+                    const rb = ROLE_BADGE[u.role] ?? ROLE_BADGE.RDV;
                     const rc = COLOR_MAP[rb.color];
                     const Icon = rb.icon;
                     const isMe = me?.sub === u.id;
@@ -315,6 +339,9 @@ export default function UsersPage() {
                               </span>
                             </div>
                           </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-[12px] text-foreground">
+                          {u.username || "—"}
                         </TableCell>
                         <TableCell className="font-mono text-[12px] text-muted-foreground">
                           {u.email}
@@ -390,6 +417,19 @@ export default function UsersPage() {
               />
             </div>
             <div className="space-y-1.5">
+              <Label className="text-xs">Identifiant *</Label>
+              <Input
+                value={dialog.data.username ?? ""}
+                onChange={(e) => setDialog((p) => ({ ...p, data: { ...p.data, username: e.target.value.toLowerCase().trim() } }))}
+                placeholder="superadmin"
+                className="font-mono"
+                autoComplete="off"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Identifiant de connexion (minuscules, sans espaces).
+              </p>
+            </div>
+            <div className="space-y-1.5">
               <Label className="text-xs">Email *</Label>
               <Input
                 type="email"
@@ -397,23 +437,22 @@ export default function UsersPage() {
                 onChange={(e) => setDialog((p) => ({ ...p, data: { ...p.data, email: e.target.value } }))}
                 placeholder="admin@securex-connect.ma"
               />
-              <p className="text-[11px] text-muted-foreground">
-                L'email déterminera le rôle de connexion sur la page d'authentification.
-              </p>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">
                 {dialog.mode === "create" ? "Mot de passe *" : "Nouveau mot de passe"}
               </Label>
               <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type={showPwd ? "text" : "password"}
                   value={dialog.data.password ?? ""}
                   onChange={(e) =>
                     setDialog((p) => ({ ...p, data: { ...p.data, password: e.target.value } }))
                   }
-                  placeholder={dialog.mode === "create" ? "Securex@2026" : "Laisser vide pour conserver l'actuel"}
-                  className="pr-9"
+                  placeholder={dialog.mode === "create" ? "••••••••" : "Laisser vide pour conserver l'actuel"}
+                  className="pl-9 pr-9"
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
@@ -432,9 +471,43 @@ export default function UsersPage() {
               </p>
             </div>
             <div className="space-y-1.5">
+              <Label className="text-xs">
+                Code de vérification 2FA {dialog.mode === "create" ? "*" : "(réinitialiser)"}
+              </Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type={show2fa ? "text" : "password"}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  value={dialog.data.twoFactorCode ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^0-9]/g, "").slice(0, 6);
+                    setDialog((p) => ({ ...p, data: { ...p.data, twoFactorCode: v } }));
+                  }}
+                  placeholder={dialog.mode === "create" ? "••••••" : "Laisser vide pour conserver l'actuel"}
+                  className="pl-9 pr-9 font-mono tracking-[0.4em]"
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShow2fa((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground transition hover:text-foreground"
+                  aria-label={show2fa ? "Masquer" : "Afficher"}
+                  tabIndex={-1}
+                >
+                  {show2fa ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Code privé — jamais affiché sur le site. 6 chiffres.
+              </p>
+            </div>
+            <div className="space-y-1.5">
               <Label className="text-xs">Rôle *</Label>
               <Select
-                value={dialog.data.role ?? "RECEPTION"}
+                value={dialog.data.role ?? "RDV"}
                 onValueChange={(v) => setDialog((p) => ({ ...p, data: { ...p.data, role: v as AdminRole } }))}
               >
                 <SelectTrigger>

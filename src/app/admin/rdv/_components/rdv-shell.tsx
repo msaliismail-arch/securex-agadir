@@ -37,12 +37,14 @@ function SidebarInner({
   pathname,
   adminName,
   adminEmail,
+  adminRole,
   onLogout,
   onNavigate,
 }: {
   pathname: string;
   adminName: string;
   adminEmail: string;
+  adminRole: string;
   onLogout: () => void;
   onNavigate?: () => void;
 }) {
@@ -57,7 +59,7 @@ function SidebarInner({
       <div className="px-5 py-4 border-b border-sidebar-border">
         <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-info">
           <ShieldCheck className="h-3.5 w-3.5" />
-          Gestion RDV
+          {adminRole === "SUPER" ? "Super Admin" : "RDV Admin"}
         </div>
         <div className="mt-2 text-sm font-medium text-foreground truncate">{adminName}</div>
         {adminEmail && (
@@ -105,10 +107,12 @@ function SidebarInner({
 export function RdvShell({
   adminName,
   adminEmail,
+  adminRole = "RDV",
   children,
 }: {
   adminName: string;
   adminEmail: string;
+  adminRole?: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -130,7 +134,7 @@ export function RdvShell({
   const pageTitle = currentItem?.label ?? "Gestion RDV";
 
   return (
-    <RdvAdminContext.Provider value={{ adminName, adminEmail }}>
+    <RdvAdminContext.Provider value={{ adminName, adminEmail, adminRole }}>
       <div className="min-h-screen flex bg-mesh">
         {/* Desktop sidebar */}
         <aside className="hidden lg:flex w-64 shrink-0 flex-col sticky top-0 h-screen border-r border-sidebar-border">
@@ -138,6 +142,7 @@ export function RdvShell({
             pathname={pathname}
             adminName={adminName}
             adminEmail={adminEmail}
+            adminRole={adminRole}
             onLogout={handleLogout}
           />
         </aside>
@@ -159,6 +164,7 @@ export function RdvShell({
                 pathname={pathname}
                 adminName={adminName}
                 adminEmail={adminEmail}
+                adminRole={adminRole}
                 onLogout={handleLogout}
                 onNavigate={() => setMobileOpen(false)}
               />
@@ -167,8 +173,13 @@ export function RdvShell({
           <div className="text-sm font-semibold tracking-wide">
             <span className="text-foreground">SÉCUREX <span className="text-primary">CONNECT</span></span>
           </div>
-          <span className="inline-flex items-center gap-1 rounded-full bg-info/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-info">
-            RDV
+          <span className={cn(
+            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em]",
+            adminRole === "SUPER"
+              ? "bg-primary/10 text-primary"
+              : "bg-info/10 text-info"
+          )}>
+            {adminRole === "SUPER" ? "SUPER" : "RDV"}
           </span>
         </div>
 
@@ -185,13 +196,18 @@ export function RdvShell({
                   {pageTitle}
                 </motion.h1>
                 <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                  Validation & gestion des rendez-vous · SÉCUREX CONNECT
+                  Gestion des rendez-vous · SÉCUREX CONNECT
                 </p>
               </div>
               <div className="hidden sm:flex items-center gap-2 shrink-0">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-info/10 px-3 py-1 text-xs font-semibold text-info border border-info/20">
+                <span className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border",
+                  adminRole === "SUPER"
+                    ? "bg-primary/10 text-primary border-primary/20"
+                    : "bg-info/10 text-info border-info/20"
+                )}>
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  Agent de Validation
+                  {adminRole === "SUPER" ? "Super Admin" : "RDV Admin"}
                 </span>
                 <ThemeToggle />
               </div>

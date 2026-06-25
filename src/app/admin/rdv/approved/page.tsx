@@ -1,14 +1,16 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Award, QrCode as QrIcon, Eye, CheckCircle2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import { formatDate, formatDateTime } from "@/lib/utils";
+import { STATUS_META } from "@/lib/constants";
 import { useAppointments, useCatalog, buildLookups } from "../_components/use-appointments";
-import { useRdvAdmin } from "../_components/rdv-context";
+import { useRdvAdmin, useIsStatusOnly } from "../_components/rdv-context";
 import { useRdvDialogs, RdvDialogHost } from "../_components/rdv-dialogs";
 import { CategoryBadge, StatusBadge } from "../_components/badges";
 import { QrDisplay } from "../_components/qr-display";
@@ -16,10 +18,12 @@ import type { Appointment } from "../_components/types";
 
 export default function ApprovedPage() {
   const { adminName } = useRdvAdmin();
+  const statusOnly = useIsStatusOnly();
   const dialogs = useRdvDialogs();
   const { items, loading, refresh } = useAppointments({ status: "APPROVED" });
   const { categories, services } = useCatalog();
   const { catMap, svcMap } = buildLookups(categories, services);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const approved = useMemo<Appointment[]>(() => {
     return items
@@ -35,6 +39,28 @@ export default function ApprovedPage() {
       );
   }, [items, catMap, svcMap]);
 
+  async function quickComplete(appt: Appointment) {
+    setBusyId(appt.id);
+    try {
+      const res = await fetch(`/api/appointments/${appt.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "COMPLETED" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Échec de la mise à jour");
+        return;
+      }
+      toast.success(`RDV marqué terminé · ${STATUS_META.COMPLETED.label}`);
+      refresh();
+    } catch {
+      toast.error("Erreur réseau — réessayez");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className="space-y-5">
       <Card className="glass-card p-4">
@@ -43,9 +69,9 @@ export default function ApprovedPage() {
             <CheckCircle2 className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-foreground">Rendez-vous validés</h2>
+            <h2 className="text-base font-bold text-foreground">Rendez-vous confirmés</h2>
             <p className="text-xs text-muted-foreground">
-              {approved.length} RDV avec QR de validation généré. Marquez comme terminé après le contrôle.
+              {approved.length} RDV avec QR de validation généré. {statusOnly ? "Marquez comme terminé après le contrôle." : "Enregistrez les résultats après le contrôle."}
             </p>
           </div>
         </div>
@@ -62,9 +88,9 @@ export default function ApprovedPage() {
           <div className="rounded-full bg-muted p-4">
             <QrIcon className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="mt-3 text-base font-semibold text-foreground">Aucun RDV validé</h3>
+          <h3 className="mt-3 text-base font-semibold text-foreground">Aucun RDV confirmé</h3>
           <p className="mt-1 text-sm text-muted-foreground max-w-sm">
-            Validez des rendez-vous en attente pour les voir apparaître ici avec leur QR code.
+            Confirmez des rendez-vous en attente pour les voir apparaître ici avec leur QR code.
           </p>
         </Card>
       ) : (
@@ -118,13 +144,29 @@ export default function ApprovedPage() {
                 )}
 
                 <div className="mt-auto pt-3 flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    className="flex-1 bg-brand-gradient text-white hover:opacity-90 h-9"
-                    onClick={() => dialogs.open("complete", appt)}
-                  >
-                    <Award className="h-4 w-4 mr-1.5" /> Marquer terminé
-                  </Button>
+                  {statusOnly ? (
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-brand-gradient text-white hover:opacity-90 h-9"
+                      disabled={busyId === appt.id}
+                      onClick={() => quickComplete(appt)}
+                    >
+                      {busyId === appt.id ? (
+                        <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                      ) : (
+                        <Award className="h-4 w-4 mr-1.5" />
+                      )}
+                      Marquer terminé
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-brand-gradient text-white hover:opacity-90 h-9"
+                      onClick={() => dialogs.open("complete", appt)}
+                    >
+                      <Award className="h-4 w-4 mr-1.5" /> Marquer terminé
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="ghost"

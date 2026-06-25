@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { Logo } from "@/components/shared/logo";
 import { RdvShell } from "./_components/rdv-shell";
 
 export const metadata = {
@@ -10,14 +9,16 @@ export const metadata = {
 
 export default async function RdvLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
-  if (!session || session.role !== "VALIDATION") {
-    redirect("/admin/login?role=VALIDATION");
+  // RDV Admin + Super Admin (full access) can view this space.
+  if (!session || (session.role !== "RDV" && session.role !== "SUPER")) {
+    redirect("/admin/login?role=RDV");
   }
 
   return (
     <RdvShell
-      adminName={session.name || "Validation"}
+      adminName={session.name || "RDV Admin"}
       adminEmail={session.email || ""}
+      adminRole={session.role}
     >
       {children}
     </RdvShell>

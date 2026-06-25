@@ -42,8 +42,16 @@ const TESTIMONIALS: {
   { name: "Hicham Berrada", role: "Inezgane", quote: "Installation moderne et propre. Le certificat m'a été remis immédiatement. Tarifs très corrects par rapport à la qualité.", rating: 5, color: "orange" },
 ];
 
-/** Render a title with the highlight word wrapped in .text-brand-gradient. */
-function HighlightTitle({ title, highlight }: { title: string; highlight?: string }) {
+/** Render a title with the highlight word wrapped in a gradient class (default: brand green). */
+function HighlightTitle({
+  title,
+  highlight,
+  highlightClassName = "text-brand-gradient",
+}: {
+  title: string;
+  highlight?: string;
+  highlightClassName?: string;
+}) {
   if (!highlight) return <>{title}</>;
   const idx = title.toLowerCase().indexOf(highlight.toLowerCase());
   if (idx === -1) return <>{title}</>;
@@ -53,7 +61,7 @@ function HighlightTitle({ title, highlight }: { title: string; highlight?: strin
   return (
     <>
       {before}
-      <span className="text-brand-gradient">{match}</span>
+      <span className={highlightClassName}>{match}</span>
       {after}
     </>
   );
@@ -126,17 +134,20 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* ============ HERO — inspection center ambiance ============ */}
-      <section className="relative overflow-hidden bg-mesh">
-        {/* premium inspection-center backdrop: soft bay lighting + perspective floor */}
+      {/* ============ HERO — full green inspection-center backdrop ============ */}
+      <section className="relative overflow-hidden bg-brand-gradient">
+        {/* texture + ambient overlays on green */}
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
-          <div className="absolute -bottom-32 left-0 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
+          {/* subtle white dot pattern for depth */}
+          <div className="absolute inset-0 bg-hero-dots opacity-[0.10]" />
+          {/* white ambient glow blobs (not green — bg is already green) */}
+          <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-white/15 blur-3xl" />
+          <div className="absolute -bottom-32 left-0 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
           {/* overhead bay light strip */}
-          <div className="absolute left-1/2 top-0 h-24 w-2/3 -translate-x-1/2 rounded-b-full bg-primary/[0.06] blur-2xl" />
-          {/* faint perspective floor lines */}
-          <svg className="absolute inset-x-0 bottom-0 h-1/3 w-full opacity-[0.07]" viewBox="0 0 1200 200" preserveAspectRatio="none" aria-hidden="true">
-            <g stroke="#00C896" strokeWidth="1.5">
+          <div className="absolute left-1/2 top-0 h-24 w-2/3 -translate-x-1/2 rounded-b-full bg-white/10 blur-2xl" />
+          {/* white perspective floor lines on green */}
+          <svg className="absolute inset-x-0 bottom-0 h-1/3 w-full opacity-20" viewBox="0 0 1200 200" preserveAspectRatio="none" aria-hidden="true">
+            <g stroke="#FFFFFF" strokeWidth="1.5">
               <line x1="0" y1="200" x2="1200" y2="0" />
               <line x1="300" y1="200" x2="600" y2="0" />
               <line x1="600" y1="200" x2="900" y2="0" />
@@ -148,18 +159,22 @@ export default async function HomePage() {
 
         <div className="relative mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-24 lg:py-28">
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
-            {/* LEFT — copy */}
+            {/* LEFT — copy (white on green) */}
             <Reveal>
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 {heroBadge}
               </div>
 
-              <h1 className="mt-6 text-4xl font-bold leading-[1.08] tracking-tight text-foreground md:text-5xl lg:text-6xl">
-                <HighlightTitle title={heroTitle} highlight={heroHighlight} />
+              <h1 className="mt-6 text-4xl font-bold leading-[1.08] tracking-tight text-white md:text-5xl lg:text-6xl">
+                <HighlightTitle
+                  title={heroTitle}
+                  highlight={heroHighlight}
+                  highlightClassName="text-hero-gradient"
+                />
               </h1>
 
-              <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-white/85">
                 {heroSubtitle}
               </p>
 
@@ -167,7 +182,7 @@ export default async function HomePage() {
                 <Button
                   asChild
                   size="lg"
-                  className="h-12 bg-brand-gradient px-7 text-base text-white shadow-glow hover:opacity-90"
+                  className="h-12 bg-white px-7 text-base text-primary shadow-glow hover:bg-white/90"
                 >
                   <Link href="/rendez-vous">
                     <CalendarCheck className="mr-2 h-5 w-5" /> {ctaPrimary}
@@ -177,7 +192,7 @@ export default async function HomePage() {
                   asChild
                   size="lg"
                   variant="outline"
-                  className="h-12 border-primary/30 px-7 text-base text-primary hover:bg-primary/5"
+                  className="h-12 border-white/40 bg-white/5 px-7 text-base text-white backdrop-blur-sm hover:bg-white/15"
                 >
                   <Link href="/tarifs">
                     {ctaSecondary}
@@ -186,20 +201,20 @@ export default async function HomePage() {
                 </Button>
               </div>
 
-              <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-3 text-sm text-muted-foreground">
+              <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-3 text-sm text-white/75">
                 <span className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-primary" /> Contrôle en 30 min
+                  <Clock className="h-4 w-4" /> Contrôle en 30 min
                 </span>
                 <span className="flex items-center gap-2">
-                  <Award className="h-4 w-4 text-primary" /> Certificat officiel
+                  <Award className="h-4 w-4" /> Certificat officiel
                 </span>
                 <span className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-primary" /> 15 000+ contrôles réalisés
+                  <Users className="h-4 w-4" /> 15 000+ contrôles réalisés
                 </span>
               </div>
             </Reveal>
 
-            {/* RIGHT — realistic inspection scene */}
+            {/* RIGHT — realistic inspection scene (blends into green hero) */}
             <Reveal delay={0.15}>
               <HeroInspectionScene />
             </Reveal>

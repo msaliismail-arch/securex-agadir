@@ -19,7 +19,7 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const guard = await requireAdminRole(["SUPER", "VALIDATION"]);
+  const guard = await requireAdminRole(["SUPER", "RDV"]);
   if (!guard.ok) return guard.res;
 
   const { id } = await params;

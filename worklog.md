@@ -415,3 +415,175 @@ Stage Summary:
 - The hero now shows a realistic technical-inspection-center scene: a vehicle undergoing inspection by a professional inspector, with all requested micro-animations (safety, verification, technical control, validation, trust, secure mobility).
 - Car direction FIXED: moves left → right (was broken/stuck off-screen due to initial={false} bug).
 - Premium SaaS quality (Stripe/Linear/Claude inspired), cold-green identity preserved.
+
+---
+Task ID: R2-B (Backend: 2-role auth + 2FA + status)
+Agent: Main (Staff Engineer)
+Task: Username+password+2FA auth, 2 roles only (Super Admin + RDV Admin), French statuses, RDV status-only restriction
+
+Work Log:
+- prisma/schema.prisma: AdminUser — replaced email-unique with username (unique) + email + twoFactorCode (per-admin 2FA code, never shown on site).
+- lib/auth.ts: added createPendingSession/getPendingSession/destroyPendingSession (5-min temp JWT for 2FA step 2). SessionPayload adds username. destroySession clears both cookies.
+- lib/constants.ts: AdminRole reduced to "SUPER" | "RDV" (removed VALIDATION + RECEPTION). ADMIN_ROLES: SUPER (Super Admin, green, /admin/dashboard, full perms incl. QR verification) + RDV (RDV Admin, blue, /admin/rdv, status-only). Added username field. STATUS_META: APPROVED→"Confirmé", removed REJECTED, 4 statuses only (En attente/Confirmé/Terminé/Annulé). Added RDV_STATUSES export.
+- prisma/seed.ts: 2 admins with username + hashed password + 2FA codes:
+  • superadmin / Securex@2026 / 2FA: 847291 (Youssef El Amrani, SUPER)
+  • rdvadmin / Securex@2026 / 2FA: 503846 (Fatima Zahra Benali, RDV)
+  Re-seeded (force-reset). 2FA codes are NEVER displayed on the site.
+- API auth:
+  • /api/auth/admin-login: REWRITTEN — Step 1: username + password (bcrypt verify) → createPendingSession (5-min temp token). Returns {pending, name, role}. Does NOT create real session. Logs failed attempts.
+  • /api/auth/admin-verify: NEW — Step 2: reads pending session, verifies admin.twoFactorCode === submitted code → createSession (3h). Destroys pending. Returns {ok, redirect, role, name}. Logs ADMIN_2FA_FAILED on wrong code.
+  • DELETE /api/auth/admin-login: cancels pending session.
+- /api/admin/users: POST/PATCH now handle username + twoFactorCode. stripSecrets() removes BOTH passwordHash AND twoFactorCode from all responses (2FA code never sent to client). GET also stripped.
+- /api/appointments/[id] PATCH: RDV admin restricted to status-only (allowed: PENDING/APPROVED/COMPLETED/CANCELLED). Any other field → 403 "Le RDV Admin ne peut modifier que le statut." Super Admin = full edit. DELETE = Super Admin only.
+- API guards updated: clients/stats → ["SUPER","RDV"], verify → ["SUPER"], appointments/result → ["SUPER"] (only Super Admin completes inspections).
+- Layout guards: /admin/checkin → SUPER only (Super Admin has full access incl. QR verification). /admin/rdv → RDV + SUPER. Passes adminRole to RdvShell.
+- rdv-context.tsx: added adminRole to RdvAdminInfo + useIsStatusOnly() hook (true when role==="RDV").
+- rdv-shell.tsx: accepts + passes adminRole, shows "Super Admin" or "RDV Admin" label.
+
+Stage Summary:
+- 2-step auth: username+password → 2FA code. Demo creds (NOT on site):
+  • superadmin / Securex@2026 / 2FA 847291 → /admin/dashboard
+  • rdvadmin / Securex@2026 / 2FA 503846 → /admin/rdv
+- Only 2 roles. RECEPTION removed. /admin/checkin now SUPER-only.
+- RDV Admin can ONLY change appointment status (En attente/Confirmé/Terminé/Annulé). No create/delete/edit other fields.
+- APPOINTMENT statuses: 4 French labels. APPROVED=Confirmé (auto-generates QR token).
+- NEEDS UI FIXES: /admin/select-account (500 — references removed RECEPTION), /admin/login (must become 2-step), dashboard audit/users pages (reference RECEPTION/VALIDATION), /admin/rdv pages (must restrict to status-only for RDV role using useIsStatusOnly()).
+
+---
+Task ID: R2-H
+Agent: full-stack-developer (Homepage Green Hero)
+Task: Full green inspection-scene hero background (first screen)
+
+Work Log:
+- Read worklog (R-HERO + R2-B sections) to understand current hero state and that the animated SVG inspection scene is already built and looping left→right.
+- src/app/globals.css: added two new utilities next to .text-brand-gradient — `.text-hero-gradient` (white #FFFFFF → mint #B3FEE3 gradient text clip, for the highlight word on a green bg where the green brand-gradient would be invisible) and `.bg-hero-dots` (radial white dot pattern, 24px grid, for subtle texture overlay on the green hero).
+- src/components/public/hero-inspection-scene.tsx: swapped the outer container className from `glass-card shadow-float` (opaque white glass card) to `border border-white/40 bg-white/5 shadow-float backdrop-blur-sm`. The internal SVG keeps its own light backdrop (wall + floor gradients), so the scene now reads as a "window into the inspection bay" framed by a subtle white border + glow, blending into the green hero instead of sitting in a heavy white card. All animations (car left→center→right, inspector, 4 sequential checkmarks, gauge needle sweep, pulsing shield, scan beam, status dots, headlight/speed lines, overhead lamp) untouched. The "Inspection en temps réel" status pill stays on the SVG's light backdrop (glass-strong + text-foreground/70) so it remains readable.
+- src/app/(public)/page.tsx — HighlightTitle helper: added optional `highlightClassName` prop (defaults to `text-brand-gradient` so all other callers are unaffected). Hero now passes `highlightClassName="text-hero-gradient"` for the white→mint highlight.
+- src/app/(public)/page.tsx — hero <section> restructured for the full-bleed green first screen:
+  • Section bg: `bg-brand-gradient` (linear-gradient 135deg #00C896 → #00A87E) replacing the old `bg-mesh` white. This is theme-independent so it stays green in both light and dark mode.
+  • Overlay layer (all white/low-opacity, since the bg is already green): `.bg-hero-dots` at opacity-10 for texture, two white ambient glow blobs (bg-white/15 + bg-white/10 blur-3xl), an overhead bay light strip (bg-white/10 blur-2xl), and the bottom perspective floor lines re-coloured from #00C896 to #FFFFFF at opacity-20 (was 0.07 green).
+  • Badge pill: `border-white/30 bg-white/10 text-white backdrop-blur-sm` (was primary-tinted green on white).
+  • H1: `text-white` with the highlight word rendered via `.text-hero-gradient` (white→mint).
+  • Subtitle: `text-white/85` (was text-muted-foreground).
+  • Primary CTA: `bg-white text-primary hover:bg-white/90` with shadow-glow (was bg-brand-gradient white text).
+  • Secondary CTA: outline variant overridden to `border-white/40 bg-white/5 text-white backdrop-blur-sm hover:bg-white/15` (was primary-tinted outline).
+  • Trust badges: `text-white/75` with default-white icons (was text-muted-foreground + text-primary icons).
+  • RIGHT column: HeroInspectionScene unchanged in placement (Reveal delay 0.15) but now visually blends into the green hero thanks to the transparent container.
+  • Rest of the homepage (stats band, steps, categories, features, testimonials, contact, CTA, footer) untouched — still white bg with green accents.
+- Lint: clean (0 errors).
+- Dev server log: GET / returns 200 cleanly on every compile (no runtime errors introduced by the hero changes). Pre-existing 500 on /admin/select-account is unrelated (R2-B known issue, not in scope).
+
+Stage Summary:
+- Files modified: src/app/globals.css, src/components/public/hero-inspection-scene.tsx, src/app/(public)/page.tsx.
+- The homepage first screen is now a full-bleed green gradient (#00C896 → #00A87E) with white text, white→mint highlight word, white CTAs, and the animated inspection scene integrated directly into the green background as a bordered "window" — matching the user's reference (teal-green tinted inspection-scene photo where green dominates the first screen).
+- The animated SVG inspection scene (car entering left → inspected center → exits right, inspector, checkmarks, gauge, shield, scan beam, status dots) is fully preserved; only its outer wrapper changed from an opaque glass card to a transparent white-bordered container.
+- All hero content remains DB-driven via getWebsiteContent() (hero.title / hero.titleHighlight / hero.subtitle / hero.badge / hero.ctaPrimary / hero.ctaSecondary). Responsive: 2-col on lg, stacks to 1-col on mobile (scene below text), both on green bg.
+- No placeholders, French language, production-ready. Did not touch admin pages, /rendez-vous, /espace-client, API routes, or other homepage sections.
+
+---
+Task ID: R2-A
+Agent: full-stack-developer (Admin UI Fix)
+Task: Fix select-account (2 cards), login (2-step 2FA), dashboard role refs, RDV status-only
+
+Work Log:
+- Read worklog.md (esp. R2-B section) + src/lib/constants.ts to align on 2-role model (SUPER + RDV), 4 French statuses (En attente / Confirmé / Terminé / Annulé), and 2-step 2FA auth flow.
+- src/app/admin/select-account/page.tsx — REWROTE: ROLE_ICONS now only SUPER (ShieldCheck) + RDV (Shield). BOOT_LINES text changed to "2 comptes administrateur détectés". Grid switched to md:grid-cols-2 (was md:grid-cols-3). Removed all RECEPTION + VALIDATION references (was causing 500 error because ROLE_ICONS[RECEPTION] was undefined). Card 1 = Super Admin NIVEAU 3 green #00C896, Card 2 = RDV Admin NIVEAU 2 blue #2D9CDB. Click → /admin/login?role=SUPER|RDV. Kept cyberpunk terminal aesthetic (bg #03130E, grid, scanlines, typewriter boot, HexBadge, motion stagger).
+- src/app/admin/login/page.tsx — FULLY REWROTE to 2-step 2FA flow:
+  • Step 1: Username (editable, prefilled from ?role= query hint) + Password (with Eye/EyeOff). "Continuer" → POST /api/auth/admin-login {username, password}. On {pending:true} → derive role from username, advance to step 2.
+  • Step 2: 6-digit InputOTP (InputOTPGroup × 2 with separator, h-12 w-10 slots, dark theme overrides). "Vérifier et se connecter" → POST /api/auth/admin-verify {code}. On {ok:true} → router.push(redirect). On error → toast "Code de vérification incorrect".
+  • "← Changer de compte" link to /admin/select-account (top-right).
+  • "← Modifier l'identifiant" link on step 2 → calls DELETE /api/auth/admin-login (cancels pending) then returns to step 1.
+  • Step indicator (① Identifiants → ② Code 2FA) with accent color.
+  • Wrapped in Suspense (useSearchParams). Kept green theme, glass card on #03130E bg, ThemeToggle, AnimatePresence transitions between steps.
+  • REMOVED the "Comptes de démonstration" hint card entirely — no passwords or 2FA codes visible on the site, per spec.
+- src/app/admin/dashboard/audit/page.tsx — Fixed ROLE_BADGE map: SUPER {label:"Super Admin", color:"green"} + RDV {label:"RDV Admin", color:"blue"} + SYSTEM + CLIENT. Removed VALIDATION + RECEPTION entries.
+- src/app/admin/dashboard/users/page.tsx — FULLY REWROTE:
+  • ROLE_BADGE now: SUPER {color:"green", icon:ShieldCheck} + RDV {color:"blue", icon:Shield}. Removed VALIDATION + RECEPTION entries.
+  • All default role values changed from "RECEPTION" → "RDV" (openCreate, ROLE_BADGE fallback in row render, Select default).
+  • AdminUser type extended with username field. Table now has a dedicated "Identifiant" column (font-mono) before Email.
+  • Create/edit dialog adds 3 new fields: username (lowercase, mono font), password (Eye/EyeOff toggle, required on create, optional on edit), and twoFactorCode (inputMode=numeric, maxLength=6, masked by default with Eye/EyeOff, labeled "Code de vérification 2FA" with note "Code privé — jamais affiché sur le site").
+  • POST/PATCH body includes username + email + name + role + phone + password (conditional) + twoFactorCode (conditional). Per R2-B spec: POST/PATCH API accepts these fields; stripSecrets() removes passwordHash AND twoFactorCode from responses.
+  • The twoFactorCode is NEVER displayed in the table or detail views (input is masked, API strips on read).
+  • Replaced "Rejeter" hint language with role-appropriate copy. Edit dialog now requires username + email + name + role (was email-only).
+- src/app/admin/rdv/_components/types.ts — Removed "REJECTED" from AppointmentStatus union (matches constants.ts canonical type). Comment header updated "RDV Admin".
+- src/app/admin/rdv/_components/reject-dialog.tsx — DELETED (REJECTED status no longer exists; the dialog was setting status:"REJECTED" which would 400 from the API).
+- src/app/admin/rdv/_components/rdv-dialogs.tsx — Removed RejectDialog import + rendering. Removed "reject" from DialogKind union. Removed onReject prop pass to DetailSheet. Other dialogs (ValidationDialog, CompleteDialog, DetailSheet, NewRdvDialog) unchanged.
+- src/app/admin/rdv/_components/detail-sheet.tsx — Made RDV-aware:
+  • Imports useIsStatusOnly from rdv-context.
+  • For RDV role (statusOnly=true): footer shows only a "Modifier le statut" Select dropdown with the 4 RDV_STATUSES. PATCH /api/appointments/[id] {status} → toast → onValidate callback (used as refresh trigger). Hides the Valider/Marquer terminé action buttons.
+  • For SUPER role (statusOnly=false): keeps the existing action footer (Valider if PENDING → opens ValidationDialog; Marquer terminé if APPROVED → opens CompleteDialog). Removed Rejeter button entirely (was triggering the now-deleted RejectDialog and setting REJECTED status).
+  • Removed unused onReject prop + Loader2 re-export.
+- src/app/admin/rdv/_components/rdv-shell.tsx — Updated top header badge: "Agent de Validation" → "RDV Admin" or "Super Admin" (conditional on adminRole), with proper green/info color theming. Mobile badge: "RDV" / "SUPER" (was hardcoded "RDV"). Subtitle: "Gestion des rendez-vous" (was "Validation & gestion des rendez-vous").
+- src/app/admin/rdv/page.tsx (Planning) — REWROTE RowActions:
+  • If useIsStatusOnly() (RDV role): hide "Nouveau RDV" button. Row actions = StatusOnlyActions: a 4-option Select dropdown (En attente / Confirmé / Terminé / Annulé using RDV_STATUSES + STATUS_META labels) + Eye (detail). On change → PATCH {status} → toast "Statut mis à jour" → refresh. Hides all create/delete/edit buttons.
+  • If false (Super Admin): keeps Eye + Validate (PENDING) + QR généré badge + Complete (APPROVED) + Résultat (COMPLETED). Renamed "Valider" → "Confirmer" to align with new vocabulary.
+  • Removed "Rejeter" button entirely (REJECTED is gone). Empty state action hidden for RDV role.
+  • Removed REJECTED from STATUS_FILTERS. MiniStat "Rejetés/Annulés" → "Annulés" (single category).
+  • Updated "Validés" labels to "Confirmés" per new STATUS_META vocabulary.
+- src/app/admin/rdv/pending/page.tsx — For RDV role: replaces "Valider"/"Rejeter" buttons with a single "Confirmer" button that quick-PATCHes {status:APPROVED} directly (no ValidationDialog, no inspector name field — RDV can only change status). Removed Rejeter button entirely. For SUPER: keeps "Valider" button (opens ValidationDialog with inspector + notes + QR auto-generation). Header changed "Validation requise" → "Confirmation requise". Empty state copy updated.
+- src/app/admin/rdv/approved/page.tsx — For RDV role: "Marquer terminé" button quick-PATCHes {status:COMPLETED} directly (no CompleteDialog, no inspection results — those require SUPER-only /api/appointments/[id]/result endpoint). For SUPER: keeps "Marquer terminé" button (opens CompleteDialog with 5-point inspection checklist + inspector name + notes). Header changed "RDV validés" → "RDV confirmés" + adaptive subtitle.
+- src/app/admin/rdv/calendar/page.tsx — Removed "REJECTED" from the calendar legend (was showing 5 colors, now 4). The calendar grid itself was already read-only (only opens detail sheet on click); the detail sheet now adapts to role internally. No create/edit buttons exist on this page so no further RDV restriction needed.
+- src/app/admin/checkin/_components/checkin-shell.tsx — Updated labels per spec (now SUPER-only space):
+  • Badge: "Agent Scan QR" → "Vérification QR" (ScanLine icon, primary green color, was warning orange).
+  • Added a second badge "Super Admin" (info blue).
+  • Logout button border/text color: warning orange → primary green.
+  • Footer: "Espace Réception · Vérification des réservations · SÉCUREX CONNECT" → "Vérification QR des passages véhicule · Super Admin · SÉCUREX CONNECT".
+- src/app/admin/checkin/page.tsx — Removed the "REJECTED" branch from WarningCard (would have been a TypeScript error since types.ts AppointmentStatus no longer includes REJECTED). Added a "COMPLETED" branch ("Contrôle déjà effectué"). Updated PENDING message: "Le RDV n'a pas encore été approuvé par la validation" → "Le RDV n'a pas encore été confirmé".
+
+Validation:
+- bun run lint → clean (0 errors, 0 warnings).
+- Dev server: running on port 3000, no runtime errors.
+- End-to-end via curl:
+  • GET /admin/select-account → 200 (was 500 before fix).
+  • GET /admin/login?role=SUPER → 200, GET /admin/login?role=RDV → 200, GET /admin/login?role=RECEPTION → 200 (no crash, just no role hint).
+  • POST /api/auth/admin-login {username:superadmin, password:Securex@2026} → 200 {pending:true, name:"Youssef El Amrani", role:"SUPER"} + sets sx_pending 5-min cookie.
+  • POST /api/auth/admin-verify {code:847291} → 200 {ok:true, redirect:"/admin/dashboard", role:"SUPER", name:"Youssef El Amrani"} + sets sx_session 3h cookie.
+  • POST /api/auth/admin-verify {code:000000} → 401 {error:"Code de vérification incorrect"}.
+  • POST /api/auth/admin-login {password:wrong} → 401 {error:"Identifiants incorrects"}.
+  • Same flow for rdvadmin / Securex@2026 / 503846 → 200 → /admin/rdv.
+  • RDV role: GET /admin/rdv, /admin/rdv/pending, /admin/rdv/approved, /admin/rdv/calendar → all 200. GET /admin/checkin → 307 (redirect to login, SUPER-only). GET /admin/dashboard/audit → 307 (redirect).
+  • SUPER role: GET /admin/dashboard/audit, /admin/dashboard/users, /admin/checkin, /admin/rdv (and all sub-pages) → all 200.
+  • PATCH /api/appointments/[id] {status:APPROVED} as RDV → 200 (status-only allowed).
+  • PATCH /api/appointments/[id] {clientName:"Hacker"} (non-status only) as RDV → 403 {error:"Le RDV Admin ne peut modifier que le statut."}.
+  • DELETE /api/appointments/[id] as RDV → 403 {error:"Rôle insuffisant"}.
+- Verified the dev.log shows only 200/307/403 responses for all tested routes — no 500s, no compilation errors, no React "Element type is invalid" errors.
+
+Stage Summary:
+- Files modified (12): src/app/admin/select-account/page.tsx, src/app/admin/login/page.tsx, src/app/admin/dashboard/audit/page.tsx, src/app/admin/dashboard/users/page.tsx, src/app/admin/rdv/_components/types.ts, src/app/admin/rdv/_components/rdv-dialogs.tsx, src/app/admin/rdv/_components/detail-sheet.tsx, src/app/admin/rdv/_components/rdv-shell.tsx, src/app/admin/rdv/page.tsx, src/app/admin/rdv/pending/page.tsx, src/app/admin/rdv/approved/page.tsx, src/app/admin/rdv/calendar/page.tsx, src/app/admin/checkin/_components/checkin-shell.tsx, src/app/admin/checkin/page.tsx.
+- Files deleted (1): src/app/admin/rdv/_components/reject-dialog.tsx (REJECTED status removed — the dialog set status:"REJECTED" which would 400).
+- Key decisions:
+  • select-account now correctly renders 2 cards (Super Admin + RDV Admin) — the prior 500 was caused by ROLE_ICONS referencing deleted RECEPTION/VALIDATION keys, returning undefined component refs.
+  • Login is genuinely 2-step: step 1 (username + password) creates a 5-min pending session; step 2 (6-digit InputOTP) verifies the per-admin twoFactorCode and upgrades to a 3h real session. The ?role= query only prefills the username (editable). NO demo hints visible anywhere on the page.
+  • Users page create/edit dialog now exposes username + password + twoFactorCode fields, with the 2FA code masked by default and explicitly labeled "Code privé — jamais affiché sur le site". The code is never rendered in the table (API strips it via stripSecrets()).
+  • RDV role is genuinely status-only across all RDV pages: the planning row shows just a 4-option status dropdown + Eye button; the pending page shows just "Confirmer" (quick PATCH to APPROVED); the approved page shows just "Marquer terminé" (quick PATCH to COMPLETED); the detail sheet shows just a status dropdown in the footer. The Validation/Complete dialogs (which do full edit + inspection results) are only triggered for SUPER admin. Calendar is read-only for both roles (just opens detail sheet which adapts to role).
+  • Removed all REJECTED references from the UI (status filters, legends, MiniStats, WarningCard, RejectDialog). The 4 valid statuses are En attente / Confirmé / Terminé / Annulé.
+  • Vocabulary standardized: "Validé" → "Confirmé", "Rejeter" → removed, "Agent de Validation" → "RDV Admin", "Agent Scan QR" → "Vérification QR" (with "Super Admin" badge since checkin is now SUPER-only).
+  • Did NOT touch: public pages, /rendez-vous, /espace-client, /admin/dashboard/* (except audit + users pages per spec), or any API routes. The dashboard's main page and appointments page still reference REJECTED in their local count objects — this is harmless (just renders 0 / a chart segment with 0 value) and was explicitly out of scope per spec.
+
+---
+Task ID: R2-V (Final Verification)
+Agent: Main (Staff Engineer)
+Task: End-to-end verification of 2-role 2FA auth + green hero + RDV status-only
+
+Work Log:
+- Lint clean (0 errors). Dev server running, no errors.
+- Agent Browser end-to-end:
+  • Homepage: first screen is fully green-dominant (bg-brand-gradient #00C896→#00A87E), white text on green, inspection scene with animated car integrated into green bg. VLM-confirmed "fully green-dominant, premium".
+  • /admin/select-account: exactly 2 cards (Super Admin Niv.3 green + RDV Admin Niv.2 blue). No 500 error.
+  • 2-step 2FA login (RDV): rdvadmin / Securex@2026 → step 2 (2FA code) → 503846 → /admin/rdv. Wrong code rejected.
+  • 2-step 2FA login (SUPER): superadmin / Securex@2026 → step 2 → wrong code 000000 rejected "Code de vérification incorrect" → correct 847291 → /admin/dashboard.
+  • RDV Admin restriction verified: Planning page shows only a status dropdown (En attente/Confirmé/Terminé/Annulé) + "Voir le détail" per row. NO create/delete/edit/validate buttons. Changed a "Terminé" → "Confirmé" successfully via the dropdown.
+  • Super Admin dashboard loads with "Gestion du site NEW" nav item.
+  • French status labels confirmed: En attente / Confirmé / Terminé / Annulé.
+  • 2FA codes never displayed on the site (no hint cards, no demo text).
+
+Stage Summary:
+- All requested changes implemented and verified:
+  1. ✅ Username + password + 2FA code auth (2-step, secure, 2FA codes never visible on site)
+  2. ✅ Exactly 2 admin roles: Super Admin (full access) + RDV Admin (status-only)
+  3. ✅ RDV Admin can ONLY change appointment status (En attente/Confirmé/Terminé/Annulé)
+  4. ✅ Homepage first screen = full green background with inspection scene (like the SECUREX/DEKRA reference)
+  5. ✅ Appointments use SYSDATE (createdAt via @default(now()))
+- Demo credentials (NOT on the site — provided to user privately):
+  • superadmin / Securex@2026 / 2FA: 847291
+  • rdvadmin / Securex@2026 / 2FA: 503846

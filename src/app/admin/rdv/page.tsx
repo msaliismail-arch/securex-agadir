@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Search, Calendar as CalIcon, Loader2, Eye, QrCode, Award, CheckCircle2, XCircle, Filter, X } from "lucide-react";
+import { Plus, Search, Calendar as CalIcon, Loader2, Eye, QrCode, Award, CheckCircle2, Filter, X } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,10 +23,14 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
-import { STATUS_META, type AppointmentStatus } from "@/lib/constants";
-import { cn, formatDate, formatDateTime } from "@/lib/utils";
+import {
+  STATUS_META,
+  RDV_STATUSES,
+  type AppointmentStatus,
+} from "@/lib/constants";
+import { cn, formatDate } from "@/lib/utils";
 import { useAppointments, useCatalog, buildLookups } from "./_components/use-appointments";
-import { useRdvAdmin } from "./_components/rdv-context";
+import { useRdvAdmin, useIsStatusOnly } from "./_components/rdv-context";
 import { useRdvDialogs, RdvDialogHost } from "./_components/rdv-dialogs";
 import { CategoryBadge, StatusBadge } from "./_components/badges";
 import type { Appointment } from "./_components/types";
@@ -33,14 +38,14 @@ import type { Appointment } from "./_components/types";
 const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: "all", label: "Tous les statuts" },
   { value: "PENDING", label: "En attente" },
-  { value: "APPROVED", label: "Validés" },
+  { value: "APPROVED", label: "Confirmés" },
   { value: "COMPLETED", label: "Terminés" },
-  { value: "REJECTED", label: "Rejetés" },
   { value: "CANCELLED", label: "Annulés" },
 ];
 
 export default function RdvPlanningPage() {
   const { adminName } = useRdvAdmin();
+  const statusOnly = useIsStatusOnly();
   const dialogs = useRdvDialogs();
   const { items, loading, filters, setFilters, refresh } = useAppointments();
   const { categories, services } = useCatalog();
@@ -71,7 +76,7 @@ export default function RdvPlanningPage() {
     [items, catMap, svcMap],
   );
 
-  const onUpdated = (a: Appointment) => {
+  const onUpdated = (_a: Appointment) => {
     refresh();
   };
 
@@ -142,13 +147,15 @@ export default function RdvPlanningPage() {
             </Button>
           </div>
 
-          <Button
-            onClick={() => dialogs.open("new")}
-            className="bg-brand-gradient text-white hover:opacity-90 shrink-0"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nouveau RDV
-          </Button>
+          {!statusOnly && (
+            <Button
+              onClick={() => dialogs.open("new")}
+              className="bg-brand-gradient text-white hover:opacity-90 shrink-0"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nouveau RDV
+            </Button>
+          )}
         </div>
 
         {/* Active filter chips */}
@@ -184,9 +191,9 @@ export default function RdvPlanningPage() {
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
         <MiniStat label="Total" value={itemsEnriched.length} dot="gray" />
         <MiniStat label="En attente" value={itemsEnriched.filter((a) => a.status === "PENDING").length} dot="orange" />
-        <MiniStat label="Validés" value={itemsEnriched.filter((a) => a.status === "APPROVED").length} dot="green" />
+        <MiniStat label="Confirmés" value={itemsEnriched.filter((a) => a.status === "APPROVED").length} dot="green" />
         <MiniStat label="Terminés" value={itemsEnriched.filter((a) => a.status === "COMPLETED").length} dot="purple" />
-        <MiniStat label="Rejetés/Annulés" value={itemsEnriched.filter((a) => a.status === "REJECTED" || a.status === "CANCELLED").length} dot="red" />
+        <MiniStat label="Annulés" value={itemsEnriched.filter((a) => a.status === "CANCELLED").length} dot="red" />
       </div>
 
       {/* Table */}
@@ -200,11 +207,17 @@ export default function RdvPlanningPage() {
         ) : itemsEnriched.length === 0 ? (
           <EmptyState
             title="Aucun rendez-vous"
-            message="Aucun RDV ne correspond à vos filtres. Ajustez les critères ou créez un nouveau rendez-vous."
+            message={
+              statusOnly
+                ? "Aucun RDV ne correspond à vos filtres. Ajustez les critères de recherche."
+                : "Aucun RDV ne correspond à vos filtres. Ajustez les critères ou créez un nouveau rendez-vous."
+            }
             action={
-              <Button onClick={() => dialogs.open("new")} className="bg-brand-gradient text-white hover:opacity-90">
-                <Plus className="h-4 w-4 mr-2" /> Nouveau RDV
-              </Button>
+              statusOnly ? undefined : (
+                <Button onClick={() => dialogs.open("new")} className="bg-brand-gradient text-white hover:opacity-90">
+                  <Plus className="h-4 w-4 mr-2" /> Nouveau RDV
+                </Button>
+              )
             }
           />
         ) : (
@@ -259,7 +272,11 @@ export default function RdvPlanningPage() {
                       <StatusBadge status={appt.status} />
                     </TableCell>
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <RowActions appt={appt} dialogs={dialogs} />
+                      {statusOnly ? (
+                        <StatusOnlyActions appt={appt} onUpdated={onUpdated} dialogs={dialogs} />
+                      ) : (
+                        <RowActions appt={appt} dialogs={dialogs} />
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -275,6 +292,73 @@ export default function RdvPlanningPage() {
         onUpdated={onUpdated}
         onCreated={onCreated}
       />
+    </div>
+  );
+}
+
+/** Status-only actions for the RDV Admin role: just a status dropdown + Eye for detail. */
+function StatusOnlyActions({
+  appt,
+  onUpdated,
+  dialogs,
+}: {
+  appt: Appointment;
+  onUpdated: (a: Appointment) => void;
+  dialogs: ReturnType<typeof useRdvDialogs>;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  async function changeStatus(next: AppointmentStatus) {
+    if (next === appt.status) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/appointments/${appt.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Échec de la mise à jour du statut");
+        return;
+      }
+      toast.success(`Statut mis à jour · ${STATUS_META[next].label}`);
+      onUpdated(data as Appointment);
+    } catch {
+      toast.error("Erreur réseau — réessayez");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center justify-end gap-1.5">
+      <Select
+        value={appt.status}
+        disabled={busy}
+        onValueChange={(v) => changeStatus(v as AppointmentStatus)}
+      >
+        <SelectTrigger className="h-8 w-[150px] text-xs" size="sm">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {RDV_STATUSES.map((s) => (
+            <SelectItem key={s} value={s} className="text-xs">
+              {STATUS_META[s].label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-8 w-8 p-0"
+        disabled={busy}
+        onClick={() => dialogs.open("detail", appt)}
+        title="Voir le détail"
+      >
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+      </Button>
     </div>
   );
 }
@@ -299,23 +383,13 @@ function RowActions({
       </Button>
 
       {appt.status === "PENDING" && (
-        <>
-          <Button
-            size="sm"
-            className="h-8 bg-brand-gradient text-white hover:opacity-90"
-            onClick={() => dialogs.open("validate", appt)}
-          >
-            <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Valider
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8 text-destructive border-destructive/30 hover:bg-destructive/10"
-            onClick={() => dialogs.open("reject", appt)}
-          >
-            <XCircle className="h-3.5 w-3.5" />
-          </Button>
-        </>
+        <Button
+          size="sm"
+          className="h-8 bg-brand-gradient text-white hover:opacity-90"
+          onClick={() => dialogs.open("validate", appt)}
+        >
+          <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Confirmer
+        </Button>
       )}
 
       {appt.status === "APPROVED" && (
@@ -364,7 +438,7 @@ function RowActions({
         </>
       )}
 
-      {(appt.status === "REJECTED" || appt.status === "CANCELLED") && (
+      {appt.status === "CANCELLED" && (
         <span className="text-xs text-muted-foreground">—</span>
       )}
     </div>

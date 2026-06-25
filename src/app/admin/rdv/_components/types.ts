@@ -1,9 +1,8 @@
-// Shared types for the Validation Admin (Gestion RDV) space.
+// Shared types for the RDV Admin (Gestion RDV) space.
 
 export type AppointmentStatus =
   | "PENDING"
   | "APPROVED"
-  | "REJECTED"
   | "COMPLETED"
   | "CANCELLED";
 

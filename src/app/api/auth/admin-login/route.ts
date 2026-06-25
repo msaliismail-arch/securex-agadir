@@ -1,25 +1,25 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { verifyPassword, createSession } from "@/lib/auth";
-import { ADMIN_ROLES, type AdminRole } from "@/lib/constants";
+import { verifyPassword, createPendingSession, destroyPendingSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { clientIp } from "@/lib/api-auth";
 
 /**
- * Admin login: email + password (bcrypt-verified), role-agnostic.
- * The role is derived from the admin account in DB (no client-side role claim).
- * Session TTL: 3h (set in lib/auth.ts).
+ * Step 1 of admin login: username + password.
+ * On success, issues a short-lived (5 min) pending session token (NOT a real
+ * session) so step 2 (/api/auth/admin-verify) can complete the 2FA check.
+ * The 2FA code is NEVER sent back to the client.
  */
 export async function POST(req: Request) {
   const body = await req.json();
-  const { email, password } = body as { email?: string; password?: string };
+  const { username, password } = body as { username?: string; password?: string };
 
-  if (!email || !password) {
-    return NextResponse.json({ error: "Email et mot de passe requis" }, { status: 400 });
+  if (!username || !password) {
+    return NextResponse.json({ error: "Identifiant et mot de passe requis" }, { status: 400 });
   }
 
   const admin = await db.adminUser.findFirst({
-    where: { email: email.toLowerCase().trim(), active: true },
+    where: { username: username.trim().toLowerCase(), active: true },
   });
   if (!admin) {
     return NextResponse.json({ error: "Identifiants incorrects" }, { status: 401 });
@@ -27,30 +27,32 @@ export async function POST(req: Request) {
 
   const ok = await verifyPassword(password, admin.passwordHash);
   if (!ok) {
+    await audit({
+      adminId: admin.id, adminName: admin.name, adminRole: admin.role,
+      action: "ADMIN_LOGIN_FAILED", target: admin.id,
+      details: "Mot de passe incorrect (étape 1)", ipAddress: clientIp(req),
+    });
     return NextResponse.json({ error: "Identifiants incorrects" }, { status: 401 });
   }
 
-  await createSession({
+  // Step 1 OK — issue pending token (5 min). Client must now enter 2FA code.
+  await createPendingSession({
     sub: admin.id,
-    role: admin.role as AdminRole,
+    username: admin.username,
+    role: admin.role,
     name: admin.name,
     email: admin.email,
   });
 
-  await audit({
-    adminId: admin.id,
-    adminName: admin.name,
-    adminRole: admin.role,
-    action: "ADMIN_LOGIN",
-    target: admin.id,
-    details: `Connexion ${ADMIN_ROLES[admin.role as AdminRole].label}`,
-    ipAddress: clientIp(req),
-  });
-
   return NextResponse.json({
-    ok: true,
-    redirect: ADMIN_ROLES[admin.role as AdminRole].route,
-    role: admin.role,
+    pending: true,
     name: admin.name,
+    role: admin.role,
   });
+}
+
+/** Cancel a pending 2FA session (e.g. user clicks "back"). */
+export async function DELETE() {
+  await destroyPendingSession();
+  return NextResponse.json({ ok: true });
 }

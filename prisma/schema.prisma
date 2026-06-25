@@ -9,15 +9,17 @@ datasource db {
 }
 
 model AdminUser {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String
-  role         String   // SUPER | VALIDATION | RECEPTION
-  phone        String?
-  passwordHash String
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(cuid())
+  username      String   @unique
+  email         String
+  name          String
+  role          String   // SUPER | RDV
+  phone         String?
+  passwordHash  String
+  twoFactorCode String   // per-admin 2FA verification code (never shown on site)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 /// Editable website content blocks (Super Admin "Gestion du site").

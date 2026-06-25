@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import { ValidationDialog } from "./validation-dialog";
-import { RejectDialog } from "./reject-dialog";
 import { CompleteDialog } from "./complete-dialog";
 import { DetailSheet } from "./detail-sheet";
 import { NewRdvDialog } from "./new-rdv-dialog";
 import type { Appointment } from "./types";
 
-export type DialogKind = "validate" | "reject" | "complete" | "detail" | "new";
+export type DialogKind = "validate" | "complete" | "detail" | "new";
 
 export interface DialogState {
   kind: DialogKind;
@@ -56,12 +55,6 @@ export function RdvDialogHost({ controller, adminName, onUpdated, onCreated }: H
           onUpdated?.(a);
         }}
       />
-      <RejectDialog
-        open={kind === "reject"}
-        onOpenChange={(o) => !o && close()}
-        appointment={appt}
-        onRejected={(a) => onUpdated?.(a)}
-      />
       <CompleteDialog
         open={kind === "complete"}
         onOpenChange={(o) => !o && close()}
@@ -77,10 +70,6 @@ export function RdvDialogHost({ controller, adminName, onUpdated, onCreated }: H
         onValidate={(a) => {
           close();
           controller.open("validate", a);
-        }}
-        onReject={(a) => {
-          close();
-          controller.open("reject", a);
         }}
         onComplete={(a) => {
           close();

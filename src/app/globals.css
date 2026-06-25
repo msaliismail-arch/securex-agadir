@@ -199,6 +199,18 @@
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+/* White → mint gradient for highlight words on green hero backgrounds */
+.text-hero-gradient {
+  background: linear-gradient(135deg, #FFFFFF 0%, #B3FEE3 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+/* Subtle white dot pattern overlay (for green hero texture) */
+.bg-hero-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.7) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
 .bg-mesh {
   background-color: #FFFFFF;
   background-image:

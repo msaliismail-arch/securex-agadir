@@ -566,11 +566,11 @@ function SuccessCard({
 function WarningCard({ appt, onReset }: { appt: Appointment; onReset: () => void }) {
   const meta =
     appt.status === "PENDING"
-      ? { title: "Réservation en attente de validation", desc: "Le RDV n'a pas encore été approuvé par la validation. Le client doit patienter ou revenir après validation." }
-      : appt.status === "REJECTED"
-        ? { title: "Réservation rejetée", desc: "Ce rendez-vous a été refusé par le service validation." }
-        : appt.status === "CANCELLED"
-          ? { title: "Réservation annulée", desc: "Ce rendez-vous a été annulé." }
+      ? { title: "Réservation en attente de validation", desc: "Le RDV n'a pas encore été confirmé. Le client doit patienter ou revenir après confirmation." }
+      : appt.status === "CANCELLED"
+        ? { title: "Réservation annulée", desc: "Ce rendez-vous a été annulé." }
+        : appt.status === "COMPLETED"
+          ? { title: "Contrôle déjà effectué", desc: "Ce rendez-vous a déjà été marqué comme terminé." }
           : { title: "Statut non conforme", desc: "Ce rendez-vous ne peut pas être vérifié à l'accueil." };
 
   return (
