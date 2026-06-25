@@ -57,8 +57,8 @@ export const COLOR_MAP: Record<
   red: { fg: "text-red-700", bg: "bg-red-600", soft: "bg-red-50", border: "border-red-200", ring: "ring-red-500", hex: "#EB5757", label: "Rouge" },
 };
 
-/** Admin roles — exactly 2 roles per spec. */
-export type AdminRole = "SUPER" | "RDV";
+/** Admin roles — 3 roles. */
+export type AdminRole = "SUPER" | "RDV" | "RECEPTION";
 
 export const ADMIN_ROLES: Record<
   AdminRole,
@@ -110,6 +110,22 @@ export const ADMIN_ROLES: Record<
       "Consultation des rendez-vous",
       "Modification du statut uniquement",
       "En attente · Confirmé · Terminé · Annulé",
+    ],
+  },
+  RECEPTION: {
+    level: 1,
+    label: "Agent Réception",
+    short: "RECEPTION",
+    route: "/admin/checkin",
+    accent: "#F2994A",
+    color: "orange",
+    username: "reception",
+    email: "reception@securex-connect.ma",
+    permissions: [
+      "Scan des QR codes (caméra)",
+      "Vérification des codes d'inspection (6 car.)",
+      "Confirmation des passages véhicule",
+      "Compteur des validations du jour",
     ],
   },
 };

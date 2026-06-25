@@ -10,6 +10,7 @@ import {
   Save,
   ShieldCheck,
   Shield,
+  ShieldAlert,
   Eye,
   EyeOff,
   Lock,
@@ -80,6 +81,7 @@ type AdminUser = {
 const ROLE_BADGE: Record<AdminRole, { color: CategoryColor; icon: React.ComponentType<{ className?: string }> }> = {
   SUPER: { color: "green", icon: ShieldCheck },
   RDV: { color: "blue", icon: Shield },
+  RECEPTION: { color: "orange", icon: ShieldAlert },
 };
 
 type Dialog = {

@@ -48,6 +48,7 @@ type AuditLog = {
 const ROLE_BADGE: Record<string, { label: string; color: CategoryColor }> = {
   SUPER: { label: "Super Admin", color: "green" },
   RDV: { label: "RDV Admin", color: "blue" },
+  RECEPTION: { label: "Agent Réception", color: "orange" },
   SYSTEM: { label: "Système", color: "gray" },
   CLIENT: { label: "Client", color: "gray" },
 };

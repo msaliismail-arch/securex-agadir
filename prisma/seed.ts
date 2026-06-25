@@ -10,6 +10,7 @@ const ADMIN_PASSWORD = "Securex@2026";
 const admins = [
   { username: "superadmin", email: "admin.general@securex-connect.ma", name: "Youssef El Amrani", role: "SUPER", phone: "+212661234567", twoFactorCode: "847291" },
   { username: "rdvadmin", email: "rdv@securex-connect.ma", name: "Fatima Zahra Benali", role: "RDV", phone: "+212662345678", twoFactorCode: "503846" },
+  { username: "reception", email: "reception@securex-connect.ma", name: "Karim Idrissi", role: "RECEPTION", phone: "+212663456789", twoFactorCode: "293715" },
 ];
 
 // Editable website content (Super Admin "Gestion du site").

@@ -587,3 +587,38 @@ Stage Summary:
 - Demo credentials (NOT on the site — provided to user privately):
   • superadmin / Securex@2026 / 2FA: 847291
   • rdvadmin / Securex@2026 / 2FA: 503846
+
+---
+Task ID: R3 (Reception Role + AI Hero Photo)
+Agent: Main (Staff Engineer)
+Task: Restore Reception/QR-verification admin role + add AI-generated realistic inspection photo as hero background
+
+Work Log:
+- Restored RECEPTION role (Agent Réception) — 3 roles now: SUPER + RDV + RECEPTION.
+  • lib/constants.ts: AdminRole = "SUPER" | "RDV" | "RECEPTION". Added RECEPTION to ADMIN_ROLES (level 1, orange #F2994A, /admin/checkin, QR/code verification perms, username "reception").
+  • prisma/seed.ts: added 3rd admin — reception / Securex@2026 / 2FA: 293715 (Karim Idrissi). Force-reset + re-seeded (3 admins).
+  • /admin/checkin/layout.tsx: allows RECEPTION + SUPER (was SUPER-only).
+  • /api/verify: allows SUPER + RECEPTION (was SUPER-only).
+  • /api/stats: allows SUPER + RDV + RECEPTION.
+  • /admin/select-account/page.tsx: added RECEPTION to ROLE_ICONS (ShieldAlert), boot text "3 comptes", grid lg:grid-cols-3.
+  • /admin/dashboard/users/page.tsx: added RECEPTION to ROLE_BADGE + ShieldAlert import.
+  • /admin/dashboard/audit/page.tsx: added RECEPTION to ROLE_BADGE.
+  • /admin/checkin/_components/checkin-shell.tsx: badge "Super Admin" → "Agent Réception".
+- Generated AI realistic inspection photo:
+  • Used z-ai image CLI: "Professional vehicle inspector in green safety vest inspecting a car on a ramp in a modern inspection center, holding a tablet, teal green color tint, professional photography, clean industrial setting, bright lighting, high quality" — size 1344x768 (1440x720 rejected by API: 720 not a multiple of 32).
+  • Saved to /public/hero-inspection-bg.png (128KB).
+- Integrated photo as hero background in (public)/page.tsx:
+  • Replaced bg-brand-gradient with the photo as bg-cover bg-center.
+  • Added green brand overlay (gradient from #00C896/85 via #00A87E/80 to #00876A/90) to tint the photo with the cold-green identity + ensure white text readability.
+  • Added left-side darkening gradient for text contrast on desktop.
+  • White text, CTAs, badges remain on top — fully readable.
+- Verification (Agent Browser + VLM):
+  • 3 cards on /admin/select-account (Super Admin, RDV Admin, Agent Réception).
+  • Reception 2FA login works: reception / Securex@2026 → 2FA 293715 → /admin/checkin (QR verification screen).
+  • Hero: VLM confirmed "realistic photo of a person inspecting a car, green tint overlay, white text readable, premium and immersive, 8/10". Mobile responsive confirmed.
+
+Stage Summary:
+- 3 admin roles restored: Super Admin (full), RDV Admin (status-only), Agent Réception (QR/code verification).
+- Reception login: reception / Securex@2026 / 2FA 293715 → /admin/checkin.
+- Hero first screen now uses a realistic AI-generated photo of a vehicle inspector inspecting a car, with a green brand overlay — matching the user's request for "a real photo of a person doing vehicle inspection as background".
+- Lint clean, dev server clean, all routes 200.

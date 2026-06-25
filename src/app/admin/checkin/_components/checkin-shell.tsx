@@ -45,8 +45,8 @@ export function CheckinShell({
                   <ScanLine className="h-3.5 w-3.5" />
                   Vérification QR
                 </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-info/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-info border border-info/20">
-                  Super Admin
+                <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-warning border border-warning/20">
+                  Agent Réception
                 </span>
               </div>
               <span className="mt-1 text-[10px] text-muted-foreground">SÉCUREX CONNECT · Agadir</span>
@@ -82,7 +82,7 @@ export function CheckinShell({
       </main>
 
       <footer className="mt-auto py-3 text-center text-[10px] text-muted-foreground border-t border-border">
-        Vérification QR des passages véhicule · Super Admin · SÉCUREX CONNECT
+        Vérification QR des passages véhicule · Agent Réception · SÉCUREX CONNECT
       </footer>
     </div>
   );

@@ -9,13 +9,13 @@ export const metadata = {
 
 export default async function CheckinLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
-  // QR verification is now Super-Admin-only (full access).
-  if (!session || session.role !== "SUPER") {
-    redirect("/admin/login?role=SUPER");
+  // Accessible to Agent Réception (QR/Code verification) + Super Admin.
+  if (!session || (session.role !== "RECEPTION" && session.role !== "SUPER")) {
+    redirect("/admin/login?role=RECEPTION");
   }
 
   return (
-    <CheckinShell adminName={session.name || "Admin"} adminEmail={session.email || ""}>
+    <CheckinShell adminName={session.name || "Réception"} adminEmail={session.email || ""}>
       {children}
     </CheckinShell>
   );

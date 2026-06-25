@@ -134,27 +134,23 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* ============ HERO — full green inspection-center backdrop ============ */}
-      <section className="relative overflow-hidden bg-brand-gradient">
-        {/* texture + ambient overlays on green */}
+      {/* ============ HERO — realistic inspection-center photo background ============ */}
+      <section className="relative overflow-hidden">
+        {/* AI-generated realistic inspection scene as full-bleed background */}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url(/hero-inspection-bg.png)" }}
+          aria-hidden="true"
+        />
+        {/* green brand overlay — tints the photo with the cold-green identity + ensures white text readability */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#00C896]/85 via-[#00A87E]/80 to-[#00876A]/90" />
+        {/* texture + ambient overlays */}
         <div className="pointer-events-none absolute inset-0">
-          {/* subtle white dot pattern for depth */}
-          <div className="absolute inset-0 bg-hero-dots opacity-[0.10]" />
-          {/* white ambient glow blobs (not green — bg is already green) */}
-          <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-white/15 blur-3xl" />
-          <div className="absolute -bottom-32 left-0 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
-          {/* overhead bay light strip */}
-          <div className="absolute left-1/2 top-0 h-24 w-2/3 -translate-x-1/2 rounded-b-full bg-white/10 blur-2xl" />
-          {/* white perspective floor lines on green */}
-          <svg className="absolute inset-x-0 bottom-0 h-1/3 w-full opacity-20" viewBox="0 0 1200 200" preserveAspectRatio="none" aria-hidden="true">
-            <g stroke="#FFFFFF" strokeWidth="1.5">
-              <line x1="0" y1="200" x2="1200" y2="0" />
-              <line x1="300" y1="200" x2="600" y2="0" />
-              <line x1="600" y1="200" x2="900" y2="0" />
-              <line x1="900" y1="200" x2="1200" y2="0" />
-              <line x1="0" y1="200" x2="1200" y2="200" />
-            </g>
-          </svg>
+          <div className="absolute inset-0 bg-hero-dots opacity-[0.08]" />
+          <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute -bottom-32 left-0 h-96 w-96 rounded-full bg-white/8 blur-3xl" />
+          {/* left-side darkening for text contrast on desktop */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#00876A]/60 via-transparent to-transparent lg:from-[#00876A]/70" />
         </div>
 
         <div className="relative mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-24 lg:py-28">
