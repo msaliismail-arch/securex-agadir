@@ -2,28 +2,30 @@ import Link from "next/link";
 import {
   CalendarCheck, FileText, SearchCheck, Award, ShieldCheck, Clock, Zap,
   Users, Star, Phone, Mail, MapPin, Navigation, Facebook, Instagram, Linkedin,
-  ChevronRight, Wrench, Gauge, BadgeCheck, MessageCircle, Car, Truck, Bike, Bus, AlertCircle,
+  ChevronRight, Wrench, Gauge, BadgeCheck, MessageCircle, Car, Truck, Bike, Bus, Sparkles,
+  type LucideIcon,
 } from "lucide-react";
 import { db } from "@/lib/db";
+import { getWebsiteContent } from "@/lib/content";
 import { BRAND, COLOR_MAP, MAPS_EMBED, MAPS_LINK, type CategoryColor } from "@/lib/constants";
 import { formatMAD } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatsCounter } from "@/components/public/stats-counter";
+import { Reveal } from "@/components/public/reveal";
+import { HeroCar } from "@/components/public/hero-car";
 
-const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  Car, Truck, Bike, Bus,
-};
+const ICONS: Record<string, LucideIcon> = { Car, Truck, Bike, Bus };
 
-const STEPS = [
+const STEPS: { icon: LucideIcon; title: string; desc: string }[] = [
   { icon: CalendarCheck, title: "Prenez rendez-vous", desc: "Réservez en ligne en moins de 2 minutes, choisissez votre créneau." },
   { icon: FileText, title: "Préparez vos documents", desc: "Carte grise, assurance et pièce d'identité du propriétaire." },
   { icon: SearchCheck, title: "Contrôle par nos experts", desc: "Inspection complète par nos techniciens certifiés, en 30 minutes." },
   { icon: Award, title: "Recevez votre certificat", desc: "Certificat officiel remis immédiatement après validation." },
 ];
 
-const FEATURES = [
+const FEATURES: { icon: LucideIcon; title: string; desc: string }[] = [
   { icon: Zap, title: "Équipements de pointe", desc: "Bancs d'essai et outils de diagnostic dernière génération." },
   { icon: BadgeCheck, title: "Techniciens certifiés", desc: "Une équipe agréée et formée aux normes les plus strictes." },
   { icon: ShieldCheck, title: "Certificat officiel", desc: "Document reconnu par les autorités marocaines." },
@@ -32,348 +34,569 @@ const FEATURES = [
   { icon: Gauge, title: "Tarifs transparents", desc: "Des prix clairs, affichés à l'avance, sans surprise." },
 ];
 
-const TESTIMONIALS = [
-  { name: "Mehdi Tazi", role: "Agadir", quote: "Service rapide et professionnel. J'ai pris RDV en ligne et tout s'est déroulé sans attente. Je recommande vivement SÉCUREX CONNECT.", rating: 5, color: "blue" as CategoryColor },
-  { name: "Salma Ouazzani", role: "Dcheira", quote: "Accueil chaleureux, équipe compétente. Le rappel par WhatsApp avant l'expiration m'a été très utile. Centre sérieux.", rating: 5, color: "green" as CategoryColor },
-  { name: "Hicham Berrada", role: "Inezgane", quote: "Installation moderne et propre. Le certificat m'a été remis immédiatement. Tarifs très corrects par rapport à la qualité.", rating: 5, color: "orange" as CategoryColor },
+const TESTIMONIALS: {
+  name: string; role: string; quote: string; rating: number; color: CategoryColor;
+}[] = [
+  { name: "Mehdi Tazi", role: "Agadir", quote: "Service rapide et professionnel. J'ai pris RDV en ligne et tout s'est déroulé sans attente. Je recommande vivement SÉCUREX CONNECT.", rating: 5, color: "blue" },
+  { name: "Salma Ouazzani", role: "Dcheira", quote: "Accueil chaleureux, équipe compétente. Le rappel par WhatsApp avant l'expiration m'a été très utile. Centre sérieux.", rating: 5, color: "green" },
+  { name: "Hicham Berrada", role: "Inezgane", quote: "Installation moderne et propre. Le certificat m'a été remis immédiatement. Tarifs très corrects par rapport à la qualité.", rating: 5, color: "orange" },
 ];
 
+/** Render a title with the highlight word wrapped in .text-brand-gradient. */
+function HighlightTitle({ title, highlight }: { title: string; highlight?: string }) {
+  if (!highlight) return <>{title}</>;
+  const idx = title.toLowerCase().indexOf(highlight.toLowerCase());
+  if (idx === -1) return <>{title}</>;
+  const before = title.slice(0, idx);
+  const match = title.slice(idx, idx + highlight.length);
+  const after = title.slice(idx + highlight.length);
+  return (
+    <>
+      {before}
+      <span className="text-brand-gradient">{match}</span>
+      {after}
+    </>
+  );
+}
+
 export default async function HomePage() {
-  const [categories, announcements] = await Promise.all([
+  const [content, categories, announcements] = await Promise.all([
+    getWebsiteContent(),
     db.category.findMany({
       orderBy: { sort: "asc" },
       include: { services: { where: { active: true }, orderBy: { price: "asc" } } },
     }),
-    db.announcement.findMany({ where: { visible: true }, orderBy: [{ pinned: "desc" }, { publishedAt: "desc" }] }),
+    db.announcement.findMany({
+      where: { visible: true },
+      orderBy: [{ pinned: "desc" }, { publishedAt: "desc" }],
+    }),
   ]);
+
+  const heroTitle = content["hero.title"] ?? "Contrôle technique automobile agréé à Agadir";
+  const heroHighlight = content["hero.titleHighlight"] || "agréé";
+  const heroSubtitle =
+    content["hero.subtitle"] ??
+    "Sécurité, fiabilité et conformité pour tous vos véhicules. Prenez rendez-vous en ligne et recevez votre certificat officiel en 30 minutes.";
+  const heroBadge = content["hero.badge"] ?? "Agréé Ministère du Transport";
+  const ctaPrimary = content["hero.ctaPrimary"] ?? "Prendre rendez-vous";
+  const ctaSecondary = content["hero.ctaSecondary"] ?? "Voir les tarifs";
+
+  const stats = [
+    {
+      value: Number(content["stats.controls"] ?? "15000"),
+      suffix: content["stats.controlsSuffix"] ?? "+",
+      label: content["stats.controlsLabel"] ?? "Contrôles réalisés",
+    },
+    {
+      value: Number(content["stats.satisfaction"] ?? "49"),
+      suffix: content["stats.satisfactionSuffix"] ?? "/50",
+      label: content["stats.satisfactionLabel"] ?? "Satisfaction client",
+    },
+    {
+      value: Number(content["stats.duration"] ?? "30"),
+      suffix: content["stats.durationSuffix"] ?? " min",
+      label: content["stats.durationLabel"] ?? "Durée moyenne",
+    },
+    {
+      value: Number(content["stats.certified"] ?? "100"),
+      suffix: content["stats.certifiedSuffix"] ?? "%",
+      label: content["stats.certifiedLabel"] ?? "Agréé & conforme",
+    },
+  ];
+
+  const stepsTitle = content["steps.title"] ?? "Comment ça marche ?";
+  const stepsSubtitle =
+    content["steps.subtitle"] ?? "Quatre étapes pour un contrôle technique sans tracas.";
+
+  const featuresTitle = content["features.title"] ?? "Pourquoi nous choisir ?";
+  const featuresSubtitle =
+    content["features.subtitle"] ??
+    "Une expérience de contrôle technique moderne, fiable et sans surprise.";
+
+  const testimonialsTitle = content["testimonials.title"] ?? "Ils nous font confiance";
+
+  const contactTitle = content["contact.title"] ?? "Nous trouver à Agadir";
+  const contactSubtitle =
+    content["contact.subtitle"] ?? "Facile d'accès au Quartier Industriel d'Agadir.";
+
+  const ctaTitle = content["cta.title"] ?? "Prêt à passer le contrôle technique ?";
+  const ctaSubtitle =
+    content["cta.subtitle"] ??
+    "Réservez votre créneau en ligne dès maintenant et évitez l'attente. Certification officielle garantie.";
 
   return (
     <>
-      {/* HERO */}
-      <section className="relative overflow-hidden bg-navy text-white">
-        <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, #FFFFFF 1px, transparent 0)", backgroundSize: "32px 32px" }} />
-        <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-emerald-brand/20 blur-3xl" />
-        <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
-        <div className="relative mx-auto max-w-7xl px-6 py-20 md:py-28 lg:py-32">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div>
-              <Badge className="mb-6 border-emerald-brand/30 bg-emerald-brand/10 text-emerald-300 hover:bg-emerald-brand/15">
-                <ShieldCheck className="mr-1.5 h-3.5 w-3.5" /> Agréé Ministère du Transport
-              </Badge>
-              <h1 className="text-4xl font-bold leading-[1.1] tracking-tight md:text-5xl lg:text-6xl">
-                Contrôle technique automobile <span className="text-emerald-brand">agréé</span> à Agadir
-              </h1>
-              <p className="mt-6 max-w-xl text-lg text-white/70 leading-relaxed">
-                Sécurité, fiabilité et conformité pour tous vos véhicules. Prenez rendez-vous en ligne et recevez votre certificat officiel en 30 minutes.
-              </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button asChild size="lg" className="bg-emerald-brand text-white hover:bg-emerald-brand/90 h-12 px-7 text-base">
-                  <Link href="/rendez-vous"><CalendarCheck className="mr-2 h-5 w-5" /> Prendre rendez-vous</Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="h-12 px-7 text-base border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white">
-                  <Link href="/tarifs">Voir les tarifs</Link>
-                </Button>
-              </div>
-              <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-3 text-sm text-white/60">
-                <span className="flex items-center gap-2"><Clock className="h-4 w-4 text-emerald-brand" /> Contrôle en 30 min</span>
-                <span className="flex items-center gap-2"><Award className="h-4 w-4 text-emerald-brand" /> Certificat officiel</span>
-                <span className="flex items-center gap-2"><Users className="h-4 w-4 text-emerald-brand" /> 15 000+ contrôles réalisés</span>
-              </div>
-            </div>
+      {/* ============ HERO ============ */}
+      <section className="relative overflow-hidden bg-mesh">
+        <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 left-0 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
 
-            {/* Hero card */}
-            <div className="relative hidden lg:block">
-              <div className="absolute inset-0 rounded-3xl bg-emerald-brand/10 blur-2xl" />
-              <Card className="relative border-white/10 bg-white/[0.04] p-8 backdrop-blur-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-brand/15">
-                    <SearchCheck className="h-7 w-7 text-emerald-brand" />
-                  </div>
-                  <Badge className="bg-emerald-brand/15 text-emerald-300">Contrôle complet</Badge>
-                </div>
-                <h3 className="mt-6 text-xl font-semibold text-white">Points inspectés</h3>
-                <div className="mt-5 grid grid-cols-2 gap-3">
-                  {[
-                    { label: "Freinage", icon: "🛞" },
-                    { label: "Éclairage", icon: "💡" },
-                    { label: "Pneumatiques", icon: "🔵" },
-                    { label: "Émissions", icon: "🌫️" },
-                    { label: "Carrosserie", icon: "🚗" },
-                    { label: "Direction", icon: "🔧" },
-                  ].map((p) => (
-                    <div key={p.label} className="flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2.5 text-sm text-white/80">
-                      <span>{p.icon}</span> {p.label}
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6 flex items-center justify-between rounded-xl bg-emerald-brand/10 p-4">
-                  <div>
-                    <p className="text-xs text-emerald-300/80">À partir de</p>
-                    <p className="text-2xl font-bold text-white">350 MAD</p>
-                  </div>
-                  <Button asChild size="sm" className="bg-emerald-brand text-white hover:bg-emerald-brand/90">
-                    <Link href="/rendez-vous">Réserver</Link>
-                  </Button>
-                </div>
-              </Card>
-            </div>
+        <div className="relative mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-24 lg:py-28">
+          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+            {/* LEFT — copy */}
+            <Reveal>
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                {heroBadge}
+              </div>
+
+              <h1 className="mt-6 text-4xl font-bold leading-[1.08] tracking-tight text-foreground md:text-5xl lg:text-6xl">
+                <HighlightTitle title={heroTitle} highlight={heroHighlight} />
+              </h1>
+
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+                {heroSubtitle}
+              </p>
+
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Button
+                  asChild
+                  size="lg"
+                  className="h-12 bg-brand-gradient px-7 text-base text-white shadow-glow hover:opacity-90"
+                >
+                  <Link href="/rendez-vous">
+                    <CalendarCheck className="mr-2 h-5 w-5" /> {ctaPrimary}
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="h-12 border-primary/30 px-7 text-base text-primary hover:bg-primary/5"
+                >
+                  <Link href="/tarifs">
+                    {ctaSecondary}
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+
+              <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-3 text-sm text-muted-foreground">
+                <span className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" /> Contrôle en 30 min
+                </span>
+                <span className="flex items-center gap-2">
+                  <Award className="h-4 w-4 text-primary" /> Certificat officiel
+                </span>
+                <span className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" /> 15 000+ contrôles réalisés
+                </span>
+              </div>
+            </Reveal>
+
+            {/* RIGHT — animated car scene */}
+            <Reveal delay={0.15}>
+              <HeroCar />
+            </Reveal>
           </div>
         </div>
       </section>
 
-      {/* STATS BAND */}
-      <section className="border-b border-border bg-surface">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-6 py-12 md:grid-cols-4">
-          {[
-            { value: 15000, suffix: "+", label: "Contrôles réalisés" },
-            { value: 49, suffix: "/50", label: "Satisfaction client" },
-            { value: 30, suffix: " min", label: "Durée moyenne" },
-            { value: 100, suffix: "%", label: "Agréé & conforme" },
-          ].map((s) => (
-            <div key={s.label} className="text-center">
-              <div className="text-3xl font-bold text-navy md:text-4xl">
-                <StatsCounter value={s.value} suffix={s.suffix} />
+      {/* ============ STATS BAND ============ */}
+      <section className="border-y border-border bg-secondary/40">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-4 px-6 py-12 md:grid-cols-4 md:gap-6">
+          {stats.map((s) => (
+            <Reveal key={s.label}>
+              <div className="rounded-2xl glass-card p-6 text-center shadow-soft">
+                <div className="text-3xl font-bold text-primary md:text-4xl">
+                  <StatsCounter value={s.value} suffix={s.suffix} />
+                </div>
+                <p className="mt-1.5 text-sm text-muted-foreground">{s.label}</p>
               </div>
-              <p className="mt-1.5 text-sm text-muted-foreground">{s.label}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
+      {/* ============ HOW IT WORKS ============ */}
       <section className="mx-auto max-w-7xl px-6 py-20">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-emerald-brand">Processus simple</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-navy md:text-4xl">Comment ça marche ?</h2>
-          <p className="mt-3 text-muted-foreground">Quatre étapes pour un contrôle technique sans tracas.</p>
-        </div>
+        <Reveal>
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+              Processus simple
+            </p>
+            <h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+              {stepsTitle}
+            </h2>
+            <p className="mt-3 text-muted-foreground">{stepsSubtitle}</p>
+          </div>
+        </Reveal>
+
         <div className="relative mt-14 grid gap-8 md:grid-cols-4">
           <div className="absolute left-0 right-0 top-8 hidden h-px bg-border md:block" />
           {STEPS.map((step, i) => (
-            <div key={step.title} className="relative text-center">
-              <div className="relative z-10 mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-brand text-white shadow-lg shadow-emerald-brand/20">
-                <step.icon className="h-7 w-7" />
+            <Reveal key={step.title} delay={i * 0.08}>
+              <div className="relative text-center">
+                <div className="relative z-10 mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-gradient text-white shadow-glow">
+                  <step.icon className="h-7 w-7" />
+                </div>
+                <span className="mt-4 inline-block text-xs font-bold uppercase tracking-wider text-primary">
+                  Étape {i + 1}
+                </span>
+                <h3 className="mt-1 text-lg font-semibold text-foreground">{step.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.desc}</p>
               </div>
-              <span className="mt-4 inline-block text-xs font-bold uppercase tracking-wider text-emerald-brand">Étape {i + 1}</span>
-              <h3 className="mt-1 text-lg font-semibold text-navy">{step.title}</h3>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>
 
-      {/* CATEGORIES + TARIFS */}
-      <section className="bg-surface py-20">
+      {/* ============ CATEGORIES + TARIFS ============ */}
+      <section className="bg-secondary/40 py-20">
         <div className="mx-auto max-w-7xl px-6">
-          <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
-            <div className="max-w-2xl">
-              <p className="text-sm font-semibold uppercase tracking-wider text-emerald-brand">Nos services</p>
-              <h2 className="mt-2 text-3xl font-bold tracking-tight text-navy md:text-4xl">Catégories de véhicules & tarifs</h2>
-              <p className="mt-3 text-muted-foreground">Des tarifs clairs et transparents pour chaque type de véhicule.</p>
+          <Reveal>
+            <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
+              <div className="max-w-2xl">
+                <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+                  Nos services
+                </p>
+                <h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+                  Catégories de véhicules &amp; tarifs
+                </h2>
+                <p className="mt-3 text-muted-foreground">
+                  Des tarifs clairs et transparents pour chaque type de véhicule.
+                </p>
+              </div>
+              <Button
+                asChild
+                variant="outline"
+                className="border-primary/30 text-primary hover:bg-primary/5"
+              >
+                <Link href="/tarifs">
+                  Tous les tarifs <ChevronRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Button>
             </div>
-            <Button asChild variant="outline" className="border-emerald-brand/30 text-emerald-brand hover:bg-emerald-brand/5">
-              <Link href="/tarifs">Tous les tarifs <ChevronRight className="ml-1 h-4 w-4" /></Link>
-            </Button>
-          </div>
+          </Reveal>
 
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {categories.map((cat) => {
-              const c = COLOR_MAP[cat.color as CategoryColor];
+            {categories.map((cat, i) => {
+              const c = COLOR_MAP[cat.color as CategoryColor] ?? COLOR_MAP.green;
               const Icon = ICONS[cat.icon] || Car;
-              const minPrice = cat.services.length ? Math.min(...cat.services.map((s) => s.price)) : 0;
+              const minPrice = cat.services.length
+                ? Math.min(...cat.services.map((s) => s.price))
+                : 0;
               return (
-                <Card key={cat.id} className="group relative overflow-hidden border-border p-6 transition-all hover:shadow-lg">
-                  <div className={`absolute inset-x-0 top-0 h-1 ${c.bg}`} />
-                  <div className={`flex h-14 w-14 items-center justify-center rounded-xl ${c.soft} ${c.fg}`}>
-                    <Icon className="h-7 w-7" />
-                  </div>
-                  <h3 className="mt-5 text-lg font-semibold text-navy">{cat.name}</h3>
-                  <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed min-h-[40px]">{cat.description}</p>
-                  <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-xs text-muted-foreground">à partir de</span>
-                    <span className={`text-2xl font-bold ${c.fg}`}>{formatMAD(minPrice)}</span>
-                  </div>
-                  <Button asChild variant="outline" className={`mt-5 w-full border ${c.border} ${c.fg} hover:${c.soft}`}>
-                    <Link href={`/rendez-vous?category=${cat.slug}`}>Réserver <ChevronRight className="ml-1 h-4 w-4" /></Link>
-                  </Button>
-                </Card>
+                <Reveal key={cat.id} delay={i * 0.06}>
+                  <Card className="group relative h-full overflow-hidden border-border p-6 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-card">
+                    <div className={`absolute inset-x-0 top-0 h-1 ${c.bg}`} />
+                    <div
+                      className={`flex h-14 w-14 items-center justify-center rounded-xl ${c.soft} ${c.fg}`}
+                    >
+                      <Icon className="h-7 w-7" />
+                    </div>
+                    <h3 className="mt-5 text-lg font-semibold text-foreground">{cat.name}</h3>
+                    <p className="mt-1.5 min-h-[40px] text-sm leading-relaxed text-muted-foreground">
+                      {cat.description}
+                    </p>
+                    <div className="mt-4 flex items-baseline gap-1">
+                      <span className="text-xs text-muted-foreground">à partir de</span>
+                      <span className={`text-2xl font-bold ${c.fg}`}>{formatMAD(minPrice)}</span>
+                    </div>
+                    <Button
+                      asChild
+                      variant="outline"
+                      className={`mt-5 w-full border ${c.border} ${c.fg} hover:${c.soft}`}
+                    >
+                      <Link href={`/rendez-vous?category=${cat.slug}`}>
+                        Réserver <ChevronRight className="ml-1 h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </Card>
+                </Reveal>
               );
             })}
           </div>
         </div>
       </section>
 
-      {/* WHY CHOOSE US */}
+      {/* ============ WHY CHOOSE US ============ */}
       <section className="mx-auto max-w-7xl px-6 py-20">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-emerald-brand">Notre engagement</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-navy md:text-4xl">Pourquoi nous choisir ?</h2>
-          <p className="mt-3 text-muted-foreground">Une expérience de contrôle technique moderne, fiable et sans surprise.</p>
-        </div>
+        <Reveal>
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+              Notre engagement
+            </p>
+            <h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+              {featuresTitle}
+            </h2>
+            <p className="mt-3 text-muted-foreground">{featuresSubtitle}</p>
+          </div>
+        </Reveal>
+
         <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f) => (
-            <Card key={f.title} className="border-border p-6 transition-colors hover:border-emerald-brand/30">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-emerald-brand">
-                <f.icon className="h-6 w-6" />
-              </div>
-              <h3 className="mt-4 text-base font-semibold text-navy">{f.title}</h3>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
-            </Card>
+          {FEATURES.map((f, i) => (
+            <Reveal key={f.title} delay={i * 0.06}>
+              <Card className="h-full border-border p-6 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-card">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <f.icon className="h-6 w-6" />
+                </div>
+                <h3 className="mt-4 text-base font-semibold text-foreground">{f.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
+              </Card>
+            </Reveal>
           ))}
         </div>
       </section>
 
-      {/* ANNOUNCEMENTS */}
+      {/* ============ ANNOUNCEMENTS ============ */}
       {announcements.length > 0 && (
-        <section className="bg-surface py-20">
+        <section className="bg-secondary/40 py-20">
           <div className="mx-auto max-w-7xl px-6">
-            <div className="mx-auto max-w-2xl text-center">
-              <p className="text-sm font-semibold uppercase tracking-wider text-orange-500">Actualités</p>
-              <h2 className="mt-2 text-3xl font-bold tracking-tight text-navy md:text-4xl">Annonces & promotions</h2>
-              <p className="mt-3 text-muted-foreground">Restez informé de nos offres et informations importantes.</p>
-            </div>
+            <Reveal>
+              <div className="mx-auto max-w-2xl text-center">
+                <p className="text-sm font-semibold uppercase tracking-wider text-orange-500">
+                  Actualités
+                </p>
+                <h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+                  Annonces &amp; promotions
+                </h2>
+                <p className="mt-3 text-muted-foreground">
+                  Restez informé de nos offres et informations importantes.
+                </p>
+              </div>
+            </Reveal>
+
             <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {announcements.slice(0, 3).map((a) => (
-                <Card key={a.id} className={`relative border-border p-6 ${a.pinned ? "ring-1 ring-orange-300" : ""}`}>
-                  {a.pinned && (
-                    <Badge className="absolute -top-2.5 right-4 bg-orange-500 text-white">Épinglé</Badge>
-                  )}
-                  <Badge variant="outline" className="mb-3 border-orange-200 bg-orange-50 text-orange-700">{a.category}</Badge>
-                  <h3 className="text-lg font-semibold text-navy">{a.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed line-clamp-4">{a.content}</p>
-                  <p className="mt-4 text-xs text-muted-foreground">{new Date(a.publishedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</p>
-                </Card>
+              {announcements.slice(0, 3).map((a, i) => (
+                <Reveal key={a.id} delay={i * 0.06}>
+                  <Card
+                    className={`relative h-full border-border p-6 shadow-soft ${
+                      a.pinned ? "ring-1 ring-orange-300" : ""
+                    }`}
+                  >
+                    {a.pinned && (
+                      <Badge className="absolute -top-2.5 right-4 bg-orange-500 text-white">
+                        Épinglé
+                      </Badge>
+                    )}
+                    <Badge
+                      variant="outline"
+                      className="mb-3 border-orange-200 bg-orange-50 text-orange-700"
+                    >
+                      {a.category}
+                    </Badge>
+                    <h3 className="text-lg font-semibold text-foreground">{a.title}</h3>
+                    <p className="mt-2 line-clamp-4 text-sm leading-relaxed text-muted-foreground">
+                      {a.content}
+                    </p>
+                    <p className="mt-4 text-xs text-muted-foreground">
+                      {new Date(a.publishedAt).toLocaleDateString("fr-FR", {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </Card>
+                </Reveal>
               ))}
             </div>
           </div>
         </section>
       )}
 
-      {/* TESTIMONIALS */}
+      {/* ============ TESTIMONIALS ============ */}
       <section className="mx-auto max-w-7xl px-6 py-20">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-emerald-brand">Témoignages</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-navy md:text-4xl">Ils nous font confiance</h2>
-        </div>
+        <Reveal>
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+              Témoignages
+            </p>
+            <h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+              {testimonialsTitle}
+            </h2>
+          </div>
+        </Reveal>
+
         <div className="mt-12 grid gap-6 md:grid-cols-3">
-          {TESTIMONIALS.map((t) => {
+          {TESTIMONIALS.map((t, i) => {
             const c = COLOR_MAP[t.color];
             return (
-              <Card key={t.name} className="border-border p-6">
-                <div className="flex gap-1">
-                  {Array.from({ length: t.rating }).map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <p className="mt-4 text-sm text-foreground/80 leading-relaxed">"{t.quote}"</p>
-                <div className="mt-5 flex items-center gap-3">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${c.soft} ${c.fg} text-sm font-bold`}>
-                    {t.name.split(" ").map((n) => n[0]).join("")}
+              <Reveal key={t.name} delay={i * 0.08}>
+                <Card className="h-full border-border p-6 shadow-soft">
+                  <div className="flex gap-1">
+                    {Array.from({ length: t.rating }).map((_, k) => (
+                      <Star key={k} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    ))}
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-navy">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">{t.role}</p>
+                  <p className="mt-4 text-sm leading-relaxed text-foreground/80">
+                    “{t.quote}”
+                  </p>
+                  <div className="mt-5 flex items-center gap-3">
+                    <div
+                      className={`flex h-10 w-10 items-center justify-center rounded-full ${c.soft} ${c.fg} text-sm font-bold`}
+                    >
+                      {t.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{t.name}</p>
+                      <p className="text-xs text-muted-foreground">{t.role}</p>
+                    </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
+              </Reveal>
             );
           })}
         </div>
       </section>
 
-      {/* LOCATION */}
-      <section className="bg-surface py-20">
+      {/* ============ LOCATION ============ */}
+      <section className="bg-secondary/40 py-20">
         <div className="mx-auto max-w-7xl px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-wider text-red-500">Contact & localisation</p>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight text-navy md:text-4xl">Nous trouver à Agadir</h2>
-            <p className="mt-3 text-muted-foreground">Facile d'accès au Quartier Industriel d'Agadir.</p>
-          </div>
-          <div className="mt-12 grid gap-8 lg:grid-cols-2">
-            <div className="overflow-hidden rounded-2xl border border-border">
-              <iframe
-                title="Localisation SÉCUREX CONNECT Agadir"
-                src={MAPS_EMBED}
-                width="100%"
-                height="100%"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                className="min-h-[360px] w-full"
-              />
+          <Reveal>
+            <div className="mx-auto max-w-2xl text-center">
+              <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+                Contact &amp; localisation
+              </p>
+              <h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+                {contactTitle}
+              </h2>
+              <p className="mt-3 text-muted-foreground">{contactSubtitle}</p>
             </div>
-            <Card className="border-border p-8">
-              <div className="space-y-6">
-                <div className="flex gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
-                    <MapPin className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-navy">Adresse</p>
-                    <p className="text-sm text-muted-foreground">{BRAND.address}</p>
-                  </div>
-                </div>
-                <div className="flex gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
-                    <Phone className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-navy">Téléphone</p>
-                    <a href={`tel:${BRAND.phoneRaw}`} className="text-sm text-muted-foreground hover:text-red-600">{BRAND.phone}</a>
-                  </div>
-                </div>
-                <div className="flex gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
-                    <Mail className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-navy">Email</p>
-                    <a href={`mailto:${BRAND.email}`} className="text-sm text-muted-foreground hover:text-red-600">{BRAND.email}</a>
-                  </div>
-                </div>
-                <div className="flex gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
-                    <Clock className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-navy">Horaires</p>
-                    <p className="text-sm text-muted-foreground">{BRAND.hours}</p>
-                  </div>
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <Button asChild className="bg-emerald-brand hover:bg-emerald-brand/90">
-                    <a href={MAPS_LINK} target="_blank" rel="noopener noreferrer"><Navigation className="mr-1.5 h-4 w-4" /> Itinéraire</a>
-                  </Button>
-                  <Button asChild variant="outline">
-                    <Link href="/contact">Nous contacter</Link>
-                  </Button>
-                </div>
-                <div className="flex gap-3 border-t border-border pt-5">
-                  <a href={BRAND.social.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors hover:bg-navy hover:text-white"><Facebook className="h-4 w-4" /></a>
-                  <a href={BRAND.social.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors hover:bg-navy hover:text-white"><Instagram className="h-4 w-4" /></a>
-                  <a href={BRAND.social.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors hover:bg-navy hover:text-white"><Linkedin className="h-4 w-4" /></a>
-                </div>
+          </Reveal>
+
+          <div className="mt-12 grid gap-8 lg:grid-cols-2">
+            <Reveal>
+              <div className="overflow-hidden rounded-2xl border border-border shadow-card">
+                <iframe
+                  title="Localisation SÉCUREX CONNECT Agadir"
+                  src={MAPS_EMBED}
+                  width="100%"
+                  height="100%"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="min-h-[360px] w-full"
+                />
               </div>
-            </Card>
+            </Reveal>
+
+            <Reveal delay={0.1}>
+              <Card className="h-full border-border p-8 shadow-soft">
+                <div className="space-y-6">
+                  <ContactRow icon={MapPin} title="Adresse" accent>
+                    <p className="text-sm text-muted-foreground">{BRAND.address}</p>
+                  </ContactRow>
+                  <ContactRow icon={Phone} title="Téléphone" accent>
+                    <a
+                      href={`tel:${BRAND.phoneRaw}`}
+                      className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                    >
+                      {BRAND.phone}
+                    </a>
+                  </ContactRow>
+                  <ContactRow icon={Mail} title="Email" accent>
+                    <a
+                      href={`mailto:${BRAND.email}`}
+                      className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                    >
+                      {BRAND.email}
+                    </a>
+                  </ContactRow>
+                  <ContactRow icon={Clock} title="Horaires" accent>
+                    <p className="text-sm text-muted-foreground">{BRAND.hours}</p>
+                  </ContactRow>
+
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    <Button asChild className="bg-brand-gradient text-white shadow-soft hover:opacity-90">
+                      <a href={MAPS_LINK} target="_blank" rel="noopener noreferrer">
+                        <Navigation className="mr-1.5 h-4 w-4" /> Itinéraire
+                      </a>
+                    </Button>
+                    <Button asChild variant="outline" className="border-primary/30 text-primary hover:bg-primary/5">
+                      <Link href="/contact">Nous contacter</Link>
+                    </Button>
+                  </div>
+
+                  <div className="flex gap-3 border-t border-border pt-5">
+                    <SocialLink href={BRAND.social.facebook} label="Facebook" />
+                    <SocialLink href={BRAND.social.instagram} label="Instagram" />
+                    <SocialLink href={BRAND.social.linkedin} label="LinkedIn" />
+                  </div>
+                </div>
+              </Card>
+            </Reveal>
           </div>
         </div>
       </section>
 
-      {/* FINAL CTA */}
-      <section className="bg-navy py-20">
+      {/* ============ FINAL CTA ============ */}
+      <section className="bg-brand-gradient py-20">
         <div className="mx-auto max-w-4xl px-6 text-center">
-          <AlertCircle className="mx-auto h-10 w-10 text-emerald-brand" />
-          <h2 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-4xl">Prêt à passer le contrôle technique ?</h2>
-          <p className="mx-auto mt-4 max-w-xl text-white/70">Réservez votre créneau en ligne dès maintenant et évitez l'attente. Certification officielle garantie.</p>
+          <Sparkles className="mx-auto h-10 w-10 text-white" />
+          <h2 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-4xl">
+            {ctaTitle}
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-white/85">{ctaSubtitle}</p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button asChild size="lg" className="bg-emerald-brand text-white hover:bg-emerald-brand/90 h-12 px-8 text-base">
-              <Link href="/rendez-vous"><CalendarCheck className="mr-2 h-5 w-5" /> Prendre rendez-vous</Link>
+            <Button
+              asChild
+              size="lg"
+              className="h-12 bg-white px-8 text-base text-primary shadow-float hover:bg-white/90"
+            >
+              <Link href="/rendez-vous">
+                <CalendarCheck className="mr-2 h-5 w-5" /> {ctaPrimary}
+              </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="h-12 px-8 text-base border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white">
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="h-12 border-white/40 bg-white/10 px-8 text-base text-white hover:bg-white/20 hover:text-white"
+            >
               <Link href="/contact">Poser une question</Link>
             </Button>
           </div>
         </div>
       </section>
     </>
+  );
+}
+
+/* ---------- small helpers ---------- */
+
+function ContactRow({
+  icon: Icon,
+  title,
+  children,
+  accent,
+}: {
+  icon: LucideIcon;
+  title: string;
+  children: React.ReactNode;
+  accent?: boolean;
+}) {
+  return (
+    <div className="flex gap-4">
+      <div
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+          accent ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+        }`}
+      >
+        <Icon className="h-5 w-5" />
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function SocialLink({ href, label }: { href: string; label: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={label}
+      className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground shadow-soft transition-all hover:bg-primary hover:text-white hover:shadow-glow"
+    >
+      {label === "Facebook" && <Facebook className="h-4 w-4" />}
+      {label === "Instagram" && <Instagram className="h-4 w-4" />}
+      {label === "LinkedIn" && <Linkedin className="h-4 w-4" />}
+    </a>
   );
 }

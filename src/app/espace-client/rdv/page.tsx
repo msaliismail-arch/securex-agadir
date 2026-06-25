@@ -44,13 +44,13 @@ export default function MesRdvPage() {
   if (loading || unauthorized) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-7 w-7 animate-spin text-emerald-brand" />
+        <Loader2 className="h-7 w-7 animate-spin text-primary" />
       </div>
     );
   }
   if (error || !data) {
     return (
-      <Card>
+      <Card className="glass-card">
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
           {error || "Impossible de charger vos rendez-vous."}
         </CardContent>
@@ -88,16 +88,16 @@ export default function MesRdvPage() {
         <div>
           <Link
             href="/espace-client"
-            className="mb-1 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-emerald-brand"
+            className="mb-1 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary"
           >
             <ChevronLeft className="h-3.5 w-3.5" /> Tableau de bord
           </Link>
-          <h1 className="text-2xl font-bold text-navy md:text-3xl">Mes rendez-vous</h1>
+          <h1 className="text-2xl font-bold text-foreground md:text-3xl">Mes rendez-vous</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Consultez vos rendez-vous à venir et passés, téléchargez vos certificats.
           </p>
         </div>
-        <Button asChild className="bg-emerald-brand hover:bg-emerald-brand/90">
+        <Button asChild className="bg-brand-gradient text-white hover:opacity-90">
           <Link href="/rendez-vous">
             <Plus className="mr-1.5 h-4 w-4" /> Nouveau RDV
           </Link>
@@ -119,8 +119,8 @@ export default function MesRdvPage() {
               className={cn(
                 "rounded-md px-4 py-1.5 text-sm font-medium transition-colors",
                 filter === tab.key
-                  ? "bg-emerald-brand text-white"
-                  : "text-muted-foreground hover:text-navy"
+                  ? "bg-brand-gradient text-white"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               {tab.label}
@@ -140,11 +140,11 @@ export default function MesRdvPage() {
 
       {/* List */}
       {filtered.length === 0 ? (
-        <Card>
+        <Card className="glass-card">
           <CardContent className="py-12 text-center">
             <CalendarDays className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">Aucun rendez-vous dans cette catégorie.</p>
-            <Button asChild className="mt-4 bg-emerald-brand hover:bg-emerald-brand/90">
+            <Button asChild className="mt-4 bg-brand-gradient text-white hover:opacity-90">
               <Link href="/rendez-vous">
                 <Plus className="mr-1.5 h-4 w-4" /> Prendre rendez-vous
               </Link>
@@ -190,13 +190,13 @@ function AppointmentFullCard({
     appt.status === "COMPLETED" && !!appt.result && appt.result.overallResult === "PASS";
 
   return (
-    <Card>
+    <Card className="glass-card">
       <CardContent className="p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           {/* Left: ref + status + date */}
           <div className="flex items-start gap-4">
             {/* Date block */}
-            <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-emerald-brand/10 text-emerald-brand">
+            <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-primary/10 text-primary">
               <span className="text-lg font-bold leading-none">
                 {d.toLocaleDateString("fr-FR", { day: "2-digit" })}
               </span>
@@ -206,9 +206,9 @@ function AppointmentFullCard({
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-lg font-bold tracking-[0.18em] text-navy">{appt.code}</span>
+                <span className="font-mono text-lg font-bold tracking-[0.18em] text-foreground">{appt.code}</span>
                 {appt.queueNumber ? (
-                  <Badge variant="outline" className="border-emerald-brand/30 text-emerald-brand">
+                  <Badge variant="outline" className="border-primary/30 text-primary">
                     N° {appt.queueNumber} file
                   </Badge>
                 ) : null}
@@ -224,10 +224,10 @@ function AppointmentFullCard({
               </div>
               <div className="mt-1.5 flex flex-wrap items-center gap-2">
                 <CategoryBadge name={appt.category.name} color={appt.category.color} />
-                <Badge variant="outline" className="font-medium text-navy">
+                <Badge variant="outline" className="font-medium text-foreground">
                   {appt.service.name}
                 </Badge>
-                <Badge variant="outline" className="text-emerald-brand">
+                <Badge variant="outline" className="text-primary">
                   {formatMAD(appt.service.price)}
                 </Badge>
               </div>
@@ -237,9 +237,9 @@ function AppointmentFullCard({
           {/* Right: vehicle + actions */}
           <div className="flex flex-col gap-3 lg:items-end">
             <div className="flex items-start gap-2 rounded-lg bg-muted/40 p-2.5 lg:max-w-xs">
-              <Car className="mt-0.5 h-4 w-4 shrink-0 text-emerald-brand" />
+              <Car className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <div className="min-w-0">
-                <p className="font-mono text-sm font-semibold uppercase text-navy">{appt.vehiclePlate}</p>
+                <p className="font-mono text-sm font-semibold uppercase text-foreground">{appt.vehiclePlate}</p>
                 <p className="truncate text-xs text-muted-foreground">{appt.vehicleDesc}</p>
               </div>
             </div>
@@ -250,7 +250,7 @@ function AppointmentFullCard({
                   size="sm"
                   variant="outline"
                   onClick={onShowQr}
-                  className="border-emerald-brand/40 text-emerald-brand hover:bg-emerald-brand/5"
+                  className="border-primary/40 text-primary hover:bg-primary/10"
                 >
                   <QrCode className="mr-1.5 h-4 w-4" /> Voir le QR
                 </Button>
@@ -265,7 +265,7 @@ function AppointmentFullCard({
         {/* Notes (if any) */}
         {appt.notes ? (
           <div className="mt-4 rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-            <p className="font-semibold text-navy">Note du centre :</p>
+            <p className="font-semibold text-foreground">Note du centre :</p>
             <p className="mt-1">{appt.notes}</p>
           </div>
         ) : null}

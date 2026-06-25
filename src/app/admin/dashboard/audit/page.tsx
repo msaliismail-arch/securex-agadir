@@ -126,19 +126,19 @@ export default function AuditPage() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-navy sm:text-2xl">Journal d'audit</h2>
+          <h2 className="text-xl font-bold text-foreground sm:text-2xl">Journal d'audit</h2>
           <p className="text-sm text-muted-foreground">
             Traçabilité immuable de toutes les actions administrateur. Lecture seule.
           </p>
         </div>
-        <Badge variant="outline" className="w-fit border-gray-300 text-gray-700">
+        <Badge variant="outline" className="w-fit border-border text-muted-foreground">
           <ScrollText className="mr-1 h-3 w-3" />
           {logs.length} entrée{logs.length > 1 ? "s" : ""}
         </Badge>
       </div>
 
       {/* Filters */}
-      <Card className="border-l-4 border-gray-400">
+      <Card className="border-l-4 border-border shadow-card">
         <CardContent className="p-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-1.5">
@@ -200,7 +200,7 @@ export default function AuditPage() {
               </p>
               <button
                 onClick={resetFilters}
-                className="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-navy"
+                className="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground"
               >
                 <X className="h-3 w-3" />
                 Réinitialiser
@@ -215,12 +215,12 @@ export default function AuditPage() {
         <CardContent className="p-0">
           {loading ? (
             <div className="flex h-48 items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex h-48 flex-col items-center justify-center gap-2 text-center">
               <ScrollText className="h-8 w-8 text-muted-foreground/50" />
-              <p className="font-semibold text-navy">Aucune entrée</p>
+              <p className="font-semibold text-foreground">Aucune entrée</p>
               <p className="text-sm text-muted-foreground">
                 {hasFilters
                   ? "Aucune entrée ne correspond aux filtres."
@@ -230,7 +230,7 @@ export default function AuditPage() {
           ) : (
             <div className="scroll-thin max-h-[640px] overflow-auto">
               <Table>
-                <TableHeader className="sticky top-0 z-10 bg-white">
+                <TableHeader className="sticky top-0 z-10 bg-card">
                   <TableRow>
                     <TableHead className="text-[11px] uppercase">Horodatage</TableHead>
                     <TableHead className="text-[11px] uppercase">Administrateur</TableHead>
@@ -248,12 +248,12 @@ export default function AuditPage() {
                     return (
                       <TableRow key={l.id} className="text-[12px]">
                         <TableCell className="whitespace-nowrap">
-                          <div className="text-navy">{formatDateTime(l.createdAt)}</div>
+                          <div className="text-foreground">{formatDateTime(l.createdAt)}</div>
                           <div className="text-[10px] text-muted-foreground">
                             {timeAgo(l.createdAt)}
                           </div>
                         </TableCell>
-                        <TableCell className="font-medium text-navy">
+                        <TableCell className="font-medium text-foreground">
                           {l.adminName}
                         </TableCell>
                         <TableCell>

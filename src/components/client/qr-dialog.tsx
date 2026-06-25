@@ -51,18 +51,18 @@ export function QrDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-navy">
-            <QrCode className="h-5 w-5 text-emerald-brand" /> QR Code de validation
+          <DialogTitle className="flex items-center gap-2 text-foreground">
+            <QrCode className="h-5 w-5 text-primary" /> QR Code de validation
           </DialogTitle>
           <DialogDescription>
             Présentez ce QR code à l&apos;accueil pour vérification.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center gap-4 py-2">
-          <div className="rounded-xl border-2 border-emerald-brand/30 bg-emerald-50 p-4">
+          <div className="rounded-xl border-2 border-primary/30 bg-brand-gradient-soft p-4">
             {loading ? (
               <div className="flex h-52 w-52 items-center justify-center">
-                <Loader2 className="h-7 w-7 animate-spin text-emerald-brand" />
+                <Loader2 className="h-7 w-7 animate-spin text-primary" />
               </div>
             ) : qrUrl ? (
               <img src={qrUrl} alt="QR code de validation" className="h-52 w-52" />
@@ -74,7 +74,7 @@ export function QrDialog({
           </div>
           <div className="text-center">
             <p className="text-xs uppercase tracking-wider text-muted-foreground">Référence</p>
-            <p className="font-mono text-2xl font-bold tracking-[0.2em] text-navy">{appointment.code}</p>
+            <p className="font-mono text-2xl font-bold tracking-[0.2em] text-foreground">{appointment.code}</p>
           </div>
         </div>
         <DialogFooter>

@@ -72,11 +72,11 @@ export function RejectDialog({ open, onOpenChange, appointment, onRejected }: Pr
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-red-50 p-2 ring-1 ring-red-200">
-              <XCircle className="h-5 w-5 text-red-600" />
+            <div className="rounded-lg bg-destructive/10 p-2 ring-1 ring-destructive/20">
+              <XCircle className="h-5 w-5 text-destructive" />
             </div>
             <div>
-              <DialogTitle className="text-navy">Rejeter le rendez-vous</DialogTitle>
+              <DialogTitle className="text-foreground">Rejeter le rendez-vous</DialogTitle>
               <DialogDescription>
                 Le client sera informé que son RDV a été refusé.
               </DialogDescription>
@@ -84,9 +84,9 @@ export function RejectDialog({ open, onOpenChange, appointment, onRejected }: Pr
           </div>
         </DialogHeader>
 
-        <div className="rounded-lg border border-border bg-surface p-3">
+        <div className="rounded-lg border border-border bg-muted/30 p-3">
           <div className="flex items-center justify-between gap-2">
-            <div className="font-mono font-bold text-navy">{appointment.code}</div>
+            <div className="font-mono font-bold text-foreground">{appointment.code}</div>
             <StatusBadge status={appointment.status} />
           </div>
           <div className="mt-2 text-xs text-muted-foreground">
@@ -96,7 +96,7 @@ export function RejectDialog({ open, onOpenChange, appointment, onRejected }: Pr
 
         <div className="space-y-1.5">
           <Label htmlFor="reason" className="text-xs font-medium">
-            Motif du rejet <span className="text-red-600">*</span>
+            Motif du rejet <span className="text-destructive">*</span>
           </Label>
           <Textarea
             id="reason"
@@ -111,7 +111,7 @@ export function RejectDialog({ open, onOpenChange, appointment, onRejected }: Pr
           </div>
         </div>
 
-        <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+        <div className="flex items-start gap-2 rounded-md bg-warning/10 border border-warning/20 px-3 py-2 text-xs text-warning">
           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
           <span>
             Cette action est réversible (le RDV peut être ré-ouvert plus tard), mais le client
@@ -130,7 +130,7 @@ export function RejectDialog({ open, onOpenChange, appointment, onRejected }: Pr
           <Button
             onClick={submit}
             disabled={submitting}
-            className="bg-red-600 hover:bg-red-700 text-white"
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
             {submitting ? (
               <>

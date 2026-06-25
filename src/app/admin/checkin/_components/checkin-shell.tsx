@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, ScanLine } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -32,40 +33,39 @@ export function CheckinShell({
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-mesh">
       {/* Top bar */}
-      <header className="sticky top-0 z-30 bg-white border-b border-orange-200/60">
+      <header className="sticky top-0 z-30 glass-strong border-b border-border">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="[&_span.text-emerald-brand]:!text-[#F2994A]">
-              <Logo size={36} withText={false} />
-            </div>
+            <Logo size={36} withText={false} />
             <div className="flex flex-col leading-none">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#F2994A]">
-                  Réception
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-warning/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-warning border border-warning/20">
+                  <ScanLine className="h-3.5 w-3.5" />
+                  Agent Scan QR
                 </span>
-                <ScanLine className="h-3.5 w-3.5 text-[#F2994A]" />
               </div>
-              <span className="text-[10px] text-muted-foreground">SÉCUREX CONNECT · Agadir</span>
+              <span className="mt-1 text-[10px] text-muted-foreground">SÉCUREX CONNECT · Agadir</span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex flex-col items-end leading-none">
-              <span className="text-xs font-semibold text-navy">{adminName}</span>
+              <span className="text-xs font-semibold text-foreground">{adminName}</span>
               {adminEmail && (
                 <span className="text-[10px] text-muted-foreground truncate max-w-[180px]">
                   {adminEmail}
                 </span>
               )}
             </div>
+            <ThemeToggle />
             <Button
               variant="outline"
               size="sm"
               onClick={handleLogout}
               disabled={loggingOut}
-              className="border-orange-200 text-[#F2994A] hover:bg-orange-50 hover:text-[#F2994A]"
+              className="border-warning/30 text-warning hover:bg-warning/10 hover:text-warning"
             >
               <LogOut className="h-3.5 w-3.5 mr-1.5" />
               Déconnexion
@@ -78,7 +78,7 @@ export function CheckinShell({
         {children}
       </main>
 
-      <footer className="mt-auto py-3 text-center text-[10px] text-muted-foreground border-t border-orange-200/40">
+      <footer className="mt-auto py-3 text-center text-[10px] text-muted-foreground border-t border-border">
         Espace Réception · Vérification des réservations · SÉCUREX CONNECT
       </footer>
     </div>

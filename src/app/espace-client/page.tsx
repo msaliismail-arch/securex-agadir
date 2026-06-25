@@ -81,7 +81,7 @@ export default function EspaceClientPage() {
   if (!sessionChecked) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-7 w-7 animate-spin text-emerald-brand" />
+        <Loader2 className="h-7 w-7 animate-spin text-primary" />
       </div>
     );
   }
@@ -161,10 +161,10 @@ function LoginScreen() {
         className="w-full"
       >
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-brand/10">
-            <ShieldCheck className="h-7 w-7 text-emerald-brand" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+            <ShieldCheck className="h-7 w-7 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-navy md:text-3xl">Espace Client</h1>
+          <h1 className="text-2xl font-bold text-foreground md:text-3xl">Espace Client</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
             {step === "phone"
               ? "Connectez-vous pour suivre vos rendez-vous et certificats."
@@ -172,7 +172,7 @@ function LoginScreen() {
           </p>
         </div>
 
-        <Card>
+        <Card className="glass-card">
           <CardContent className="p-6">
             {step === "phone" ? (
               <Form {...form}>
@@ -199,7 +199,7 @@ function LoginScreen() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full bg-emerald-brand hover:bg-emerald-brand/90" disabled={submitting}>
+                  <Button type="submit" className="w-full bg-brand-gradient text-white hover:opacity-90" disabled={submitting}>
                     {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Recevoir le code
                   </Button>
@@ -208,7 +208,7 @@ function LoginScreen() {
             ) : (
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm font-medium text-navy">Code de vérification</p>
+                  <p className="text-sm font-medium text-foreground">Code de vérification</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Saisissez les 6 chiffres reçus au {phone}.
                   </p>
@@ -230,13 +230,13 @@ function LoginScreen() {
                     </InputOTPGroup>
                   </InputOTP>
                 </div>
-                <Button onClick={verifyOtp} className="w-full bg-emerald-brand hover:bg-emerald-brand/90" disabled={submitting || otp.length !== 6}>
+                <Button onClick={verifyOtp} className="w-full bg-brand-gradient text-white hover:opacity-90" disabled={submitting || otp.length !== 6}>
                   {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Se connecter
                 </Button>
                 <button
                   type="button"
-                  className="w-full text-center text-xs text-muted-foreground hover:text-emerald-brand"
+                  className="w-full text-center text-xs text-muted-foreground hover:text-primary"
                   onClick={() => {
                     setStep("phone");
                     setOtp("");
@@ -252,9 +252,9 @@ function LoginScreen() {
         <div className="mt-4 flex items-start gap-2 rounded-lg border border-info/30 bg-info/5 p-3 text-xs text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-info" />
           <div>
-            <p className="font-medium text-navy">Mode démonstration</p>
+            <p className="font-medium text-foreground">Mode démonstration</p>
             <p className="mt-0.5">
-              Code OTP de test : <span className="font-mono font-bold text-emerald-brand">{DEMO_OTP}</span>. Veuillez
+              Code OTP de test : <span className="font-mono font-bold text-primary">{DEMO_OTP}</span>. Veuillez
               d&apos;abord prendre un rendez-vous pour qu&apos;un compte soit créé.
             </p>
           </div>
@@ -262,7 +262,7 @@ function LoginScreen() {
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
           Pas encore de rendez-vous ?{" "}
-          <a href="/rendez-vous" className="font-medium text-emerald-brand hover:underline">
+          <a href="/rendez-vous" className="font-medium text-primary hover:underline">
             Prendre rendez-vous
           </a>
         </p>
@@ -286,7 +286,7 @@ function Dashboard() {
   if (loading || unauthorized) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-7 w-7 animate-spin text-emerald-brand" />
+        <Loader2 className="h-7 w-7 animate-spin text-primary" />
       </div>
     );
   }
@@ -311,17 +311,17 @@ function Dashboard() {
       {/* Welcome */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-brand">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
             Tableau de bord
           </p>
-          <h1 className="mt-1 text-2xl font-bold text-navy md:text-3xl">
+          <h1 className="mt-1 text-2xl font-bold text-foreground md:text-3xl">
             Bonjour, {data.name.split(" ")[0]} 👋
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Voici l&apos;état de vos rendez-vous et de vos véhicules.
           </p>
         </div>
-        <Button asChild className="bg-emerald-brand hover:bg-emerald-brand/90">
+        <Button asChild className="bg-brand-gradient text-white hover:opacity-90">
           <a href="/rendez-vous">
             <Plus className="mr-1.5 h-4 w-4" /> Nouveau RDV
           </a>
@@ -334,29 +334,29 @@ function Dashboard() {
           icon={<CalendarDays className="h-5 w-5" />}
           label="RDV à venir"
           value={upcoming.length}
-          tone="emerald"
+          tone="primary"
         />
         <StatCard
           icon={<Award className="h-5 w-5" />}
           label="Contrôles validés"
           value={validated.length}
-          tone="navy"
+          tone="info"
         />
         <StatCard
           icon={<Car className="h-5 w-5" />}
           label="Véhicules enregistrés"
           value={data.vehicles.length}
-          tone="info"
+          tone="purple"
         />
       </div>
 
       {/* Vehicles */}
       <section>
-        <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-navy">
-          <span className="h-5 w-1 rounded bg-emerald-brand" /> Mes véhicules
+        <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
+          <span className="h-5 w-1 rounded bg-brand-gradient" /> Mes véhicules
         </h2>
         {data.vehicles.length === 0 ? (
-          <Card>
+          <Card className="glass-card">
             <CardContent className="py-8 text-center text-sm text-muted-foreground">
               Aucun véhicule enregistré pour le moment.
             </CardContent>
@@ -373,21 +373,21 @@ function Dashboard() {
       {/* Upcoming appointments */}
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-base font-semibold text-navy">
-            <span className="h-5 w-1 rounded bg-emerald-brand" /> Prochains rendez-vous
+          <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <span className="h-5 w-1 rounded bg-brand-gradient" /> Prochains rendez-vous
           </h2>
           <a
             href="/espace-client/rdv"
-            className="inline-flex items-center gap-1 text-sm font-medium text-emerald-brand hover:underline"
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
           >
             Tout voir <ChevronRight className="h-4 w-4" />
           </a>
         </div>
         {upcoming.length === 0 ? (
-          <Card>
+          <Card className="glass-card">
             <CardContent className="py-8 text-center text-sm text-muted-foreground">
               Aucun rendez-vous à venir.{" "}
-              <a href="/rendez-vous" className="font-medium text-emerald-brand hover:underline">
+              <a href="/rendez-vous" className="font-medium text-primary hover:underline">
                 Prendre rendez-vous
               </a>
             </CardContent>
@@ -415,21 +415,21 @@ function StatCard({
   icon: React.ReactNode;
   label: string;
   value: number;
-  tone: "emerald" | "navy" | "info";
+  tone: "primary" | "info" | "purple";
 }) {
   const toneClasses = {
-    emerald: "bg-emerald-brand/10 text-emerald-brand",
-    navy: "bg-navy/10 text-navy",
+    primary: "bg-primary/10 text-primary",
     info: "bg-info/10 text-info",
+    purple: "bg-purple-100 text-purple-700",
   } as const;
   return (
-    <Card>
+    <Card className="glass-card">
       <CardContent className="flex items-center gap-4 p-5">
         <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", toneClasses[tone])}>
           {icon}
         </div>
         <div>
-          <p className="text-3xl font-bold leading-none text-navy">{value}</p>
+          <p className="text-3xl font-bold leading-none text-foreground">{value}</p>
           <p className="mt-1 text-sm text-muted-foreground">{label}</p>
         </div>
       </CardContent>
@@ -456,11 +456,11 @@ function VehicleStatusCard({
       ? XCircle
       : CalendarClock;
   return (
-    <Card className={cn("border-l-4", color.border)}>
+    <Card className={cn("glass-card border-l-4", color.border)}>
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-mono text-sm font-semibold uppercase text-navy">{vehicle.plate}</p>
+            <p className="font-mono text-sm font-semibold uppercase text-foreground">{vehicle.plate}</p>
             <p className="mt-0.5 truncate text-sm text-muted-foreground">
               {vehicle.brand} {vehicle.model} · {vehicle.year}
             </p>
@@ -475,8 +475,8 @@ function VehicleStatusCard({
         <div className="mt-3 space-y-1 text-xs text-muted-foreground">
           {lastInspection ? (
             <>
-              <p>Dernier contrôle : <span className="font-medium text-navy">{formatDate(lastInspection)}</span></p>
-              <p>Expiration : <span className="font-medium text-navy">{formatDate(expiry!)}</span></p>
+              <p>Dernier contrôle : <span className="font-medium text-foreground">{formatDate(lastInspection)}</span></p>
+              <p>Expiration : <span className="font-medium text-foreground">{formatDate(expiry!)}</span></p>
             </>
           ) : (
             <p>Aucun contrôle technique enregistré pour ce véhicule.</p>
@@ -489,10 +489,10 @@ function VehicleStatusCard({
 
 function UpcomingRow({ appt, onShowQr }: { appt: AppointmentItem; onShowQr: () => void }) {
   return (
-    <Card>
+    <Card className="glass-card">
       <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-emerald-brand/10 text-center text-emerald-brand">
+          <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/10 text-center text-primary">
             <span className="text-sm font-bold leading-none">
               {new Date(appt.date).toLocaleDateString("fr-FR", { day: "2-digit" })}
             </span>
@@ -502,10 +502,10 @@ function UpcomingRow({ appt, onShowQr }: { appt: AppointmentItem; onShowQr: () =
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-sm font-bold tracking-wider text-navy">{appt.code}</span>
+              <span className="font-mono text-sm font-bold tracking-wider text-foreground">{appt.code}</span>
               <StatusBadge status={appt.status} />
             </div>
-            <p className="mt-0.5 text-sm text-navy">{appt.service.name}</p>
+            <p className="mt-0.5 text-sm text-foreground">{appt.service.name}</p>
             <p className="text-xs text-muted-foreground">
               <Clock className="mr-1 inline h-3 w-3" />
               {appt.slot} · {appt.vehiclePlate} · {appt.vehicleDesc}
@@ -514,7 +514,7 @@ function UpcomingRow({ appt, onShowQr }: { appt: AppointmentItem; onShowQr: () =
         </div>
         <div className="flex items-center gap-2 sm:flex-col sm:items-end">
           {appt.status === "APPROVED" && appt.qrToken ? (
-            <Button size="sm" variant="outline" onClick={onShowQr} className="border-emerald-brand/30 text-emerald-brand">
+            <Button size="sm" variant="outline" onClick={onShowQr} className="border-primary/30 text-primary hover:bg-primary/10">
               <QrCode className="mr-1.5 h-4 w-4" /> Voir le QR
             </Button>
           ) : (

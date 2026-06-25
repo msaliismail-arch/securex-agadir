@@ -335,7 +335,7 @@ export default function CategoriesPage() {
   if (loading) {
     return (
       <div className="flex h-72 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -344,31 +344,28 @@ export default function CategoriesPage() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-navy sm:text-2xl">Catégories & Services</h2>
+          <h2 className="text-xl font-bold text-foreground sm:text-2xl">Catégories & Services</h2>
           <p className="text-sm text-muted-foreground">
             Gérez les types de véhicules, les prestations associées et leur tarification.
           </p>
         </div>
-        <Button
-          onClick={openCreateCat}
-          className="bg-emerald-600 text-white hover:bg-emerald-700"
-        >
+        <Button onClick={openCreateCat} className="bg-primary text-white hover:bg-primary/90">
           <Plus className="h-4 w-4" />
           Ajouter une catégorie
         </Button>
       </div>
 
       {categories.length === 0 ? (
-        <Card>
+        <Card className="border-border/60 shadow-card">
           <CardContent className="flex h-48 flex-col items-center justify-center gap-3 text-center">
             <FolderTree className="h-8 w-8 text-muted-foreground/50" />
             <div>
-              <p className="font-semibold text-navy">Aucune catégorie</p>
+              <p className="font-semibold text-foreground">Aucune catégorie</p>
               <p className="text-sm text-muted-foreground">
                 Commencez par créer une catégorie de véhicule.
               </p>
             </div>
-            <Button onClick={openCreateCat} className="bg-emerald-600 text-white hover:bg-emerald-700">
+            <Button onClick={openCreateCat} className="bg-primary text-white hover:bg-primary/90">
               <Plus className="h-4 w-4" />
               Créer la première catégorie
             </Button>
@@ -382,16 +379,16 @@ export default function CategoriesPage() {
             const svcs = servicesByCat.get(cat.id) ?? [];
             const isOpen = openCats.has(cat.id);
             return (
-              <Card key={cat.id} className={cn("overflow-hidden border-l-4", c.border)}>
+              <Card key={cat.id} className={cn("overflow-hidden border-l-4 shadow-card", c.border)}>
                 <Collapsible open={isOpen} onOpenChange={() => toggleCat(cat.id)}>
                   <CollapsibleTrigger asChild>
-                    <button className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-surface-2/40">
+                    <button className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-muted/40">
                       <span className={cn("inline-flex h-10 w-10 items-center justify-center rounded-md", c.soft, c.fg)}>
                         <Icon className="h-5 w-5" />
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="truncate text-[15px] font-semibold text-navy">
+                          <h3 className="truncate text-[15px] font-semibold text-foreground">
                             {cat.name}
                           </h3>
                           <Badge variant="outline" className={cn("text-[10px]", c.fg, c.border)}>
@@ -420,7 +417,7 @@ export default function CategoriesPage() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                           onClick={() =>
                             setDeleteTarget({ kind: "category", id: cat.id, name: cat.name })
                           }
@@ -439,7 +436,7 @@ export default function CategoriesPage() {
                     </button>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
-                    <div className="border-t border-border bg-surface-2/30 p-4">
+                    <div className="border-t border-border bg-muted/20 p-4">
                       <div className="mb-3 flex items-center justify-between">
                         <p className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
                           Services de la catégorie
@@ -448,21 +445,21 @@ export default function CategoriesPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => openCreateSvc(cat.id)}
-                          className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                          className="border-primary/40 text-primary hover:bg-primary/10"
                         >
                           <Plus className="h-3.5 w-3.5" />
                           Ajouter un service
                         </Button>
                       </div>
                       {svcs.length === 0 ? (
-                        <p className="rounded-md border border-dashed border-border bg-white px-4 py-6 text-center text-[12px] text-muted-foreground">
+                        <p className="rounded-md border border-dashed border-border bg-card px-4 py-6 text-center text-[12px] text-muted-foreground">
                           Aucun service pour cette catégorie.
                         </p>
                       ) : (
-                        <div className="overflow-hidden rounded-md border border-border bg-white">
+                        <div className="overflow-hidden rounded-md border border-border bg-card">
                           <Table>
                             <TableHeader>
-                              <TableRow className="bg-surface-2/40">
+                              <TableRow className="bg-muted/40">
                                 <TableHead className="text-[11px] uppercase">Service</TableHead>
                                 <TableHead className="text-[11px] uppercase">Durée</TableHead>
                                 <TableHead className="text-[11px] uppercase">Prix</TableHead>
@@ -474,7 +471,7 @@ export default function CategoriesPage() {
                               {svcs.map((s) => (
                                 <TableRow key={s.id} className="text-[13px]">
                                   <TableCell>
-                                    <div className="font-medium text-navy">{s.name}</div>
+                                    <div className="font-medium text-foreground">{s.name}</div>
                                     {s.description && (
                                       <div className="text-[11px] text-muted-foreground">
                                         {s.description}
@@ -484,12 +481,12 @@ export default function CategoriesPage() {
                                   <TableCell className="whitespace-nowrap text-muted-foreground">
                                     {s.durationMin} min
                                   </TableCell>
-                                  <TableCell className="whitespace-nowrap font-semibold text-navy">
+                                  <TableCell className="whitespace-nowrap font-semibold text-foreground">
                                     {s.price.toLocaleString("fr-MA")} MAD
                                   </TableCell>
                                   <TableCell>
                                     {s.active ? (
-                                      <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100">Actif</Badge>
+                                      <Badge className="bg-primary/10 text-primary hover:bg-primary/15">Actif</Badge>
                                     ) : (
                                       <Badge variant="secondary">Inactif</Badge>
                                     )}
@@ -508,7 +505,7 @@ export default function CategoriesPage() {
                                       <Button
                                         size="icon"
                                         variant="ghost"
-                                        className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                        className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                                         onClick={() =>
                                           setDeleteTarget({ kind: "service", id: s.id, name: s.name })
                                         }
@@ -648,7 +645,7 @@ export default function CategoriesPage() {
             <Button variant="outline" onClick={() => setCatDialog((p) => ({ ...p, open: false }))}>
               Annuler
             </Button>
-            <Button onClick={saveCat} disabled={busy} className="bg-emerald-600 text-white hover:bg-emerald-700">
+            <Button onClick={saveCat} disabled={busy} className="bg-primary text-white hover:bg-primary/90">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Enregistrer
             </Button>
@@ -727,9 +724,9 @@ export default function CategoriesPage() {
                 />
               </div>
             </div>
-            <div className="flex items-center justify-between rounded-md border border-border bg-surface-2/30 p-3">
+            <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 p-3">
               <div>
-                <p className="text-[13px] font-medium text-navy">Service actif</p>
+                <p className="text-[13px] font-medium text-foreground">Service actif</p>
                 <p className="text-[11px] text-muted-foreground">
                   Les services inactifs ne sont pas proposés à la réservation.
                 </p>
@@ -746,7 +743,7 @@ export default function CategoriesPage() {
             <Button variant="outline" onClick={() => setSvcDialog((p) => ({ ...p, open: false }))}>
               Annuler
             </Button>
-            <Button onClick={saveSvc} disabled={busy} className="bg-emerald-600 text-white hover:bg-emerald-700">
+            <Button onClick={saveSvc} disabled={busy} className="bg-primary text-white hover:bg-primary/90">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Enregistrer
             </Button>
@@ -783,7 +780,7 @@ export default function CategoriesPage() {
                 if (deleteTarget.kind === "category") deleteCat(deleteTarget.id);
                 else deleteSvc(deleteTarget.id);
               }}
-              className="bg-red-600 text-white hover:bg-red-700"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Supprimer définitivement

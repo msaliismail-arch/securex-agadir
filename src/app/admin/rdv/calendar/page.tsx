@@ -91,11 +91,11 @@ export default function RdvCalendarPage() {
     <div className="space-y-5">
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         {/* Calendar */}
-        <Card className="p-4">
+        <Card className="glass-card p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <CalendarDays className="h-5 w-5 text-[#2D9CDB]" />
-              <h2 className="text-lg font-bold text-navy">
+              <CalendarDays className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-bold text-foreground">
                 {MONTHS[cursor.month]} {cursor.year}
               </h2>
             </div>
@@ -123,7 +123,7 @@ export default function RdvCalendarPage() {
           <div className="grid grid-cols-7 gap-1">
             {cells.map((cell, idx) => {
               if (!cell.date) {
-                return <div key={idx} className="aspect-square rounded-md bg-surface/40" />;
+                return <div key={idx} className="aspect-square rounded-md bg-muted/30" />;
               }
               const ymd = toYMD(cell.date);
               const dayAppts = byDay.get(ymd) ?? [];
@@ -138,8 +138,8 @@ export default function RdvCalendarPage() {
                   className={cn(
                     "aspect-square rounded-md p-1.5 text-left transition-all border relative overflow-hidden flex flex-col",
                     isSelected
-                      ? "border-[#2D9CDB] bg-[#2D9CDB]/5 ring-1 ring-[#2D9CDB]/30"
-                      : "border-border bg-white hover:border-[#2D9CDB]/40 hover:bg-surface",
+                      ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                      : "border-border bg-card hover:border-primary/40 hover:bg-muted/30",
                     isPast && !isToday && "opacity-60",
                   )}
                 >
@@ -147,7 +147,7 @@ export default function RdvCalendarPage() {
                     <span
                       className={cn(
                         "text-xs font-semibold",
-                        isToday ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#2D9CDB] text-white" : "text-navy",
+                        isToday ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-gradient text-white" : "text-foreground",
                       )}
                     >
                       {cell.date.getDate()}
@@ -199,15 +199,15 @@ export default function RdvCalendarPage() {
         </Card>
 
         {/* Day panel */}
-        <Card className="p-4 flex flex-col">
+        <Card className="glass-card p-4 flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <div>
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Journée sélectionnée</div>
-              <div className="text-base font-bold text-navy">
+              <div className="text-base font-bold text-foreground">
                 {selectedDay ? formatDate(selectedDay, { weekday: "long", day: "2-digit", month: "long" }) : "—"}
               </div>
             </div>
-            <div className="inline-flex items-center justify-center rounded-full bg-[#2D9CDB]/10 px-2.5 py-0.5 text-xs font-bold text-[#2D9CDB]">
+            <div className="inline-flex items-center justify-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary border border-primary/20">
               {selectedAppts.length} RDV
             </div>
           </div>
@@ -228,20 +228,20 @@ export default function RdvCalendarPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.03 }}
                   onClick={() => dialogs.open("detail", appt)}
-                  className="w-full text-left rounded-lg border border-border bg-white p-3 hover:border-[#2D9CDB]/50 hover:bg-surface transition-colors"
+                  className="w-full text-left rounded-lg border border-border bg-card p-3 hover:border-primary/50 hover:bg-muted/30 transition-colors"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <div className="font-mono font-bold text-navy text-sm">{appt.code}</div>
+                    <div className="font-mono font-bold text-foreground text-sm">{appt.code}</div>
                     <StatusBadge status={appt.status} />
                   </div>
                   <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
-                    <span className="font-medium text-navy">{appt.slot}</span>
+                    <span className="font-medium text-foreground">{appt.slot}</span>
                     <span>·</span>
                     <span>{appt.clientName}</span>
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    <span className="font-mono font-medium text-navy">{appt.vehiclePlate}</span>
+                    <span className="font-mono font-medium text-foreground">{appt.vehiclePlate}</span>
                     {" · "}
                     {appt.service?.name ?? "—"}
                   </div>

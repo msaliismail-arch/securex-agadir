@@ -24,8 +24,8 @@ export function Logo({
       />
       {withText && (
         <span className={cn("flex flex-col leading-none", textClassName)}>
-          <span className="font-bold tracking-tight text-[15px] text-navy">
-            SÉCUREX <span className="text-emerald-brand">CONNECT</span>
+          <span className="font-bold tracking-tight text-[15px] text-foreground">
+            SÉCUREX <span className="text-primary">CONNECT</span>
           </span>
           <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
             Contrôle Technique Agréé

@@ -11,8 +11,10 @@ import {
   LogOut,
   Menu,
   ShieldCheck,
+  X,
 } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -45,24 +47,21 @@ function SidebarInner({
   onNavigate?: () => void;
 }) {
   return (
-    <div className="flex h-full flex-col bg-navy text-sidebar-foreground">
+    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="px-5 py-5 border-b border-sidebar-border">
         <Link href="/admin/rdv" onClick={onNavigate} className="block">
-          <Logo
-            size={36}
-            textClassName="[&_span]:!text-white [&_span.text-emerald-brand]:!text-[#2D9CDB]"
-          />
+          <Logo size={36} />
         </Link>
       </div>
 
       <div className="px-5 py-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#2D9CDB]">
+        <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-info">
           <ShieldCheck className="h-3.5 w-3.5" />
           Gestion RDV
         </div>
-        <div className="mt-2 text-sm font-medium text-white truncate">{adminName}</div>
+        <div className="mt-2 text-sm font-medium text-foreground truncate">{adminName}</div>
         {adminEmail && (
-          <div className="text-[11px] text-sidebar-foreground/70 truncate">{adminEmail}</div>
+          <div className="text-[11px] text-muted-foreground truncate">{adminEmail}</div>
         )}
       </div>
 
@@ -78,11 +77,11 @@ function SidebarInner({
               className={cn(
                 "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all",
                 active
-                  ? "bg-[#2D9CDB]/15 text-white border-l-2 border-[#2D9CDB] pl-[10px]"
-                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-white border-l-2 border-transparent",
+                  ? "bg-brand-gradient text-white shadow-soft"
+                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
               )}
             >
-              <Icon className={cn("h-4 w-4 shrink-0", active ? "text-[#2D9CDB]" : "")} />
+              <Icon className="h-4 w-4 shrink-0" />
               <span className="truncate">{item.label}</span>
             </Link>
           );
@@ -93,7 +92,7 @@ function SidebarInner({
         <Button
           variant="ghost"
           onClick={onLogout}
-          className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-white"
+          className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         >
           <LogOut className="h-4 w-4 mr-2" />
           Déconnexion
@@ -132,9 +131,9 @@ export function RdvShell({
 
   return (
     <RdvAdminContext.Provider value={{ adminName, adminEmail }}>
-      <div className="min-h-screen flex bg-surface">
+      <div className="min-h-screen flex bg-mesh">
         {/* Desktop sidebar */}
-        <aside className="hidden lg:flex w-64 shrink-0 flex-col sticky top-0 h-screen">
+        <aside className="hidden lg:flex w-64 shrink-0 flex-col sticky top-0 h-screen border-r border-sidebar-border">
           <SidebarInner
             pathname={pathname}
             adminName={adminName}
@@ -144,10 +143,10 @@ export function RdvShell({
         </aside>
 
         {/* Mobile sheet */}
-        <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-navy text-white px-4 py-3 flex items-center justify-between border-b border-sidebar-border">
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-40 glass-strong border-b border-sidebar-border px-4 py-3 flex items-center justify-between">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-white hover:bg-sidebar-accent">
+              <Button variant="ghost" size="icon" className="text-foreground hover:bg-sidebar-accent">
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Ouvrir le menu</span>
               </Button>
@@ -166,32 +165,38 @@ export function RdvShell({
             </SheetContent>
           </Sheet>
           <div className="text-sm font-semibold tracking-wide">
-            SÉCUREX <span className="text-[#2D9CDB]">CONNECT</span>
+            <span className="text-foreground">SÉCUREX <span className="text-primary">CONNECT</span></span>
           </div>
-          <div className="text-[10px] uppercase tracking-[0.18em] text-[#2D9CDB]">RDV</div>
+          <span className="inline-flex items-center gap-1 rounded-full bg-info/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-info">
+            RDV
+          </span>
         </div>
 
         {/* Main content */}
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="sticky top-0 z-30 bg-white border-b border-border lg:static">
-            <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between lg:mt-0 mt-14">
-              <div>
+          <header className="sticky top-0 z-30 glass-strong border-b border-border lg:static">
+            <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between lg:mt-0 mt-14 gap-3">
+              <div className="min-w-0">
                 <motion.h1
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-xl font-bold text-navy tracking-tight"
+                  className="text-xl font-bold text-foreground tracking-tight truncate"
                 >
                   {pageTitle}
                 </motion.h1>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">
                   Validation & gestion des rendez-vous · SÉCUREX CONNECT
                 </p>
               </div>
-              <div className="hidden sm:flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#2D9CDB]/10 px-3 py-1 text-xs font-semibold text-[#2D9CDB]">
+              <div className="hidden sm:flex items-center gap-2 shrink-0">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-info/10 px-3 py-1 text-xs font-semibold text-info border border-info/20">
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  Gestion RDV
+                  Agent de Validation
                 </span>
+                <ThemeToggle />
+              </div>
+              <div className="sm:hidden shrink-0">
+                <ThemeToggle />
               </div>
             </div>
           </header>

@@ -165,8 +165,6 @@ export default function DashboardHomePage() {
     setLoading(true);
     try {
       const todayISO = new Date().toISOString();
-      // Fetch raw data (these endpoints are stable). /api/stats is attempted
-      // first but if it 500s we compute the same shape client-side.
       const [apptsRes, todayRes, auditRes, anRes, clRes] = await Promise.all([
         fetch("/api/appointments", { cache: "no-store" }),
         fetch(`/api/appointments?date=${encodeURIComponent(todayISO)}`, { cache: "no-store" }),
@@ -213,14 +211,14 @@ export default function DashboardHomePage() {
   if (loading && !stats) {
     return (
       <div className="flex h-72 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!stats) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
         Impossible de charger les statistiques.
       </div>
     );
@@ -246,9 +244,9 @@ export default function DashboardHomePage() {
   return (
     <div className="space-y-6">
       {/* Header strip */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-navy sm:text-2xl">
+          <h2 className="text-xl font-bold text-foreground sm:text-2xl">
             Vue d'ensemble
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -256,10 +254,10 @@ export default function DashboardHomePage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100">
+          <Badge className="bg-primary/10 text-primary hover:bg-primary/15">
             {stats.todayAppts} RDV aujourd'hui
           </Badge>
-          <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100">
+          <Badge className="bg-primary/10 text-primary hover:bg-primary/15">
             {stats.todayCheckins} check-ins
           </Badge>
         </div>
@@ -271,27 +269,25 @@ export default function DashboardHomePage() {
           const c = COLOR_MAP[card.color];
           const Icon = card.icon;
           return (
-            <Card
+            <div
               key={card.label}
-              className="overflow-hidden border-border/60 transition-shadow hover:shadow-md"
+              className="glass-card rounded-xl p-4 transition-shadow hover:shadow-glow"
             >
-              <CardContent className="flex flex-col gap-2 p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    {card.label}
-                  </span>
-                  <span className={cn("inline-flex h-7 w-7 items-center justify-center rounded-md", c.soft, c.fg)}>
-                    <Icon className="h-3.5 w-3.5" />
-                  </span>
-                </div>
-                <div className={cn("text-2xl font-bold tracking-tight", c.fg)}>
-                  {card.value}
-                </div>
-                {card.hint && (
-                  <p className="text-[11px] text-muted-foreground">{card.hint}</p>
-                )}
-              </CardContent>
-            </Card>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {card.label}
+                </span>
+                <span className={cn("inline-flex h-7 w-7 items-center justify-center rounded-md", c.soft, c.fg)}>
+                  <Icon className="h-3.5 w-3.5" />
+                </span>
+              </div>
+              <div className={cn("mt-2 text-2xl font-bold tracking-tight", c.fg)}>
+                {card.value}
+              </div>
+              {card.hint && (
+                <p className="mt-1 text-[11px] text-muted-foreground">{card.hint}</p>
+              )}
+            </div>
           );
         })}
       </div>
@@ -299,9 +295,9 @@ export default function DashboardHomePage() {
       {/* Charts row */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* Trend area */}
-        <Card>
+        <Card className="border-border/60 shadow-card">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold text-navy">
+            <CardTitle className="text-base font-semibold text-foreground">
               Tendance des rendez-vous · 7 jours
             </CardTitle>
             <CardDescription className="text-xs">
@@ -314,37 +310,39 @@ export default function DashboardHomePage() {
                 <AreaChart data={stats.trend} margin={{ top: 5, right: 12, left: -16, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gTrend" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={COLOR_MAP.emerald.hex} stopOpacity={0.4} />
+                      <stop offset="5%" stopColor={COLOR_MAP.emerald.hex} stopOpacity={0.45} />
                       <stop offset="95%" stopColor={COLOR_MAP.emerald.hex} stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E8E6E1" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,42,35,0.08)" vertical={false} />
                   <XAxis
                     dataKey="day"
-                    tick={{ fontSize: 11, fill: "#6B7280" }}
+                    tick={{ fontSize: 11, fill: "#6B8278" }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
                     allowDecimals={false}
-                    tick={{ fontSize: 11, fill: "#6B7280" }}
+                    tick={{ fontSize: 11, fill: "#6B8278" }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <Tooltip
                     contentStyle={{
-                      borderRadius: 8,
-                      border: "1px solid #E8E6E1",
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,200,150,0.2)",
+                      background: "rgba(255,255,255,0.95)",
                       fontSize: 12,
+                      boxShadow: "0 8px 24px -8px rgba(0,200,150,0.18)",
                     }}
-                    labelClassName="font-semibold text-navy"
+                    labelClassName="font-semibold text-foreground"
                   />
                   <Area
                     type="monotone"
                     dataKey="count"
                     name="RDV"
                     stroke={COLOR_MAP.emerald.hex}
-                    strokeWidth={2}
+                    strokeWidth={2.5}
                     fill="url(#gTrend)"
                   />
                 </AreaChart>
@@ -354,9 +352,9 @@ export default function DashboardHomePage() {
         </Card>
 
         {/* Status donut */}
-        <Card>
+        <Card className="border-border/60 shadow-card">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold text-navy">
+            <CardTitle className="text-base font-semibold text-foreground">
               Répartition par statut
             </CardTitle>
             <CardDescription className="text-xs">
@@ -384,9 +382,11 @@ export default function DashboardHomePage() {
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      borderRadius: 8,
-                      border: "1px solid #E8E6E1",
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,200,150,0.2)",
+                      background: "rgba(255,255,255,0.95)",
                       fontSize: 12,
+                      boxShadow: "0 8px 24px -8px rgba(0,200,150,0.18)",
                     }}
                   />
                   <Legend
@@ -401,9 +401,9 @@ export default function DashboardHomePage() {
       </div>
 
       {/* Category bar chart */}
-      <Card>
+      <Card className="border-border/60 shadow-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold text-navy">
+          <CardTitle className="text-base font-semibold text-foreground">
             Rendez-vous par catégorie
           </CardTitle>
           <CardDescription className="text-xs">
@@ -417,32 +417,34 @@ export default function DashboardHomePage() {
                 data={stats.byCategory}
                 margin={{ top: 5, right: 12, left: -16, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#E8E6E1" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,42,35,0.08)" vertical={false} />
                 <XAxis
                   dataKey="name"
-                  tick={{ fontSize: 11, fill: "#6B7280" }}
+                  tick={{ fontSize: 11, fill: "#6B8278" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
                   allowDecimals={false}
-                  tick={{ fontSize: 11, fill: "#6B7280" }}
+                  tick={{ fontSize: 11, fill: "#6B8278" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <Tooltip
                   contentStyle={{
-                    borderRadius: 8,
-                    border: "1px solid #E8E6E1",
+                    borderRadius: 10,
+                    border: "1px solid rgba(0,200,150,0.2)",
+                    background: "rgba(255,255,255,0.95)",
                     fontSize: 12,
+                    boxShadow: "0 8px 24px -8px rgba(0,200,150,0.18)",
                   }}
-                  cursor={{ fill: "rgba(31,122,77,0.06)" }}
+                  cursor={{ fill: "rgba(0,200,150,0.06)" }}
                 />
                 <Bar dataKey="count" name="RDV" radius={[6, 6, 0, 0]}>
                   {stats.byCategory.map((entry, i) => (
                     <Cell
                       key={i}
-                      fill={COLOR_MAP[entry.color as CategoryColor]?.hex ?? "#1F7A4D"}
+                      fill={COLOR_MAP[entry.color as CategoryColor]?.hex ?? COLOR_MAP.emerald.hex}
                     />
                   ))}
                 </Bar>
@@ -455,10 +457,10 @@ export default function DashboardHomePage() {
       {/* Bottom row: today RDV + audit */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
         {/* Today RDV */}
-        <Card className="lg:col-span-3">
+        <Card className="border-border/60 shadow-card lg:col-span-3">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
-              <CardTitle className="text-base font-semibold text-navy">
+              <CardTitle className="text-base font-semibold text-foreground">
                 RDV d'aujourd'hui
               </CardTitle>
               <CardDescription className="text-xs">
@@ -467,7 +469,7 @@ export default function DashboardHomePage() {
             </div>
             <Link
               href="/admin/dashboard/appointments"
-              className="inline-flex items-center gap-1 text-[12px] font-medium text-emerald-700 hover:underline"
+              className="inline-flex items-center gap-1 text-[12px] font-medium text-primary hover:underline"
             >
               Tout voir <ArrowRight className="h-3 w-3" />
             </Link>
@@ -488,10 +490,10 @@ export default function DashboardHomePage() {
                   return (
                     <div
                       key={appt.id}
-                      className="flex items-center gap-3 rounded-md border border-border/60 bg-white p-3 transition-colors hover:bg-surface-2/40"
+                      className="flex items-center gap-3 rounded-md border border-border/60 bg-card p-3 transition-colors hover:bg-muted/50"
                     >
-                      <div className="flex h-10 w-12 shrink-0 flex-col items-center justify-center rounded-md bg-navy text-white">
-                        <span className="text-[10px] font-medium leading-none opacity-70">
+                      <div className="bg-brand-gradient flex h-10 w-12 shrink-0 flex-col items-center justify-center rounded-md text-white">
+                        <span className="text-[10px] font-medium leading-none opacity-80">
                           {appt.slot.split(":")[0]}h
                         </span>
                         <span className="text-[13px] font-bold leading-none">
@@ -500,7 +502,7 @@ export default function DashboardHomePage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="truncate text-[13px] font-semibold text-navy">
+                          <span className="truncate text-[13px] font-semibold text-foreground">
                             {appt.clientName}
                           </span>
                           <Badge
@@ -527,10 +529,10 @@ export default function DashboardHomePage() {
         </Card>
 
         {/* Recent audit */}
-        <Card className="lg:col-span-2">
+        <Card className="border-border/60 shadow-card lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
-              <CardTitle className="text-base font-semibold text-navy">
+              <CardTitle className="text-base font-semibold text-foreground">
                 Journal d'audit
               </CardTitle>
               <CardDescription className="text-xs">
@@ -539,7 +541,7 @@ export default function DashboardHomePage() {
             </div>
             <Link
               href="/admin/dashboard/audit"
-              className="inline-flex items-center gap-1 text-[12px] font-medium text-emerald-700 hover:underline"
+              className="inline-flex items-center gap-1 text-[12px] font-medium text-primary hover:underline"
             >
               Tout voir <ArrowRight className="h-3 w-3" />
             </Link>
@@ -557,10 +559,10 @@ export default function DashboardHomePage() {
                 {audit.map((log) => (
                   <li
                     key={log.id}
-                    className="rounded-md border border-border/60 bg-white p-3"
+                    className="rounded-md border border-border/60 bg-card p-3"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-[12px] font-semibold text-navy">
+                      <span className="truncate text-[12px] font-semibold text-foreground">
                         {log.adminName}
                       </span>
                       <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -568,7 +570,7 @@ export default function DashboardHomePage() {
                       </span>
                     </div>
                     <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                      <span className="font-mono text-emerald-700">
+                      <span className="font-mono text-primary">
                         {log.action}
                       </span>
                       {log.details ? ` · ${log.details}` : ""}

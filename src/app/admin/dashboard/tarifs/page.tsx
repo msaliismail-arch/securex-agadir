@@ -160,7 +160,7 @@ export default function TarifsPage() {
   if (loading) {
     return (
       <div className="flex h-72 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -169,7 +169,7 @@ export default function TarifsPage() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-navy sm:text-2xl">Tarifs & Durées</h2>
+          <h2 className="text-xl font-bold text-foreground sm:text-2xl">Tarifs & Durées</h2>
           <p className="text-sm text-muted-foreground">
             Modifiez en ligne le prix et la durée de chaque prestation.
           </p>
@@ -182,7 +182,7 @@ export default function TarifsPage() {
           <Button
             onClick={saveAll}
             disabled={dirtyCount === 0 || savingId === "__all__"}
-            className="bg-emerald-600 text-white hover:bg-emerald-700"
+            className="bg-primary text-white hover:bg-primary/90"
           >
             {savingId === "__all__" ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -195,10 +195,10 @@ export default function TarifsPage() {
       </div>
 
       {categories.length === 0 ? (
-        <Card>
+        <Card className="border-border/60 shadow-card">
           <CardContent className="flex h-48 flex-col items-center justify-center gap-2 text-center">
             <Tag className="h-8 w-8 text-muted-foreground/50" />
-            <p className="font-semibold text-navy">Aucune catégorie</p>
+            <p className="font-semibold text-foreground">Aucune catégorie</p>
             <p className="text-sm text-muted-foreground">
               Créez d'abord des catégories dans l'onglet dédié.
             </p>
@@ -210,11 +210,11 @@ export default function TarifsPage() {
             const c = COLOR_MAP[cat.color as CategoryColor] ?? COLOR_MAP.emerald;
             const svcs = servicesByCat.get(cat.id) ?? [];
             return (
-              <Card key={cat.id} className={cn("border-l-4", c.border)}>
+              <Card key={cat.id} className={cn("border-l-4 shadow-card", c.border)}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-2">
                     <span className={cn("h-2.5 w-2.5 rounded-full", c.bg)} />
-                    <CardTitle className="text-[15px] font-semibold text-navy">
+                    <CardTitle className="text-[15px] font-semibold text-foreground">
                       {cat.name}
                     </CardTitle>
                     <Badge variant="secondary" className="text-[10px]">
@@ -224,14 +224,14 @@ export default function TarifsPage() {
                 </CardHeader>
                 <CardContent>
                   {svcs.length === 0 ? (
-                    <p className="rounded-md border border-dashed border-border bg-white px-4 py-6 text-center text-[12px] text-muted-foreground">
+                    <p className="rounded-md border border-dashed border-border bg-card px-4 py-6 text-center text-[12px] text-muted-foreground">
                       Aucun service pour cette catégorie.
                     </p>
                   ) : (
-                    <div className="overflow-x-auto rounded-md border border-border bg-white">
+                    <div className="overflow-x-auto rounded-md border border-border bg-card">
                       <Table>
                         <TableHeader>
-                          <TableRow className="bg-surface-2/40">
+                          <TableRow className="bg-muted/40">
                             <TableHead className="min-w-[200px] text-[11px] uppercase">Service</TableHead>
                             <TableHead className="w-32 text-[11px] uppercase">Durée (min)</TableHead>
                             <TableHead className="w-36 text-[11px] uppercase">Prix (MAD)</TableHead>
@@ -246,7 +246,7 @@ export default function TarifsPage() {
                             return (
                               <TableRow key={s.id} className="text-[13px]">
                                 <TableCell>
-                                  <div className="font-medium text-navy">{s.name}</div>
+                                  <div className="font-medium text-foreground">{s.name}</div>
                                   <div className="text-[11px] text-muted-foreground">
                                     {s.slug}
                                   </div>
@@ -271,7 +271,7 @@ export default function TarifsPage() {
                                       }
                                       className={cn(
                                         "h-9 w-32 pr-10 font-mono text-[13px]",
-                                        dirty && "border-emerald-400 ring-1 ring-emerald-200"
+                                        dirty && "border-primary/60 ring-1 ring-primary/25"
                                       )}
                                     />
                                     <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">
@@ -281,7 +281,7 @@ export default function TarifsPage() {
                                 </TableCell>
                                 <TableCell className="text-right">
                                   {s.active ? (
-                                    <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100">Actif</Badge>
+                                    <Badge className="bg-primary/10 text-primary hover:bg-primary/15">Actif</Badge>
                                   ) : (
                                     <Badge variant="secondary">Inactif</Badge>
                                   )}
@@ -294,7 +294,7 @@ export default function TarifsPage() {
                                     onClick={() => saveOne(s.id)}
                                     className={cn(
                                       dirty
-                                        ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                                        ? "bg-primary text-white hover:bg-primary/90"
                                         : "text-muted-foreground"
                                     )}
                                   >

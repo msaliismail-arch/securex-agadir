@@ -53,12 +53,12 @@ export function DetailSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-lg p-0 overflow-y-auto scroll-thin">
-        <SheetHeader className="px-5 py-4 border-b border-border bg-surface">
+        <SheetHeader className="px-5 py-4 border-b border-border bg-muted/30">
           <div className="flex items-center justify-between gap-2">
-            <SheetTitle className="text-navy flex items-center gap-2">
+            <SheetTitle className="text-foreground flex items-center gap-2">
               <span className="font-mono text-lg tracking-wider">{appointment.code}</span>
               {appointment.queueNumber != null && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#2D9CDB]/10 px-2 py-0.5 text-[10px] font-semibold text-[#2D9CDB]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-info/10 px-2 py-0.5 text-[10px] font-semibold text-info border border-info/20">
                   <Hash className="h-3 w-3" /> FILE {appointment.queueNumber}
                 </span>
               )}
@@ -112,7 +112,7 @@ export function DetailSheet({
           {appointment.notes && (
             <>
               <Section icon={StickyNote} title="Notes">
-                <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-900 whitespace-pre-wrap">
+                <div className="rounded-md bg-warning/10 border border-warning/20 px-3 py-2 text-sm text-foreground whitespace-pre-wrap">
                   {appointment.notes}
                 </div>
               </Section>
@@ -140,14 +140,14 @@ export function DetailSheet({
           {appointment.result && (
             <>
               <Section icon={Award} title="Résultat du contrôle">
-                <div className="rounded-lg border border-border bg-surface p-3 space-y-2">
+                <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium text-navy">Résultat global</div>
+                    <div className="text-sm font-medium text-foreground">Résultat global</div>
                     <span
                       className={`inline-flex items-center gap-1 rounded-full px-3 py-0.5 text-xs font-bold ${
                         appointment.result.overallResult === "PASS"
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          : "bg-red-50 text-red-700 border border-red-200"
+                          ? "bg-primary/10 text-primary border border-primary/20"
+                          : "bg-destructive/10 text-destructive border border-destructive/20"
                       }`}
                     >
                       {appointment.result.overallResult === "PASS" ? (
@@ -166,7 +166,7 @@ export function DetailSheet({
                   </div>
                   {appointment.result.inspector && (
                     <div className="text-xs text-muted-foreground pt-1">
-                      Inspecteur : <span className="font-medium text-navy">{appointment.result.inspector}</span>
+                      Inspecteur : <span className="font-medium text-foreground">{appointment.result.inspector}</span>
                     </div>
                   )}
                   {appointment.result.notes && (
@@ -190,11 +190,11 @@ export function DetailSheet({
         {/* Footer actions */}
         {(appointment.status === "PENDING" ||
           appointment.status === "APPROVED") && (
-          <div className="sticky bottom-0 border-t border-border bg-white p-4 flex flex-wrap gap-2">
+          <div className="sticky bottom-0 border-t border-border bg-card p-4 flex flex-wrap gap-2">
             {appointment.status === "PENDING" && (
               <>
                 <Button
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                  className="flex-1 bg-brand-gradient text-white hover:opacity-90"
                   onClick={() => {
                     onValidate?.(appointment);
                     onOpenChange(false);
@@ -204,7 +204,7 @@ export function DetailSheet({
                 </Button>
                 <Button
                   variant="outline"
-                  className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
+                  className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
                   onClick={() => {
                     onReject?.(appointment);
                     onOpenChange(false);
@@ -216,7 +216,7 @@ export function DetailSheet({
             )}
             {appointment.status === "APPROVED" && (
               <Button
-                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                className="flex-1 bg-brand-gradient text-white hover:opacity-90"
                 onClick={() => {
                   onComplete?.(appointment);
                   onOpenChange(false);
@@ -243,7 +243,7 @@ function Section({
 }) {
   return (
     <div>
-      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#2D9CDB] mb-2">
+      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary mb-2">
         <Icon className="h-3.5 w-3.5" />
         {title}
       </div>
@@ -267,7 +267,7 @@ function InfoLine({
     <div className="flex items-center gap-2 text-sm">
       <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
       <span className="text-xs text-muted-foreground w-20 shrink-0">{label}</span>
-      <span className={mono ? "font-mono font-medium text-navy" : "font-medium text-navy"}>{value}</span>
+      <span className={mono ? "font-mono font-medium text-foreground" : "font-medium text-foreground"}>{value}</span>
     </div>
   );
 }
@@ -276,10 +276,10 @@ function SubResult({ label, v }: { label: string; v: string }) {
   const pass = v === "PASS";
   return (
     <div className={`flex items-center justify-between rounded-md border px-2 py-1 ${
-      pass ? "bg-emerald-50/50 border-emerald-100" : "bg-red-50/50 border-red-100"
+      pass ? "bg-primary/5 border-primary/15" : "bg-destructive/5 border-destructive/15"
     }`}>
       <span className="text-muted-foreground">{label}</span>
-      <span className={`font-semibold ${pass ? "text-emerald-700" : "text-red-700"}`}>
+      <span className={`font-semibold ${pass ? "text-primary" : "text-destructive"}`}>
         {pass ? "OK" : "KO"}
       </span>
     </div>

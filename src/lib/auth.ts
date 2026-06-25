@@ -1,11 +1,15 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import bcrypt from "bcryptjs";
 import type { AdminRole } from "./constants";
 
 const SESSION_COOKIE = "sx_session";
 const SESSION_SECRET = new TextEncoder().encode(
   process.env.SESSION_SECRET || "securex-connect-dev-secret-change-in-production-32b"
 );
+
+/** Session lifetime: 3 hours (per spec). */
+const SESSION_TTL_SECONDS = 60 * 60 * 3;
 
 export type SessionRole = AdminRole | "CLIENT";
 
@@ -24,14 +28,24 @@ const COOKIE_OPTS = {
   secure: process.env.NODE_ENV === "production",
   sameSite: "lax" as const,
   path: "/",
-  maxAge: 60 * 60 * 12, // 12h
+  maxAge: SESSION_TTL_SECONDS,
 };
+
+/** Hash a password (used by seed + create-user flows). */
+export async function hashPassword(plain: string): Promise<string> {
+  return bcrypt.hash(plain, 10);
+}
+
+/** Verify a password against a hash. */
+export async function verifyPassword(plain: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(plain, hash);
+}
 
 export async function createSession(payload: Omit<SessionPayload, "iat" | "exp">) {
   const token = await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("12h")
+    .setExpirationTime("3h")
     .sign(SESSION_SECRET);
   const store = await cookies();
   store.set(SESSION_COOKIE, token, COOKIE_OPTS);

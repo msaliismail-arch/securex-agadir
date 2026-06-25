@@ -146,11 +146,11 @@ export function NewRdvDialog({ open, onOpenChange, onCreated }: Props) {
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto scroll-thin">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-[#2D9CDB]/10 p-2 ring-1 ring-[#2D9CDB]/20">
-              <CalendarPlus className="h-5 w-5 text-[#2D9CDB]" />
+            <div className="rounded-lg bg-primary/10 p-2 ring-1 ring-primary/20">
+              <CalendarPlus className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <DialogTitle className="text-navy">Nouveau rendez-vous</DialogTitle>
+              <DialogTitle className="text-foreground">Nouveau rendez-vous</DialogTitle>
               <DialogDescription>
                 Créer manuellement une réservation pour un client.
               </DialogDescription>
@@ -270,7 +270,7 @@ export function NewRdvDialog({ open, onOpenChange, onCreated }: Props) {
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={submitting}>
             Annuler
           </Button>
-          <Button onClick={submit} disabled={submitting || loading} className="bg-[#2D9CDB] hover:bg-[#2D9CDB]/90 text-white">
+          <Button onClick={submit} disabled={submitting || loading} className="bg-brand-gradient text-white hover:opacity-90">
             {submitting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -292,7 +292,7 @@ export function NewRdvDialog({ open, onOpenChange, onCreated }: Props) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#2D9CDB] mb-2">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary mb-2">
         {title}
       </div>
       <div className={cn("space-y-1")}>{children}</div>

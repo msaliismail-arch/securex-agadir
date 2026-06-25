@@ -360,19 +360,19 @@ export default function AppointmentsPage() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-navy sm:text-2xl">Rendez-vous</h2>
+          <h2 className="text-xl font-bold text-foreground sm:text-2xl">Rendez-vous</h2>
           <p className="text-sm text-muted-foreground">
             Gérez l'ensemble des RDV : créer, modifier, changer le statut, supprimer.
           </p>
         </div>
-        <Button onClick={openCreate} className="bg-green-600 text-white hover:bg-green-700">
+        <Button onClick={openCreate} className="bg-primary text-white hover:bg-primary/90">
           <Plus className="h-4 w-4" />
           Nouveau RDV
         </Button>
       </div>
 
       {/* Filters */}
-      <Card className="border-l-4 border-green-500">
+      <Card className="border-l-4 border-primary/60 shadow-card">
         <CardContent className="p-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
@@ -438,13 +438,13 @@ export default function AppointmentsPage() {
         <CardContent className="p-0">
           {loading ? (
             <div className="flex h-48 items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-green-600" />
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
           ) : appts.length === 0 ? (
             <div className="flex h-48 flex-col items-center justify-center gap-3 text-center">
               <CalendarDays className="h-8 w-8 text-muted-foreground/50" />
               <div>
-                <p className="font-semibold text-navy">Aucun rendez-vous</p>
+                <p className="font-semibold text-foreground">Aucun rendez-vous</p>
                 <p className="text-sm text-muted-foreground">
                   Aucun RDV ne correspond à vos filtres.
                 </p>
@@ -453,7 +453,7 @@ export default function AppointmentsPage() {
           ) : (
             <div className="scroll-thin max-h-[640px] overflow-auto">
               <Table>
-                <TableHeader className="sticky top-0 z-10 bg-white">
+                <TableHeader className="sticky top-0 z-10 bg-card">
                   <TableRow>
                     <TableHead className="text-[11px] uppercase">Code</TableHead>
                     <TableHead className="text-[11px] uppercase">Client</TableHead>
@@ -472,11 +472,11 @@ export default function AppointmentsPage() {
                     return (
                       <TableRow
                         key={a.id}
-                        className="cursor-pointer text-[13px] hover:bg-surface-2/30"
+                        className="cursor-pointer text-[13px] hover:bg-muted/40"
                         onClick={() => setDetailId(a.id)}
                       >
                         <TableCell>
-                          <div className="font-mono font-semibold text-navy">{a.code}</div>
+                          <div className="font-mono font-semibold text-foreground">{a.code}</div>
                           {a.queueNumber && (
                             <div className="text-[10px] text-muted-foreground">
                               #{a.queueNumber}
@@ -484,7 +484,7 @@ export default function AppointmentsPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="font-medium text-navy">{a.clientName}</div>
+                          <div className="font-medium text-foreground">{a.clientName}</div>
                           <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                             <Phone className="h-2.5 w-2.5" />
                             {a.clientPhone}
@@ -493,7 +493,7 @@ export default function AppointmentsPage() {
                         <TableCell>
                           <div className="flex items-center gap-1.5">
                             <Car className="h-3 w-3 text-muted-foreground" />
-                            <span className="font-mono text-[12px] text-navy">
+                            <span className="font-mono text-[12px] text-foreground">
                               {a.vehiclePlate}
                             </span>
                           </div>
@@ -504,14 +504,14 @@ export default function AppointmentsPage() {
                         <TableCell>
                           <div className="flex items-center gap-1.5">
                             <span className={cn("h-2 w-2 rounded-full", catColor.bg)} />
-                            <span className="text-navy">{a.service?.name ?? "—"}</span>
+                            <span className="text-foreground">{a.service?.name ?? "—"}</span>
                           </div>
                           <div className="text-[11px] text-muted-foreground">
                             {a.category?.name}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-navy">{formatDate(a.date)}</div>
+                          <div className="text-foreground">{formatDate(a.date)}</div>
                           <div className="text-[11px] text-muted-foreground">{a.slot}</div>
                         </TableCell>
                         <TableCell>
@@ -568,7 +568,7 @@ export default function AppointmentsPage() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
+                              className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                               onClick={() => setDeleteId(a.id)}
                               aria-label="Supprimer"
                             >
@@ -594,7 +594,7 @@ export default function AppointmentsPage() {
               <DialogHeader>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <DialogTitle className="font-mono text-navy">
+                    <DialogTitle className="font-mono text-foreground">
                       RDV {detailAppt.code}
                     </DialogTitle>
                     <DialogDescription>
@@ -632,11 +632,11 @@ export default function AppointmentsPage() {
                 </div>
 
                 {detailAppt.notes && (
-                  <div className="rounded-md border border-border bg-surface-2/30 p-3">
+                  <div className="rounded-md border border-border bg-muted/30 p-3">
                     <p className="text-[11px] font-semibold uppercase text-muted-foreground">
                       Notes
                     </p>
-                    <p className="mt-1 text-[13px] text-navy">{detailAppt.notes}</p>
+                    <p className="mt-1 text-[13px] text-foreground">{detailAppt.notes}</p>
                   </div>
                 )}
 
@@ -644,7 +644,7 @@ export default function AppointmentsPage() {
                 {detailAppt.result ? (
                   <InspectionBlock result={detailAppt.result} />
                 ) : (
-                  <div className="rounded-md border border-dashed border-border bg-surface-2/20 p-4 text-center">
+                  <div className="rounded-md border border-dashed border-border bg-muted/20 p-4 text-center">
                     <p className="text-[12px] text-muted-foreground">
                       Aucun résultat d'inspection enregistré.
                     </p>
@@ -652,11 +652,11 @@ export default function AppointmentsPage() {
                 )}
 
                 {detailAppt.qrToken && (
-                  <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3">
-                    <p className="text-[11px] font-semibold uppercase text-emerald-700">
+                  <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+                    <p className="text-[11px] font-semibold uppercase text-primary">
                       Token QR de validation
                     </p>
-                    <p className="mt-1 break-all font-mono text-[11px] text-emerald-800">
+                    <p className="mt-1 break-all font-mono text-[11px] text-primary/80">
                       {detailAppt.qrToken}
                     </p>
                   </div>
@@ -842,7 +842,7 @@ export default function AppointmentsPage() {
             <Button
               onClick={saveForm}
               disabled={busy}
-              className="bg-green-600 text-white hover:bg-green-700"
+              className="bg-primary text-white hover:bg-primary/90"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {formMode === "create" ? "Créer le RDV" : "Enregistrer"}
@@ -865,7 +865,7 @@ export default function AppointmentsPage() {
             <AlertDialogAction
               disabled={busy}
               onClick={() => deleteId && remove(deleteId)}
-              className="bg-red-600 text-white hover:bg-red-700"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Supprimer
@@ -889,11 +889,11 @@ function StatusBadge({ status }: { status: AppointmentStatus }) {
 
 function InfoBlock({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-md border border-border bg-surface-2/20 p-3">
+    <div className="rounded-md border border-border bg-muted/20 p-3">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
-      <p className="mt-0.5 text-[14px] font-semibold text-navy">{value}</p>
+      <p className="mt-0.5 text-[14px] font-semibold text-foreground">{value}</p>
       {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
     </div>
   );
@@ -912,7 +912,7 @@ function InspectionBlock({ result }: { result: NonNullable<Inspection> }) {
     <div
       className={cn(
         "rounded-md border p-4",
-        pass ? "border-green-200 bg-green-50/50" : "border-red-200 bg-red-50/50"
+        pass ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"
       )}
     >
       <div className="mb-3 flex items-center justify-between">
@@ -922,8 +922,8 @@ function InspectionBlock({ result }: { result: NonNullable<Inspection> }) {
         <Badge
           className={cn(
             pass
-              ? "bg-green-100 text-green-700 hover:bg-green-200"
-              : "bg-red-100 text-red-700 hover:bg-red-200"
+              ? "bg-primary/15 text-primary hover:bg-primary/20"
+              : "bg-destructive/15 text-destructive hover:bg-destructive/20"
           )}
         >
           {pass ? <Award className="mr-1 h-3.5 w-3.5" /> : <XCircle className="mr-1 h-3.5 w-3.5" />}
@@ -937,15 +937,15 @@ function InspectionBlock({ result }: { result: NonNullable<Inspection> }) {
             className={cn(
               "rounded border px-2 py-1.5 text-center",
               it.value === "PASS"
-                ? "border-green-200 bg-white"
-                : "border-red-200 bg-white"
+                ? "border-primary/30 bg-card"
+                : "border-destructive/30 bg-card"
             )}
           >
             <p className="text-[10px] uppercase text-muted-foreground">{it.label}</p>
             <p
               className={cn(
                 "text-[12px] font-bold",
-                it.value === "PASS" ? "text-green-700" : "text-red-700"
+                it.value === "PASS" ? "text-primary" : "text-destructive"
               )}
             >
               {it.value === "PASS" ? "OK" : "KO"}
@@ -955,11 +955,11 @@ function InspectionBlock({ result }: { result: NonNullable<Inspection> }) {
       </div>
       {result.inspector && (
         <p className="mt-3 text-[11px] text-muted-foreground">
-          Inspecteur : <span className="font-medium text-navy">{result.inspector}</span>
+          Inspecteur : <span className="font-medium text-foreground">{result.inspector}</span>
         </p>
       )}
       {result.notes && (
-        <p className="mt-1 text-[12px] text-navy">{result.notes}</p>
+        <p className="mt-1 text-[12px] text-foreground">{result.notes}</p>
       )}
     </div>
   );

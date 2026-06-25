@@ -160,7 +160,7 @@ export default function AnalyticsPage() {
   if (loading) {
     return (
       <div className="flex h-72 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -168,7 +168,7 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-bold text-navy sm:text-2xl">Statistiques avancées</h2>
+        <h2 className="text-xl font-bold text-foreground sm:text-2xl">Statistiques avancées</h2>
         <p className="text-sm text-muted-foreground">
           Indicateurs de performance, tendances et analyse détaillée de l'activité.
         </p>
@@ -207,10 +207,10 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Monthly trend */}
-      <Card className="border-l-4 border-indigo-400">
+      <Card className="border-l-4 border-primary/60 shadow-card">
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base font-semibold text-navy">
-            <BarChart3 className="h-4 w-4 text-indigo-500" />
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <BarChart3 className="h-4 w-4 text-primary" />
             Tendance mensuelle
           </CardTitle>
           <CardDescription className="text-xs">
@@ -224,17 +224,17 @@ export default function AnalyticsPage() {
             <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={monthlyTrend} margin={{ top: 5, right: 12, left: -16, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E8E6E1" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#6B7280" }} axisLine={false} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#6B7280" }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #E8E6E1", fontSize: 12 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,42,35,0.08)" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#6B8278" }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#6B8278" }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid rgba(0,200,150,0.2)", background: "rgba(255,255,255,0.95)", fontSize: 12, boxShadow: "0 8px 24px -8px rgba(0,200,150,0.18)" }} />
                   <Line
                     type="monotone"
                     dataKey="count"
                     name="RDV"
-                    stroke={COLOR_MAP.indigo.hex}
+                    stroke={COLOR_MAP.emerald.hex}
                     strokeWidth={2.5}
-                    dot={{ r: 4, fill: COLOR_MAP.indigo.hex }}
+                    dot={{ r: 4, fill: COLOR_MAP.emerald.hex }}
                     activeDot={{ r: 6 }}
                   />
                 </LineChart>
@@ -249,7 +249,7 @@ export default function AnalyticsPage() {
         {/* Revenue over time */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold text-navy">
+            <CardTitle className="text-base font-semibold text-foreground">
               Revenus par mois
             </CardTitle>
             <CardDescription className="text-xs">
@@ -269,11 +269,11 @@ export default function AnalyticsPage() {
                         <stop offset="95%" stopColor={COLOR_MAP.emerald.hex} stopOpacity={0.02} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E8E6E1" vertical={false} />
-                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#6B7280" }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: "#6B7280" }} axisLine={false} tickLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,42,35,0.08)" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#6B8278" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "#6B8278" }} axisLine={false} tickLine={false} />
                     <Tooltip
-                      contentStyle={{ borderRadius: 8, border: "1px solid #E8E6E1", fontSize: 12 }}
+                      contentStyle={{ borderRadius: 10, border: "1px solid rgba(0,200,150,0.2)", background: "rgba(255,255,255,0.95)", fontSize: 12, boxShadow: "0 8px 24px -8px rgba(0,200,150,0.18)" }}
                       formatter={(v: number) => [formatMAD(v), "Revenu"]}
                     />
                     <Area
@@ -294,7 +294,7 @@ export default function AnalyticsPage() {
         {/* Pass / fail donut */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold text-navy">
+            <CardTitle className="text-base font-semibold text-foreground">
               Taux de conformité
             </CardTitle>
             <CardDescription className="text-xs">
@@ -323,7 +323,7 @@ export default function AnalyticsPage() {
                         />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #E8E6E1", fontSize: 12 }} />
+                    <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid rgba(0,200,150,0.2)", background: "rgba(255,255,255,0.95)", fontSize: 12, boxShadow: "0 8px 24px -8px rgba(0,200,150,0.18)" }} />
                     <Legend iconType="circle" wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
                   </PieChart>
                 </ResponsiveContainer>
@@ -336,8 +336,8 @@ export default function AnalyticsPage() {
       {/* Busiest slots */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base font-semibold text-navy">
-            <Clock className="h-4 w-4 text-indigo-500" />
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <Clock className="h-4 w-4 text-primary" />
             Créneaux les plus sollicités
           </CardTitle>
           <CardDescription className="text-xs">
@@ -351,11 +351,11 @@ export default function AnalyticsPage() {
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={slotStats} margin={{ top: 5, right: 12, left: -16, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E8E6E1" vertical={false} />
-                  <XAxis dataKey="slot" tick={{ fontSize: 11, fill: "#6B7280" }} axisLine={false} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#6B7280" }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #E8E6E1", fontSize: 12 }} cursor={{ fill: "rgba(79,70,229,0.06)" }} />
-                  <Bar dataKey="count" name="RDV" radius={[6, 6, 0, 0]} fill={COLOR_MAP.indigo.hex} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,42,35,0.08)" vertical={false} />
+                  <XAxis dataKey="slot" tick={{ fontSize: 11, fill: "#6B8278" }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#6B8278" }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid rgba(0,200,150,0.2)", background: "rgba(255,255,255,0.95)", fontSize: 12, boxShadow: "0 8px 24px -8px rgba(0,200,150,0.18)" }} cursor={{ fill: "rgba(0,200,150,0.06)" }} />
+                  <Bar dataKey="count" name="RDV" radius={[6, 6, 0, 0]} fill={COLOR_MAP.emerald.hex} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -366,7 +366,7 @@ export default function AnalyticsPage() {
       {/* Category breakdown */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold text-navy">
+          <CardTitle className="text-base font-semibold text-foreground">
             Répartition par catégorie
           </CardTitle>
           <CardDescription className="text-xs">
@@ -377,15 +377,15 @@ export default function AnalyticsPage() {
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={byCategory} margin={{ top: 5, right: 12, left: -16, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E8E6E1" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#6B7280" }} axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#6B7280" }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #E8E6E1", fontSize: 12 }} cursor={{ fill: "rgba(79,70,229,0.06)" }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,42,35,0.08)" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#6B8278" }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#6B8278" }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid rgba(0,200,150,0.2)", background: "rgba(255,255,255,0.95)", fontSize: 12, boxShadow: "0 8px 24px -8px rgba(0,200,150,0.18)" }} cursor={{ fill: "rgba(0,200,150,0.06)" }} />
                 <Bar dataKey="count" name="RDV" radius={[6, 6, 0, 0]}>
                   {byCategory.map((entry, i) => (
                     <Cell
                       key={i}
-                      fill={COLOR_MAP[entry.color as CategoryColor]?.hex ?? "#1F7A4D"}
+                      fill={COLOR_MAP[entry.color as CategoryColor]?.hex ?? COLOR_MAP.emerald.hex}
                     />
                   ))}
                 </Bar>

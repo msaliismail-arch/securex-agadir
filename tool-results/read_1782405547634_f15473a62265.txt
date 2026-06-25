@@ -1,0 +1,797 @@
+     1→"use client";
+     2→
+     3→import { useCallback, useEffect, useMemo, useState } from "react";
+     4→import * as LucideIcons from "lucide-react";
+     5→import {
+     6→  Plus,
+     7→  Pencil,
+     8→  Trash2,
+     9→  ChevronDown,
+    10→  ChevronRight,
+    11→  Loader2,
+    12→  FolderTree,
+    13→  Save,
+    14→} from "lucide-react";
+    15→import { toast } from "sonner";
+    16→import {
+    17→  Card,
+    18→  CardContent,
+    19→} from "@/components/ui/card";
+    20→import { Button } from "@/components/ui/button";
+    21→import { Input } from "@/components/ui/input";
+    22→import { Label } from "@/components/ui/label";
+    23→import { Textarea } from "@/components/ui/textarea";
+    24→import { Badge } from "@/components/ui/badge";
+    25→import { Switch } from "@/components/ui/switch";
+    26→import {
+    27→  Select,
+    28→  SelectContent,
+    29→  SelectItem,
+    30→  SelectTrigger,
+    31→  SelectValue,
+    32→} from "@/components/ui/select";
+    33→import {
+    34→  Dialog,
+    35→  DialogContent,
+    36→  DialogDescription,
+    37→  DialogFooter,
+    38→  DialogHeader,
+    39→  DialogTitle,
+    40→} from "@/components/ui/dialog";
+    41→import {
+    42→  AlertDialog,
+    43→  AlertDialogAction,
+    44→  AlertDialogCancel,
+    45→  AlertDialogContent,
+    46→  AlertDialogDescription,
+    47→  AlertDialogFooter,
+    48→  AlertDialogHeader,
+    49→  AlertDialogTitle,
+    50→} from "@/components/ui/alert-dialog";
+    51→import {
+    52→  Collapsible,
+    53→  CollapsibleContent,
+    54→  CollapsibleTrigger,
+    55→} from "@/components/ui/collapsible";
+    56→import {
+    57→  Table,
+    58→  TableBody,
+    59→  TableCell,
+    60→  TableHead,
+    61→  TableHeader,
+    62→  TableRow,
+    63→} from "@/components/ui/table";
+    64→import { COLOR_MAP, type CategoryColor } from "@/lib/constants";
+    65→import { cn } from "@/lib/utils";
+    66→
+    67→type Category = {
+    68→  id: string;
+    69→  name: string;
+    70→  slug: string;
+    71→  description: string;
+    72→  icon: string;
+    73→  color: string;
+    74→  sort: number;
+    75→};
+    76→
+    77→type Service = {
+    78→  id: string;
+    79→  categoryId: string;
+    80→  name: string;
+    81→  slug: string;
+    82→  description: string;
+    83→  durationMin: number;
+    84→  price: number;
+    85→  active: boolean;
+    86→  category?: Category;
+    87→};
+    88→
+    89→const ICON_CHOICES = [
+    90→  "Car", "Truck", "Bike", "Bus", "Wrench", "Gauge", "Cog", "Settings",
+    91→  "ShieldCheck", "ClipboardCheck", "Container", "Caravan", "Tractor",
+    92→];
+    93→const COLOR_KEYS = Object.keys(COLOR_MAP) as CategoryColor[];
+    94→
+    95→function getIcon(name: string) {
+    96→  return (LucideIcons as Record<string, React.ComponentType<{ className?: string }>>)[name] ?? LucideIcons.Folder;
+    97→}
+    98→
+    99→function slugify(s: string) {
+   100→  return s
+   101→    .toLowerCase()
+   102→    .normalize("NFD")
+   103→    .replace(/[\u0300-\u036f]/g, "")
+   104→    .replace(/[^a-z0-9]+/g, "-")
+   105→    .replace(/^-+|-+$/g, "");
+   106→}
+   107→
+   108→type CatDialog = {
+   109→  open: boolean;
+   110→  mode: "create" | "edit";
+   111→  data: Partial<Category>;
+   112→};
+   113→type SvcDialog = {
+   114→  open: boolean;
+   115→  categoryId: string | null;
+   116→  mode: "create" | "edit";
+   117→  data: Partial<Service>;
+   118→};
+   119→type DeleteTarget =
+   120→  | { kind: "category"; id: string; name: string }
+   121→  | { kind: "service"; id: string; name: string }
+   122→  | null;
+   123→
+   124→export default function CategoriesPage() {
+   125→  const [categories, setCategories] = useState<Category[]>([]);
+   126→  const [services, setServices] = useState<Service[]>([]);
+   127→  const [loading, setLoading] = useState(true);
+   128→  const [openCats, setOpenCats] = useState<Set<string>>(new Set());
+   129→
+   130→  const [catDialog, setCatDialog] = useState<CatDialog>({
+   131→    open: false,
+   132→    mode: "create",
+   133→    data: {},
+   134→  });
+   135→  const [svcDialog, setSvcDialog] = useState<SvcDialog>({
+   136→    open: false,
+   137→    categoryId: null,
+   138→    mode: "create",
+   139→    data: {},
+   140→  });
+   141→  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
+   142→  const [busy, setBusy] = useState(false);
+   143→
+   144→  const load = useCallback(async () => {
+   145→    setLoading(true);
+   146→    try {
+   147→      const [cats, svcs] = await Promise.all([
+   148→        fetch("/api/categories").then((r) => r.json()),
+   149→        fetch("/api/services").then((r) => r.json()),
+   150→      ]);
+   151→      setCategories(Array.isArray(cats) ? cats : []);
+   152→      setServices(Array.isArray(svcs) ? svcs : []);
+   153→    } finally {
+   154→      setLoading(false);
+   155→    }
+   156→  }, []);
+   157→
+   158→  useEffect(() => {
+   159→    load();
+   160→  }, [load]);
+   161→
+   162→  const servicesByCat = useMemo(() => {
+   163→    const m = new Map<string, Service[]>();
+   164→    for (const s of services) {
+   165→      const arr = m.get(s.categoryId) ?? [];
+   166→      arr.push(s);
+   167→      m.set(s.categoryId, arr);
+   168→    }
+   169→    return m;
+   170→  }, [services]);
+   171→
+   172→  function toggleCat(id: string) {
+   173→    setOpenCats((prev) => {
+   174→      const next = new Set(prev);
+   175→      if (next.has(id)) next.delete(id);
+   176→      else next.add(id);
+   177→      return next;
+   178→    });
+   179→  }
+   180→
+   181→  function openCreateCat() {
+   182→    setCatDialog({
+   183→      open: true,
+   184→      mode: "create",
+   185→      data: {
+   186→        name: "",
+   187→        slug: "",
+   188→        description: "",
+   189→        icon: "Car",
+   190→        color: "blue",
+   191→        sort: categories.length + 1,
+   192→      },
+   193→    });
+   194→  }
+   195→  function openEditCat(c: Category) {
+   196→    setCatDialog({ open: true, mode: "edit", data: { ...c } });
+   197→  }
+   198→  async function saveCat() {
+   199→    const d = catDialog.data;
+   200→    if (!d.name || !d.slug || !d.color) {
+   201→      toast.error("Nom, slug et couleur sont requis");
+   202→      return;
+   203→    }
+   204→    setBusy(true);
+   205→    try {
+   206→      const body = {
+   207→        name: d.name,
+   208→        slug: d.slug,
+   209→        description: d.description || "",
+   210→        icon: d.icon || "Car",
+   211→        color: d.color,
+   212→        sort: Number(d.sort ?? 0),
+   213→      };
+   214→      const res = catDialog.mode === "create"
+   215→        ? await fetch("/api/categories", {
+   216→            method: "POST",
+   217→            headers: { "Content-Type": "application/json" },
+   218→            body: JSON.stringify(body),
+   219→          })
+   220→        : await fetch(`/api/categories/${d.id}`, {
+   221→            method: "PATCH",
+   222→            headers: { "Content-Type": "application/json" },
+   223→            body: JSON.stringify(body),
+   224→          });
+   225→      const json = await res.json();
+   226→      if (!res.ok) {
+   227→        toast.error(json.error || "Échec de l'enregistrement");
+   228→        return;
+   229→      }
+   230→      toast.success(catDialog.mode === "create" ? "Catégorie créée" : "Catégorie modifiée");
+   231→      setCatDialog((p) => ({ ...p, open: false }));
+   232→      await load();
+   233→    } finally {
+   234→      setBusy(false);
+   235→    }
+   236→  }
+   237→  async function deleteCat(id: string) {
+   238→    setBusy(true);
+   239→    try {
+   240→      const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+   241→      if (!res.ok) {
+   242→        const j = await res.json();
+   243→        toast.error(j.error || "Échec de la suppression");
+   244→        return;
+   245→      }
+   246→      toast.success("Catégorie supprimée");
+   247→      await load();
+   248→    } finally {
+   249→      setBusy(false);
+   250→      setDeleteTarget(null);
+   251→    }
+   252→  }
+   253→
+   254→  function openCreateSvc(categoryId: string) {
+   255→    setSvcDialog({
+   256→      open: true,
+   257→      categoryId,
+   258→      mode: "create",
+   259→      data: {
+   260→        name: "",
+   261→        slug: "",
+   262→        description: "",
+   263→        durationMin: 30,
+   264→        price: 0,
+   265→        active: true,
+   266→      },
+   267→    });
+   268→    setOpenCats((prev) => new Set(prev).add(categoryId));
+   269→  }
+   270→  function openEditSvc(s: Service) {
+   271→    setSvcDialog({
+   272→      open: true,
+   273→      categoryId: s.categoryId,
+   274→      mode: "edit",
+   275→      data: { ...s },
+   276→    });
+   277→  }
+   278→  async function saveSvc() {
+   279→    const d = svcDialog.data;
+   280→    if (!d.name || !d.slug || !svcDialog.categoryId || d.price == null) {
+   281→      toast.error("Nom, slug et prix sont requis");
+   282→      return;
+   283→    }
+   284→    setBusy(true);
+   285→    try {
+   286→      const body = {
+   287→        name: d.name,
+   288→        slug: d.slug,
+   289→        description: d.description || "",
+   290→        durationMin: Number(d.durationMin ?? 30),
+   291→        price: Number(d.price ?? 0),
+   292→        categoryId: svcDialog.categoryId,
+   293→        active: d.active ?? true,
+   294→      };
+   295→      const res = svcDialog.mode === "create"
+   296→        ? await fetch("/api/services", {
+   297→            method: "POST",
+   298→            headers: { "Content-Type": "application/json" },
+   299→            body: JSON.stringify(body),
+   300→          })
+   301→        : await fetch(`/api/services/${d.id}`, {
+   302→            method: "PATCH",
+   303→            headers: { "Content-Type": "application/json" },
+   304→            body: JSON.stringify(body),
+   305→          });
+   306→      const json = await res.json();
+   307→      if (!res.ok) {
+   308→        toast.error(json.error || "Échec de l'enregistrement");
+   309→        return;
+   310→      }
+   311→      toast.success(svcDialog.mode === "create" ? "Service créé" : "Service modifié");
+   312→      setSvcDialog((p) => ({ ...p, open: false }));
+   313→      await load();
+   314→    } finally {
+   315→      setBusy(false);
+   316→    }
+   317→  }
+   318→  async function deleteSvc(id: string) {
+   319→    setBusy(true);
+   320→    try {
+   321→      const res = await fetch(`/api/services/${id}`, { method: "DELETE" });
+   322→      if (!res.ok) {
+   323→        const j = await res.json();
+   324→        toast.error(j.error || "Échec de la suppression");
+   325→        return;
+   326→      }
+   327→      toast.success("Service supprimé");
+   328→      await load();
+   329→    } finally {
+   330→      setBusy(false);
+   331→      setDeleteTarget(null);
+   332→    }
+   333→  }
+   334→
+   335→  if (loading) {
+   336→    return (
+   337→      <div className="flex h-72 items-center justify-center">
+   338→        <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+   339→      </div>
+   340→    );
+   341→  }
+   342→
+   343→  return (
+   344→    <div className="space-y-5">
+   345→      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+   346→        <div>
+   347→          <h2 className="text-xl font-bold text-navy sm:text-2xl">Catégories & Services</h2>
+   348→          <p className="text-sm text-muted-foreground">
+   349→            Gérez les types de véhicules, les prestations associées et leur tarification.
+   350→          </p>
+   351→        </div>
+   352→        <Button
+   353→          onClick={openCreateCat}
+   354→          className="bg-emerald-600 text-white hover:bg-emerald-700"
+   355→        >
+   356→          <Plus className="h-4 w-4" />
+   357→          Ajouter une catégorie
+   358→        </Button>
+   359→      </div>
+   360→
+   361→      {categories.length === 0 ? (
+   362→        <Card>
+   363→          <CardContent className="flex h-48 flex-col items-center justify-center gap-3 text-center">
+   364→            <FolderTree className="h-8 w-8 text-muted-foreground/50" />
+   365→            <div>
+   366→              <p className="font-semibold text-navy">Aucune catégorie</p>
+   367→              <p className="text-sm text-muted-foreground">
+   368→                Commencez par créer une catégorie de véhicule.
+   369→              </p>
+   370→            </div>
+   371→            <Button onClick={openCreateCat} className="bg-emerald-600 text-white hover:bg-emerald-700">
+   372→              <Plus className="h-4 w-4" />
+   373→              Créer la première catégorie
+   374→            </Button>
+   375→          </CardContent>
+   376→        </Card>
+   377→      ) : (
+   378→        <div className="space-y-3">
+   379→          {categories.map((cat) => {
+   380→            const c = COLOR_MAP[cat.color as CategoryColor] ?? COLOR_MAP.blue;
+   381→            const Icon = getIcon(cat.icon);
+   382→            const svcs = servicesByCat.get(cat.id) ?? [];
+   383→            const isOpen = openCats.has(cat.id);
+   384→            return (
+   385→              <Card key={cat.id} className={cn("overflow-hidden border-l-4", c.border)}>
+   386→                <Collapsible open={isOpen} onOpenChange={() => toggleCat(cat.id)}>
+   387→                  <CollapsibleTrigger asChild>
+   388→                    <button className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-surface-2/40">
+   389→                      <span className={cn("inline-flex h-10 w-10 items-center justify-center rounded-md", c.soft, c.fg)}>
+   390→                        <Icon className="h-5 w-5" />
+   391→                      </span>
+   392→                      <div className="min-w-0 flex-1">
+   393→                        <div className="flex items-center gap-2">
+   394→                          <h3 className="truncate text-[15px] font-semibold text-navy">
+   395→                            {cat.name}
+   396→                          </h3>
+   397→                          <Badge variant="outline" className={cn("text-[10px]", c.fg, c.border)}>
+   398→                            {cat.slug}
+   399→                          </Badge>
+   400→                          <Badge variant="secondary" className="text-[10px]">
+   401→                            {svcs.length} service{svcs.length > 1 ? "s" : ""}
+   402→                          </Badge>
+   403→                        </div>
+   404→                        {cat.description && (
+   405→                          <p className="truncate text-[12px] text-muted-foreground">
+   406→                            {cat.description}
+   407→                          </p>
+   408→                        )}
+   409→                      </div>
+   410→                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+   411→                        <Button
+   412→                          size="icon"
+   413→                          variant="ghost"
+   414→                          className="h-8 w-8"
+   415→                          onClick={() => openEditCat(cat)}
+   416→                          aria-label="Modifier"
+   417→                        >
+   418→                          <Pencil className="h-4 w-4" />
+   419→                        </Button>
+   420→                        <Button
+   421→                          size="icon"
+   422→                          variant="ghost"
+   423→                          className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
+   424→                          onClick={() =>
+   425→                            setDeleteTarget({ kind: "category", id: cat.id, name: cat.name })
+   426→                          }
+   427→                          aria-label="Supprimer"
+   428→                        >
+   429→                          <Trash2 className="h-4 w-4" />
+   430→                        </Button>
+   431→                      </div>
+   432→                      <span className="ml-1 shrink-0 text-muted-foreground">
+   433→                        {isOpen ? (
+   434→                          <ChevronDown className="h-4 w-4" />
+   435→                        ) : (
+   436→                          <ChevronRight className="h-4 w-4" />
+   437→                        )}
+   438→                      </span>
+   439→                    </button>
+   440→                  </CollapsibleTrigger>
+   441→                  <CollapsibleContent>
+   442→                    <div className="border-t border-border bg-surface-2/30 p-4">
+   443→                      <div className="mb-3 flex items-center justify-between">
+   444→                        <p className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+   445→                          Services de la catégorie
+   446→                        </p>
+   447→                        <Button
+   448→                          size="sm"
+   449→                          variant="outline"
+   450→                          onClick={() => openCreateSvc(cat.id)}
+   451→                          className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+   452→                        >
+   453→                          <Plus className="h-3.5 w-3.5" />
+   454→                          Ajouter un service
+   455→                        </Button>
+   456→                      </div>
+   457→                      {svcs.length === 0 ? (
+   458→                        <p className="rounded-md border border-dashed border-border bg-white px-4 py-6 text-center text-[12px] text-muted-foreground">
+   459→                          Aucun service pour cette catégorie.
+   460→                        </p>
+   461→                      ) : (
+   462→                        <div className="overflow-hidden rounded-md border border-border bg-white">
+   463→                          <Table>
+   464→                            <TableHeader>
+   465→                              <TableRow className="bg-surface-2/40">
+   466→                                <TableHead className="text-[11px] uppercase">Service</TableHead>
+   467→                                <TableHead className="text-[11px] uppercase">Durée</TableHead>
+   468→                                <TableHead className="text-[11px] uppercase">Prix</TableHead>
+   469→                                <TableHead className="text-[11px] uppercase">Statut</TableHead>
+   470→                                <TableHead className="w-20 text-right text-[11px] uppercase">Actions</TableHead>
+   471→                              </TableRow>
+   472→                            </TableHeader>
+   473→                            <TableBody>
+   474→                              {svcs.map((s) => (
+   475→                                <TableRow key={s.id} className="text-[13px]">
+   476→                                  <TableCell>
+   477→                                    <div className="font-medium text-navy">{s.name}</div>
+   478→                                    {s.description && (
+   479→                                      <div className="text-[11px] text-muted-foreground">
+   480→                                        {s.description}
+   481→                                      </div>
+   482→                                    )}
+   483→                                  </TableCell>
+   484→                                  <TableCell className="whitespace-nowrap text-muted-foreground">
+   485→                                    {s.durationMin} min
+   486→                                  </TableCell>
+   487→                                  <TableCell className="whitespace-nowrap font-semibold text-navy">
+   488→                                    {s.price.toLocaleString("fr-MA")} MAD
+   489→                                  </TableCell>
+   490→                                  <TableCell>
+   491→                                    {s.active ? (
+   492→                                      <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100">Actif</Badge>
+   493→                                    ) : (
+   494→                                      <Badge variant="secondary">Inactif</Badge>
+   495→                                    )}
+   496→                                  </TableCell>
+   497→                                  <TableCell className="text-right">
+   498→                                    <div className="flex justify-end gap-1">
+   499→                                      <Button
+   500→                                        size="icon"
+   501→                                        variant="ghost"
+   502→                                        className="h-8 w-8"
+   503→                                        onClick={() => openEditSvc(s)}
+   504→                                        aria-label="Modifier service"
+   505→                                      >
+   506→                                        <Pencil className="h-3.5 w-3.5" />
+   507→                                      </Button>
+   508→                                      <Button
+   509→                                        size="icon"
+   510→                                        variant="ghost"
+   511→                                        className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
+   512→                                        onClick={() =>
+   513→                                          setDeleteTarget({ kind: "service", id: s.id, name: s.name })
+   514→                                        }
+   515→                                        aria-label="Supprimer service"
+   516→                                      >
+   517→                                        <Trash2 className="h-3.5 w-3.5" />
+   518→                                      </Button>
+   519→                                    </div>
+   520→                                  </TableCell>
+   521→                                </TableRow>
+   522→                              ))}
+   523→                            </TableBody>
+   524→                          </Table>
+   525→                        </div>
+   526→                      )}
+   527→                    </div>
+   528→                  </CollapsibleContent>
+   529→                </Collapsible>
+   530→              </Card>
+   531→            );
+   532→          })}
+   533→        </div>
+   534→      )}
+   535→
+   536→      <Dialog
+   537→        open={catDialog.open}
+   538→        onOpenChange={(o) => setCatDialog((p) => ({ ...p, open: o }))}
+   539→      >
+   540→        <DialogContent className="sm:max-w-lg">
+   541→          <DialogHeader>
+   542→            <DialogTitle>
+   543→              {catDialog.mode === "create" ? "Nouvelle catégorie" : "Modifier la catégorie"}
+   544→            </DialogTitle>
+   545→            <DialogDescription>
+   546→              Définissez le type de véhicule, son icône et sa couleur.
+   547→            </DialogDescription>
+   548→          </DialogHeader>
+   549→          <div className="space-y-3">
+   550→            <div className="grid grid-cols-2 gap-3">
+   551→              <div className="space-y-1.5">
+   552→                <Label className="text-xs">Nom *</Label>
+   553→                <Input
+   554→                  value={catDialog.data.name ?? ""}
+   555→                  onChange={(e) =>
+   556→                    setCatDialog((p) => ({
+   557→                      ...p,
+   558→                      data: { ...p.data, name: e.target.value, slug: p.mode === "create" ? slugify(e.target.value) : p.data.slug },
+   559→                    }))
+   560→                  }
+   561→                  placeholder="Voiture Particulière"
+   562→                />
+   563→              </div>
+   564→              <div className="space-y-1.5">
+   565→                <Label className="text-xs">Slug *</Label>
+   566→                <Input
+   567→                  value={catDialog.data.slug ?? ""}
+   568→                  onChange={(e) =>
+   569→                    setCatDialog((p) => ({ ...p, data: { ...p.data, slug: slugify(e.target.value) } }))
+   570→                  }
+   571→                  placeholder="voiture"
+   572→                />
+   573→              </div>
+   574→            </div>
+   575→            <div className="space-y-1.5">
+   576→              <Label className="text-xs">Description</Label>
+   577→              <Textarea
+   578→                rows={2}
+   579→                value={catDialog.data.description ?? ""}
+   580→                onChange={(e) =>
+   581→                  setCatDialog((p) => ({ ...p, data: { ...p.data, description: e.target.value } }))
+   582→                }
+   583→                placeholder="Contrôle technique pour véhicules particuliers…"
+   584→              />
+   585→            </div>
+   586→            <div className="grid grid-cols-3 gap-3">
+   587→              <div className="space-y-1.5">
+   588→                <Label className="text-xs">Icône</Label>
+   589→                <Select
+   590→                  value={catDialog.data.icon ?? "Car"}
+   591→                  onValueChange={(v) => setCatDialog((p) => ({ ...p, data: { ...p.data, icon: v } }))}
+   592→                >
+   593→                  <SelectTrigger>
+   594→                    <SelectValue />
+   595→                  </SelectTrigger>
+   596→                  <SelectContent>
+   597→                    {ICON_CHOICES.map((ic) => {
+   598→                      const Ic = getIcon(ic);
+   599→                      return (
+   600→                        <SelectItem key={ic} value={ic}>
+   601→                          <span className="inline-flex items-center gap-2">
+   602→                            <Ic className="h-4 w-4" />
+   603→                            {ic}
+   604→                          </span>
+   605→                        </SelectItem>
+   606→                      );
+   607→                    })}
+   608→                  </SelectContent>
+   609→                </Select>
+   610→              </div>
+   611→              <div className="space-y-1.5">
+   612→                <Label className="text-xs">Couleur</Label>
+   613→                <Select
+   614→                  value={catDialog.data.color ?? "blue"}
+   615→                  onValueChange={(v) => setCatDialog((p) => ({ ...p, data: { ...p.data, color: v } }))}
+   616→                >
+   617→                  <SelectTrigger>
+   618→                    <SelectValue />
+   619→                  </SelectTrigger>
+   620→                  <SelectContent>
+   621→                    {COLOR_KEYS.map((k) => (
+   622→                      <SelectItem key={k} value={k}>
+   623→                        <span className="inline-flex items-center gap-2">
+   624→                          <span
+   625→                            className="h-3 w-3 rounded-full"
+   626→                            style={{ background: COLOR_MAP[k].hex }}
+   627→                          />
+   628→                          {COLOR_MAP[k].label}
+   629→                        </span>
+   630→                      </SelectItem>
+   631→                    ))}
+   632→                  </SelectContent>
+   633→                </Select>
+   634→              </div>
+   635→              <div className="space-y-1.5">
+   636→                <Label className="text-xs">Ordre</Label>
+   637→                <Input
+   638→                  type="number"
+   639→                  value={catDialog.data.sort ?? 0}
+   640→                  onChange={(e) =>
+   641→                    setCatDialog((p) => ({ ...p, data: { ...p.data, sort: Number(e.target.value) } }))
+   642→                  }
+   643→                />
+   644→              </div>
+   645→            </div>
+   646→          </div>
+   647→          <DialogFooter>
+   648→            <Button variant="outline" onClick={() => setCatDialog((p) => ({ ...p, open: false }))}>
+   649→              Annuler
+   650→            </Button>
+   651→            <Button onClick={saveCat} disabled={busy} className="bg-emerald-600 text-white hover:bg-emerald-700">
+   652→              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+   653→              Enregistrer
+   654→            </Button>
+   655→          </DialogFooter>
+   656→        </DialogContent>
+   657→      </Dialog>
+   658→
+   659→      <Dialog
+   660→        open={svcDialog.open}
+   661→        onOpenChange={(o) => setSvcDialog((p) => ({ ...p, open: o }))}
+   662→      >
+   663→        <DialogContent className="sm:max-w-lg">
+   664→          <DialogHeader>
+   665→            <DialogTitle>
+   666→              {svcDialog.mode === "create" ? "Nouveau service" : "Modifier le service"}
+   667→            </DialogTitle>
+   668→            <DialogDescription>
+   669→              Une prestation proposée aux clients pour cette catégorie.
+   670→            </DialogDescription>
+   671→          </DialogHeader>
+   672→          <div className="space-y-3">
+   673→            <div className="grid grid-cols-2 gap-3">
+   674→              <div className="space-y-1.5">
+   675→                <Label className="text-xs">Nom *</Label>
+   676→                <Input
+   677→                  value={svcDialog.data.name ?? ""}
+   678→                  onChange={(e) =>
+   679→                    setSvcDialog((p) => ({
+   680→                      ...p,
+   681→                      data: { ...p.data, name: e.target.value, slug: p.mode === "create" ? slugify(e.target.value) : p.data.slug },
+   682→                    }))
+   683→                  }
+   684→                  placeholder="Visite Technique Périodique"
+   685→                />
+   686→              </div>
+   687→              <div className="space-y-1.5">
+   688→                <Label className="text-xs">Slug *</Label>
+   689→                <Input
+   690→                  value={svcDialog.data.slug ?? ""}
+   691→                  onChange={(e) =>
+   692→                    setSvcDialog((p) => ({ ...p, data: { ...p.data, slug: slugify(e.target.value) } }))
+   693→                  }
+   694→                  placeholder="vt-periodique"
+   695→                />
+   696→              </div>
+   697→            </div>
+   698→            <div className="space-y-1.5">
+   699→              <Label className="text-xs">Description</Label>
+   700→              <Textarea
+   701→                rows={2}
+   702→                value={svcDialog.data.description ?? ""}
+   703→                onChange={(e) =>
+   704→                  setSvcDialog((p) => ({ ...p, data: { ...p.data, description: e.target.value } }))
+   705→                }
+   706→              />
+   707→            </div>
+   708→            <div className="grid grid-cols-2 gap-3">
+   709→              <div className="space-y-1.5">
+   710→                <Label className="text-xs">Durée (min)</Label>
+   711→                <Input
+   712→                  type="number"
+   713→                  value={svcDialog.data.durationMin ?? 30}
+   714→                  onChange={(e) =>
+   715→                    setSvcDialog((p) => ({ ...p, data: { ...p.data, durationMin: Number(e.target.value) } }))
+   716→                  }
+   717→                />
+   718→              </div>
+   719→              <div className="space-y-1.5">
+   720→                <Label className="text-xs">Prix (MAD)</Label>
+   721→                <Input
+   722→                  type="number"
+   723→                  value={svcDialog.data.price ?? 0}
+   724→                  onChange={(e) =>
+   725→                    setSvcDialog((p) => ({ ...p, data: { ...p.data, price: Number(e.target.value) } }))
+   726→                  }
+   727→                />
+   728→              </div>
+   729→            </div>
+   730→            <div className="flex items-center justify-between rounded-md border border-border bg-surface-2/30 p-3">
+   731→              <div>
+   732→                <p className="text-[13px] font-medium text-navy">Service actif</p>
+   733→                <p className="text-[11px] text-muted-foreground">
+   734→                  Les services inactifs ne sont pas proposés à la réservation.
+   735→                </p>
+   736→              </div>
+   737→              <Switch
+   738→                checked={svcDialog.data.active ?? true}
+   739→                onCheckedChange={(v) =>
+   740→                  setSvcDialog((p) => ({ ...p, data: { ...p.data, active: v } }))
+   741→                }
+   742→              />
+   743→            </div>
+   744→          </div>
+   745→          <DialogFooter>
+   746→            <Button variant="outline" onClick={() => setSvcDialog((p) => ({ ...p, open: false }))}>
+   747→              Annuler
+   748→            </Button>
+   749→            <Button onClick={saveSvc} disabled={busy} className="bg-emerald-600 text-white hover:bg-emerald-700">
+   750→              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+   751→              Enregistrer
+   752→            </Button>
+   753→          </DialogFooter>
+   754→        </DialogContent>
+   755→      </Dialog>
+   756→
+   757→      <AlertDialog
+   758→        open={!!deleteTarget}
+   759→        onOpenChange={(o) => !o && setDeleteTarget(null)}
+   760→      >
+   761→        <AlertDialogContent>
+   762→          <AlertDialogHeader>
+   763→            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+   764→            <AlertDialogDescription>
+   765→              {deleteTarget?.kind === "category" ? (
+   766→                <>
+   767→                  Vous allez supprimer la catégorie <strong>{deleteTarget?.name}</strong> ainsi que
+   768→                  tous ses services associés. Cette action est irréversible.
+   769→                </>
+   770→              ) : (
+   771→                <>
+   772→                  Vous allez supprimer le service <strong>{deleteTarget?.name}</strong>. Cette action est irréversible.
+   773→                </>
+   774→              )}
+   775→            </AlertDialogDescription>
+   776→          </AlertDialogHeader>
+   777→          <AlertDialogFooter>
+   778→            <AlertDialogCancel disabled={busy}>Annuler</AlertDialogCancel>
+   779→            <AlertDialogAction
+   780→              disabled={busy}
+   781→              onClick={() => {
+   782→                if (!deleteTarget) return;
+   783→                if (deleteTarget.kind === "category") deleteCat(deleteTarget.id);
+   784→                else deleteSvc(deleteTarget.id);
+   785→              }}
+   786→              className="bg-red-600 text-white hover:bg-red-700"
+   787→            >
+   788→              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+   789→              Supprimer définitivement
+   790→            </AlertDialogAction>
+   791→          </AlertDialogFooter>
+   792→        </AlertDialogContent>
+   793→      </AlertDialog>
+   794→    </div>
+   795→  );
+   796→}
+   797→

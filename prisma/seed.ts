@@ -1,13 +1,47 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 import { generateQrToken } from "../src/lib/qr";
 
 const db = new PrismaClient();
 
+// Real admin accounts with hashed passwords (per role).
+const ADMIN_PASSWORD = "Securex@2026";
 const admins = [
   { email: "admin.general@securex-connect.ma", name: "Youssef El Amrani", role: "SUPER", phone: "+212661234567" },
   { email: "validation.rdv@securex-connect.ma", name: "Fatima Zahra Benali", role: "VALIDATION", phone: "+212662345678" },
   { email: "reception@securex-connect.ma", name: "Karim Idrissi", role: "RECEPTION", phone: "+212663456789" },
 ];
+
+// Editable website content (Super Admin "Gestion du site").
+const websiteContent: Record<string, string> = {
+  "hero.badge": "Agréé Ministère du Transport",
+  "hero.title": "Contrôle technique automobile agréé à Agadir",
+  "hero.titleHighlight": "agréé",
+  "hero.subtitle": "Sécurité, fiabilité et conformité pour tous vos véhicules. Prenez rendez-vous en ligne et recevez votre certificat officiel en 30 minutes.",
+  "hero.ctaPrimary": "Prendre rendez-vous",
+  "hero.ctaSecondary": "Voir les tarifs",
+  "stats.controls": "15000",
+  "stats.controlsSuffix": "+",
+  "stats.controlsLabel": "Contrôles réalisés",
+  "stats.satisfaction": "49",
+  "stats.satisfactionSuffix": "/50",
+  "stats.satisfactionLabel": "Satisfaction client",
+  "stats.duration": "30",
+  "stats.durationSuffix": " min",
+  "stats.durationLabel": "Durée moyenne",
+  "stats.certified": "100",
+  "stats.certifiedSuffix": "%",
+  "stats.certifiedLabel": "Agréé & conforme",
+  "steps.title": "Comment ça marche ?",
+  "steps.subtitle": "Quatre étapes pour un contrôle technique sans tracas.",
+  "features.title": "Pourquoi nous choisir ?",
+  "features.subtitle": "Une expérience de contrôle technique moderne, fiable et sans surprise.",
+  "testimonials.title": "Ils nous font confiance",
+  "contact.title": "Nous trouver à Agadir",
+  "contact.subtitle": "Facile d'accès au Quartier Industriel d'Agadir.",
+  "cta.title": "Prêt à passer le contrôle technique ?",
+  "cta.subtitle": "Réservez votre créneau en ligne dès maintenant et évitez l'attente. Certification officielle garantie.",
+};
 
 const categories = [
   { name: "Voiture Particulière", slug: "voiture", description: "Contrôle technique pour véhicules particuliers (PV <= 3,5T).", icon: "Car", color: "blue", sort: 1 },
@@ -72,10 +106,20 @@ async function main() {
   await db.announcement.deleteMany();
   await db.setting.deleteMany();
   await db.otpRequest.deleteMany();
+  await db.websiteContent.deleteMany();
 
-  // Admins
-  for (const a of admins) await db.adminUser.create({ data: a });
-  console.log(`  ✓ ${admins.length} admins`);
+  // Admins (with hashed passwords)
+  const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
+  for (const a of admins) {
+    await db.adminUser.create({ data: { ...a, passwordHash } });
+  }
+  console.log(`  ✓ ${admins.length} admins (password: ${ADMIN_PASSWORD})`);
+
+  // Website content (editable by Super Admin)
+  for (const [k, v] of Object.entries(websiteContent)) {
+    await db.websiteContent.create({ data: { id: k, value: v } });
+  }
+  console.log(`  ✓ ${Object.keys(websiteContent).length} website content blocks`);
 
   // Settings
   const settings: Record<string, string> = {
@@ -85,6 +129,7 @@ async function main() {
     "contact.facebook": "https://facebook.com/securexconnect",
     "contact.instagram": "https://instagram.com/securexconnect",
     "contact.linkedin": "https://linkedin.com/company/securexconnect",
+    "contact.tiktok": "https://tiktok.com/@securexconnect",
     "hours.week": "08:00-18:00",
     "hours.sat": "08:00-13:00",
     "hours.sun": "Fermé",

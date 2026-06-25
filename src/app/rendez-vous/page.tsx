@@ -116,7 +116,7 @@ export default function RendezVousPage() {
 function WizardSkeleton() {
   return (
     <div className="mx-auto flex max-w-4xl items-center justify-center px-4 py-24">
-      <Loader2 className="h-8 w-8 animate-spin text-emerald-brand" />
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
     </div>
   );
 }
@@ -245,10 +245,10 @@ function BookingWizard() {
     <div className="mx-auto w-full max-w-5xl px-4 py-8 md:py-12">
       {/* Header */}
       <div className="mb-8 text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-brand">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
           Réservation en ligne
         </p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-navy md:text-4xl">
+        <h1 className="mt-1 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
           Prendre rendez-vous
         </h1>
         <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground md:text-base">
@@ -371,9 +371,9 @@ function ProgressIndicator({
               <div
                 className={cn(
                   "flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-bold transition-all md:h-10 md:w-10",
-                  isDone && "border-emerald-brand bg-emerald-brand text-white",
-                  isCurrent && "border-emerald-brand bg-emerald-brand/10 text-emerald-brand ring-4 ring-emerald-brand/10",
-                  !isDone && !isCurrent && "border-border bg-background text-muted-foreground"
+                  isDone && "border-primary bg-brand-gradient text-white",
+                  isCurrent && "border-primary bg-primary/10 text-primary ring-4 ring-primary/10",
+                  !isDone && !isCurrent && "border-border bg-card text-muted-foreground"
                 )}
               >
                 {isDone ? <Check className="h-4 w-4" strokeWidth={3} /> : s.num}
@@ -381,7 +381,7 @@ function ProgressIndicator({
               <span
                 className={cn(
                   "text-[10px] font-medium leading-tight md:text-xs",
-                  isCurrent ? "text-emerald-brand" : isDone ? "text-navy" : "text-muted-foreground"
+                  isCurrent ? "text-primary" : isDone ? "text-foreground" : "text-muted-foreground"
                 )}
               >
                 {s.label}
@@ -391,7 +391,7 @@ function ProgressIndicator({
               <div
                 className={cn(
                   "mb-5 h-0.5 flex-1 rounded-full transition-colors md:mb-6",
-                  s.num < current ? "bg-emerald-brand" : "bg-border"
+                  s.num < current ? "bg-primary" : "bg-border"
                 )}
               />
             )}
@@ -448,7 +448,7 @@ function WizardNav({
         size="lg"
         className={cn(
           "w-full sm:w-auto",
-          highlightNext && "bg-emerald-brand hover:bg-emerald-brand/90"
+          highlightNext && "bg-brand-gradient text-white hover:opacity-90"
         )}
       >
         {nextLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -483,7 +483,7 @@ function Step1({
 
   if (categories.length === 0) {
     return (
-      <Card>
+      <Card className="glass-card">
         <CardContent className="py-12 text-center text-muted-foreground">
           Aucune catégorie disponible pour le moment.
         </CardContent>
@@ -508,9 +508,9 @@ function Step1({
               type="button"
               onClick={() => onSelect(cat)}
               className={cn(
-                "group relative flex flex-col rounded-xl border-2 bg-card p-5 text-left transition-all hover:shadow-md",
+                "group relative flex flex-col rounded-xl border-2 bg-card p-5 text-left transition-all hover:shadow-card",
                 isSelected
-                  ? cn(color.border, "shadow-md ring-2", color.ring)
+                  ? cn(color.border, "shadow-card ring-2", color.ring)
                   : "border-border hover:border-muted-foreground/30"
               )}
               aria-pressed={isSelected}
@@ -531,7 +531,7 @@ function Step1({
                   </span>
                 )}
               </div>
-              <h3 className="text-base font-semibold text-navy">{cat.name}</h3>
+              <h3 className="text-base font-semibold text-foreground">{cat.name}</h3>
               <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{cat.description}</p>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {cat.services?.slice(0, 3).map((s) => (
@@ -578,11 +578,11 @@ function Step2({
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Services */}
         <div>
-          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-navy">
-            <span className="h-4 w-1 rounded bg-emerald-brand" /> Service souhaité
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+            <span className="h-4 w-1 rounded bg-brand-gradient" /> Service souhaité
           </h3>
           {services.length === 0 ? (
-            <Card>
+            <Card className="glass-card">
               <CardContent className="py-8 text-center text-sm text-muted-foreground">
                 Aucun service actif pour cette catégorie.
               </CardContent>
@@ -603,15 +603,15 @@ function Step2({
                     key={s.id}
                     htmlFor={`svc-${s.id}`}
                     className={cn(
-                      "flex cursor-pointer items-start gap-3 rounded-xl border-2 bg-card p-4 transition-all hover:border-emerald-brand/40",
-                      isSelected ? "border-emerald-brand ring-2 ring-emerald-brand/10" : "border-border"
+                      "flex cursor-pointer items-start gap-3 rounded-xl border-2 bg-card p-4 transition-all hover:border-primary/40",
+                      isSelected ? "border-primary ring-2 ring-primary/10" : "border-border"
                     )}
                   >
                     <RadioGroupItem value={s.id} id={`svc-${s.id}`} className="mt-1" />
                     <div className="flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-navy">{s.name}</span>
-                        <span className="text-sm font-bold text-emerald-brand">{formatMAD(s.price)}</span>
+                        <span className="font-semibold text-foreground">{s.name}</span>
+                        <span className="text-sm font-bold text-primary">{formatMAD(s.price)}</span>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">{s.description}</p>
                       <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
@@ -627,8 +627,8 @@ function Step2({
 
         {/* Date + slots */}
         <div>
-          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-navy">
-            <span className="h-4 w-1 rounded bg-emerald-brand" /> Date
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+            <span className="h-4 w-1 rounded bg-brand-gradient" /> Date
           </h3>
           <div className="flex justify-center rounded-xl border border-border bg-card p-2">
             <Calendar
@@ -648,8 +648,8 @@ function Step2({
             />
           </div>
 
-          <h3 className="mb-3 mt-6 flex items-center gap-2 text-sm font-semibold text-navy">
-            <span className="h-4 w-1 rounded bg-emerald-brand" /> Créneau horaire
+          <h3 className="mb-3 mt-6 flex items-center gap-2 text-sm font-semibold text-foreground">
+            <span className="h-4 w-1 rounded bg-brand-gradient" /> Créneau horaire
           </h3>
           {!selectedDate ? (
             <p className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
@@ -667,8 +667,8 @@ function Step2({
                     className={cn(
                       "rounded-lg border-2 px-2 py-2.5 text-sm font-medium transition-all",
                       isSelected
-                        ? "border-emerald-brand bg-emerald-brand text-white shadow-sm"
-                        : "border-border bg-card text-navy hover:border-emerald-brand/40 hover:bg-accent"
+                        ? "border-primary bg-brand-gradient text-white shadow-soft"
+                        : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-accent"
                     )}
                   >
                     {slot}
@@ -694,10 +694,10 @@ function Step3({ form }: { form: ReturnType<typeof useForm<FormValues>> }) {
       />
       <Form {...form}>
         <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
-          <Card>
+          <Card className="glass-card">
             <CardContent className="space-y-4 p-5 md:p-6">
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-navy">
-                <User className="h-4 w-4 text-emerald-brand" /> Coordonnées
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <User className="h-4 w-4 text-primary" /> Coordonnées
               </h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <FormField
@@ -777,13 +777,13 @@ function Step3({ form }: { form: ReturnType<typeof useForm<FormValues>> }) {
                               className={cn(
                                 "flex cursor-pointer items-center gap-2.5 rounded-lg border-2 p-3 transition-all",
                                 active
-                                  ? "border-emerald-brand bg-emerald-brand/5"
-                                  : "border-border hover:border-emerald-brand/40"
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border hover:border-primary/40"
                               )}
                             >
                               <RadioGroupItem id={`ch-${opt.value}`} value={opt.value} />
-                              <Icon className={cn("h-4 w-4", active ? "text-emerald-brand" : "text-muted-foreground")} />
-                              <span className="text-sm font-medium text-navy">{opt.label}</span>
+                              <Icon className={cn("h-4 w-4", active ? "text-primary" : "text-muted-foreground")} />
+                              <span className="text-sm font-medium text-foreground">{opt.label}</span>
                             </label>
                           );
                         })}
@@ -796,10 +796,10 @@ function Step3({ form }: { form: ReturnType<typeof useForm<FormValues>> }) {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="glass-card">
             <CardContent className="space-y-4 p-5 md:p-6">
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-navy">
-                <CalendarDays className="h-4 w-4 text-emerald-brand" /> Véhicule
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <CalendarDays className="h-4 w-4 text-primary" /> Véhicule
               </h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <FormField
@@ -902,22 +902,22 @@ function Step4({
       />
 
       <div className="grid gap-5 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className="glass-card lg:col-span-2">
           <CardContent className="space-y-5 p-5 md:p-6">
             <div className="space-y-2">
               <SectionLabel>Rendez-vous</SectionLabel>
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className={cn("font-medium", color.bg, "text-white border-transparent")}>{cat.name}</Badge>
-                <Badge variant="outline" className="border-emerald-brand/30 text-emerald-brand">
+                <Badge variant="outline" className="border-primary/30 text-primary">
                   {service.name}
                 </Badge>
-                <Badge variant="outline" className="font-bold text-navy">{formatMAD(service.price)}</Badge>
+                <Badge variant="outline" className="font-bold text-foreground">{formatMAD(service.price)}</Badge>
               </div>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                <RecapLine icon={<CalendarDays className="h-4 w-4 text-emerald-brand" />} label="Date">
+                <RecapLine icon={<CalendarDays className="h-4 w-4 text-primary" />} label="Date">
                   {date.toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
                 </RecapLine>
-                <RecapLine icon={<Clock className="h-4 w-4 text-emerald-brand" />} label="Créneau">
+                <RecapLine icon={<Clock className="h-4 w-4 text-primary" />} label="Créneau">
                   {slot}
                 </RecapLine>
               </div>
@@ -947,16 +947,16 @@ function Step4({
           </CardContent>
         </Card>
 
-        <Card className="h-fit">
+        <Card className="glass-card h-fit">
           <CardContent className="space-y-4 p-5 md:p-6">
             <SectionLabel>Récapitulatif tarif</SectionLabel>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">{service.name}</span>
-              <span className="font-semibold text-navy">{formatMAD(service.price)}</span>
+              <span className="font-semibold text-foreground">{formatMAD(service.price)}</span>
             </div>
             <div className="flex items-center justify-between border-t border-border pt-3">
-              <span className="font-semibold text-navy">Total à payer sur place</span>
-              <span className="text-xl font-bold text-emerald-brand">{formatMAD(service.price)}</span>
+              <span className="font-semibold text-foreground">Total à payer sur place</span>
+              <span className="text-xl font-bold text-primary">{formatMAD(service.price)}</span>
             </div>
             <p className="text-xs text-muted-foreground">
               Paiement en espèces ou par carte au centre. Aucun paiement en ligne requis.
@@ -975,8 +975,8 @@ function Step4({
 function SectionHeading({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string }) {
   return (
     <div className="mb-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-brand">{eyebrow}</p>
-      <h2 className="mt-1 text-2xl font-bold tracking-tight text-navy">{title}</h2>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{eyebrow}</p>
+      <h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground">{title}</h2>
       <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
     </div>
   );
@@ -1002,7 +1002,7 @@ function RecapLine({
       {icon && <span className="mt-0.5">{icon}</span>}
       <div className="min-w-0">
         <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
-        <p className="text-sm font-medium text-navy">{children}</p>
+        <p className="text-sm font-medium text-foreground">{children}</p>
       </div>
     </div>
   );

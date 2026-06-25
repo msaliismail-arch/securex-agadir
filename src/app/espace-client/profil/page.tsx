@@ -119,13 +119,13 @@ export default function ProfilPage() {
   if (loading || unauthorized) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-7 w-7 animate-spin text-emerald-brand" />
+        <Loader2 className="h-7 w-7 animate-spin text-primary" />
       </div>
     );
   }
   if (error || !data) {
     return (
-      <Card>
+      <Card className="glass-card">
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
           {error || "Impossible de charger votre profil."}
         </CardContent>
@@ -138,11 +138,11 @@ export default function ProfilPage() {
       <div>
         <a
           href="/espace-client"
-          className="mb-1 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-emerald-brand"
+          className="mb-1 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary"
         >
           <ChevronLeft className="h-3.5 w-3.5" /> Tableau de bord
         </a>
-        <h1 className="text-2xl font-bold text-navy md:text-3xl">Mon profil</h1>
+        <h1 className="text-2xl font-bold text-foreground md:text-3xl">Mon profil</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Gérez vos informations personnelles et vos préférences de notification.
         </p>
@@ -150,43 +150,43 @@ export default function ProfilPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Identity card */}
-        <Card className="lg:col-span-1 h-fit">
+        <Card className="glass-card lg:col-span-1 h-fit">
           <CardContent className="space-y-4 p-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-brand/10 text-emerald-brand">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <UserCircle className="h-8 w-8" />
               </div>
               <div className="min-w-0">
-                <p className="truncate font-semibold text-navy">{data.name}</p>
+                <p className="truncate font-semibold text-foreground">{data.name}</p>
                 <p className="truncate text-xs text-muted-foreground">Client depuis {new Date(data.createdAt).toLocaleDateString("fr-FR")}</p>
               </div>
             </div>
             <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Phone className="h-4 w-4 shrink-0 text-emerald-brand" />
-                <span className="font-mono text-navy">{data.phone}</span>
+                <Phone className="h-4 w-4 shrink-0 text-primary" />
+                <span className="font-mono text-foreground">{data.phone}</span>
                 <Badge variant="outline" className="ml-auto text-[10px] text-muted-foreground">
                   Non modifiable
                 </Badge>
               </div>
               {data.email ? (
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Mail className="h-4 w-4 shrink-0 text-emerald-brand" />
-                  <span className="truncate text-navy">{data.email}</span>
+                  <Mail className="h-4 w-4 shrink-0 text-primary" />
+                  <span className="truncate text-foreground">{data.email}</span>
                 </div>
               ) : null}
             </div>
-            <Button variant="outline" className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={logout}>
+            <Button variant="outline" className="w-full border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={logout}>
               <LogOut className="mr-2 h-4 w-4" /> Déconnexion
             </Button>
           </CardContent>
         </Card>
 
         {/* Edit form */}
-        <Card className="lg:col-span-2">
+        <Card className="glass-card lg:col-span-2">
           <CardContent className="p-5 md:p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-navy">
-              <span className="h-4 w-1 rounded bg-emerald-brand" /> Informations personnelles
+            <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
+              <span className="h-4 w-1 rounded bg-brand-gradient" /> Informations personnelles
             </h2>
             <Form {...form}>
               <form onSubmit={onSubmit} className="space-y-5">
@@ -244,13 +244,13 @@ export default function ProfilPage() {
                                 className={cn(
                                   "flex cursor-pointer items-center gap-2.5 rounded-lg border-2 p-3 transition-all",
                                   active
-                                    ? "border-emerald-brand bg-emerald-brand/5"
-                                    : "border-border hover:border-emerald-brand/40"
+                                    ? "border-primary bg-primary/5"
+                                    : "border-border hover:border-primary/40"
                                 )}
                               >
                                 <RadioGroupItem id={`prof-${opt.value}`} value={opt.value} />
-                                <Icon className={cn("h-4 w-4", active ? "text-emerald-brand" : "text-muted-foreground")} />
-                                <span className="text-sm font-medium text-navy">{opt.label}</span>
+                                <Icon className={cn("h-4 w-4", active ? "text-primary" : "text-muted-foreground")} />
+                                <span className="text-sm font-medium text-foreground">{opt.label}</span>
                               </label>
                             );
                           })}
@@ -265,7 +265,7 @@ export default function ProfilPage() {
                   <Button type="button" variant="outline" onClick={() => data && form.reset({ name: data.name, email: data.email ?? "", channel: data.channel })}>
                     Annuler
                   </Button>
-                  <Button type="submit" disabled={saving} className="bg-emerald-brand hover:bg-emerald-brand/90">
+                  <Button type="submit" disabled={saving} className="bg-brand-gradient text-white hover:opacity-90">
                     {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Enregistrer les modifications
                   </Button>
@@ -277,10 +277,10 @@ export default function ProfilPage() {
       </div>
 
       {/* Vehicles summary */}
-      <Card>
+      <Card className="glass-card">
         <CardContent className="p-5 md:p-6">
-          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-navy">
-            <span className="h-4 w-1 rounded bg-emerald-brand" /> Mes véhicules ({data.vehicles.length})
+          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
+            <span className="h-4 w-1 rounded bg-brand-gradient" /> Mes véhicules ({data.vehicles.length})
           </h2>
           {data.vehicles.length === 0 ? (
             <p className="text-sm text-muted-foreground">Aucun véhicule enregistré.</p>
@@ -288,7 +288,7 @@ export default function ProfilPage() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {data.vehicles.map((v) => (
                 <div key={v.id} className="rounded-lg border border-border bg-muted/20 p-3">
-                  <p className="font-mono text-sm font-semibold uppercase text-navy">{v.plate}</p>
+                  <p className="font-mono text-sm font-semibold uppercase text-foreground">{v.plate}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {v.brand} {v.model} · {v.year}
                   </p>

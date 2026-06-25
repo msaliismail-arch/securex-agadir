@@ -1,0 +1,693 @@
+   275→          method: "POST",
+   276→          headers: { "Content-Type": "application/json" },
+   277→          body: JSON.stringify(body),
+   278→        });
+   279→        const json = await res.json();
+   280→        if (!res.ok) {
+   281→          toast.error(json.error || "Échec de la création");
+   282→          return;
+   283→        }
+   284→        toast.success(`RDV créé · code ${json.code}`);
+   285→      } else {
+   286→        const body = {
+   287→          clientName: form.clientName,
+   288→          clientPhone: form.clientPhone,
+   289→          vehiclePlate: form.vehiclePlate,
+   290→          vehicleDesc: `${form.vehicleBrand} ${form.vehicleModel} (${form.vehicleYear})`.trim(),
+   291→          categoryId: form.categoryId,
+   292→          serviceId: form.serviceId,
+   293→          date: new Date(form.date).toISOString(),
+   294→          slot: form.slot,
+   295→          notes: form.notes,
+   296→        };
+   297→        const res = await fetch(`/api/appointments/${form.id}`, {
+   298→          method: "PATCH",
+   299→          headers: { "Content-Type": "application/json" },
+   300→          body: JSON.stringify(body),
+   301→        });
+   302→        const json = await res.json();
+   303→        if (!res.ok) {
+   304→          toast.error(json.error || "Échec de la modification");
+   305→          return;
+   306→        }
+   307→        toast.success("RDV modifié");
+   308→      }
+   309→      setFormOpen(false);
+   310→      await load();
+   311→    } finally {
+   312→      setBusy(false);
+   313→    }
+   314→  }
+   315→
+   316→  async function changeStatus(a: Appointment, status: AppointmentStatus) {
+   317→    setBusy(true);
+   318→    try {
+   319→      const res = await fetch(`/api/appointments/${a.id}`, {
+   320→        method: "PATCH",
+   321→        headers: { "Content-Type": "application/json" },
+   322→        body: JSON.stringify({ status }),
+   323→      });
+   324→      const json = await res.json();
+   325→      if (!res.ok) {
+   326→        toast.error(json.error || "Échec du changement de statut");
+   327→        return;
+   328→      }
+   329→      toast.success(`RDV ${a.code} → ${STATUS_META[status].label}`);
+   330→      await load();
+   331→    } finally {
+   332→      setBusy(false);
+   333→    }
+   334→  }
+   335→
+   336→  async function remove(id: string) {
+   337→    setBusy(true);
+   338→    try {
+   339→      const res = await fetch(`/api/appointments/${id}`, { method: "DELETE" });
+   340→      if (!res.ok) {
+   341→        const j = await res.json();
+   342→        toast.error(j.error || "Échec de la suppression");
+   343→        return;
+   344→      }
+   345→      toast.success("RDV supprimé");
+   346→      await load();
+   347→    } finally {
+   348→      setBusy(false);
+   349→      setDeleteId(null);
+   350→    }
+   351→  }
+   352→
+   353→  function resetFilters() {
+   354→    setStatusFilter("all");
+   355→    setDateFilter("");
+   356→    setSearch("");
+   357→  }
+   358→
+   359→  return (
+   360→    <div className="space-y-5">
+   361→      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+   362→        <div>
+   363→          <h2 className="text-xl font-bold text-navy sm:text-2xl">Rendez-vous</h2>
+   364→          <p className="text-sm text-muted-foreground">
+   365→            Gérez l'ensemble des RDV : créer, modifier, changer le statut, supprimer.
+   366→          </p>
+   367→        </div>
+   368→        <Button onClick={openCreate} className="bg-green-600 text-white hover:bg-green-700">
+   369→          <Plus className="h-4 w-4" />
+   370→          Nouveau RDV
+   371→        </Button>
+   372→      </div>
+   373→
+   374→      {/* Filters */}
+   375→      <Card className="border-l-4 border-green-500">
+   376→        <CardContent className="p-4">
+   377→          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+   378→            <div className="space-y-1.5">
+   379→              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+   380→                Statut
+   381→              </Label>
+   382→              <Select value={statusFilter} onValueChange={setStatusFilter}>
+   383→                <SelectTrigger>
+   384→                  <SelectValue />
+   385→                </SelectTrigger>
+   386→                <SelectContent>
+   387→                  <SelectItem value="all">Tous les statuts</SelectItem>
+   388→                  {STATUS_KEYS.map((k) => (
+   389→                    <SelectItem key={k} value={k}>
+   390→                      {STATUS_META[k].label}
+   391→                    </SelectItem>
+   392→                  ))}
+   393→                </SelectContent>
+   394→              </Select>
+   395→            </div>
+   396→            <div className="space-y-1.5">
+   397→              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+   398→                Date
+   399→              </Label>
+   400→              <Input
+   401→                type="date"
+   402→                value={dateFilter}
+   403→                onChange={(e) => setDateFilter(e.target.value)}
+   404→              />
+   405→            </div>
+   406→            <div className="space-y-1.5 lg:col-span-2">
+   407→              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+   408→                Recherche
+   409→              </Label>
+   410→              <div className="relative">
+   411→                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   412→                <Input
+   413→                  value={search}
+   414→                  onChange={(e) => setSearch(e.target.value)}
+   415→                  placeholder="Code, nom, téléphone, plaque…"
+   416→                  className="pl-9"
+   417→                />
+   418→              </div>
+   419→            </div>
+   420→          </div>
+   421→          {(statusFilter !== "all" || dateFilter || search) && (
+   422→            <div className="mt-3 flex items-center justify-between">
+   423→              <p className="text-[12px] text-muted-foreground">
+   424→                <Filter className="mr-1 inline h-3 w-3" />
+   425→                {appts.length} résultat{appts.length > 1 ? "s" : ""}
+   426→              </p>
+   427→              <Button variant="ghost" size="sm" onClick={resetFilters}>
+   428→                <X className="h-3.5 w-3.5" />
+   429→                Réinitialiser
+   430→              </Button>
+   431→            </div>
+   432→          )}
+   433→        </CardContent>
+   434→      </Card>
+   435→
+   436→      {/* Table */}
+   437→      <Card>
+   438→        <CardContent className="p-0">
+   439→          {loading ? (
+   440→            <div className="flex h-48 items-center justify-center">
+   441→              <Loader2 className="h-6 w-6 animate-spin text-green-600" />
+   442→            </div>
+   443→          ) : appts.length === 0 ? (
+   444→            <div className="flex h-48 flex-col items-center justify-center gap-3 text-center">
+   445→              <CalendarDays className="h-8 w-8 text-muted-foreground/50" />
+   446→              <div>
+   447→                <p className="font-semibold text-navy">Aucun rendez-vous</p>
+   448→                <p className="text-sm text-muted-foreground">
+   449→                  Aucun RDV ne correspond à vos filtres.
+   450→                </p>
+   451→              </div>
+   452→            </div>
+   453→          ) : (
+   454→            <div className="scroll-thin max-h-[640px] overflow-auto">
+   455→              <Table>
+   456→                <TableHeader className="sticky top-0 z-10 bg-white">
+   457→                  <TableRow>
+   458→                    <TableHead className="text-[11px] uppercase">Code</TableHead>
+   459→                    <TableHead className="text-[11px] uppercase">Client</TableHead>
+   460→                    <TableHead className="text-[11px] uppercase">Véhicule</TableHead>
+   461→                    <TableHead className="text-[11px] uppercase">Service</TableHead>
+   462→                    <TableHead className="text-[11px] uppercase">Date / Heure</TableHead>
+   463→                    <TableHead className="text-[11px] uppercase">Statut</TableHead>
+   464→                    <TableHead className="w-28 text-right text-[11px] uppercase">Actions</TableHead>
+   465→                  </TableRow>
+   466→                </TableHeader>
+   467→                <TableBody>
+   468→                  {appts.map((a) => {
+   469→                    const st = STATUS_META[a.status];
+   470→                    const sc = COLOR_MAP[st.color];
+   471→                    const catColor = COLOR_MAP[a.category?.color as CategoryColor] ?? COLOR_MAP.green;
+   472→                    return (
+   473→                      <TableRow
+   474→                        key={a.id}
+   475→                        className="cursor-pointer text-[13px] hover:bg-surface-2/30"
+   476→                        onClick={() => setDetailId(a.id)}
+   477→                      >
+   478→                        <TableCell>
+   479→                          <div className="font-mono font-semibold text-navy">{a.code}</div>
+   480→                          {a.queueNumber && (
+   481→                            <div className="text-[10px] text-muted-foreground">
+   482→                              #{a.queueNumber}
+   483→                            </div>
+   484→                          )}
+   485→                        </TableCell>
+   486→                        <TableCell>
+   487→                          <div className="font-medium text-navy">{a.clientName}</div>
+   488→                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+   489→                            <Phone className="h-2.5 w-2.5" />
+   490→                            {a.clientPhone}
+   491→                          </div>
+   492→                        </TableCell>
+   493→                        <TableCell>
+   494→                          <div className="flex items-center gap-1.5">
+   495→                            <Car className="h-3 w-3 text-muted-foreground" />
+   496→                            <span className="font-mono text-[12px] text-navy">
+   497→                              {a.vehiclePlate}
+   498→                            </span>
+   499→                          </div>
+   500→                          <div className="text-[11px] text-muted-foreground">
+   501→                            {a.vehicleDesc}
+   502→                          </div>
+   503→                        </TableCell>
+   504→                        <TableCell>
+   505→                          <div className="flex items-center gap-1.5">
+   506→                            <span className={cn("h-2 w-2 rounded-full", catColor.bg)} />
+   507→                            <span className="text-navy">{a.service?.name ?? "—"}</span>
+   508→                          </div>
+   509→                          <div className="text-[11px] text-muted-foreground">
+   510→                            {a.category?.name}
+   511→                          </div>
+   512→                        </TableCell>
+   513→                        <TableCell>
+   514→                          <div className="text-navy">{formatDate(a.date)}</div>
+   515→                          <div className="text-[11px] text-muted-foreground">{a.slot}</div>
+   516→                        </TableCell>
+   517→                        <TableCell>
+   518→                          <Badge className={cn(sc.soft, sc.fg, "hover:opacity-80")}>
+   519→                            {st.label}
+   520→                          </Badge>
+   521→                        </TableCell>
+   522→                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+   523→                          <div className="flex justify-end gap-1">
+   524→                            <Button
+   525→                              size="icon"
+   526→                              variant="ghost"
+   527→                              className="h-8 w-8"
+   528→                              onClick={() => setDetailId(a.id)}
+   529→                              aria-label="Voir"
+   530→                            >
+   531→                              <Eye className="h-4 w-4" />
+   532→                            </Button>
+   533→                            <Button
+   534→                              size="icon"
+   535→                              variant="ghost"
+   536→                              className="h-8 w-8"
+   537→                              onClick={() => openEdit(a)}
+   538→                              aria-label="Modifier"
+   539→                            >
+   540→                              <Pencil className="h-4 w-4" />
+   541→                            </Button>
+   542→                            <DropdownMenu>
+   543→                              <DropdownMenuTrigger asChild>
+   544→                                <Button
+   545→                                  size="icon"
+   546→                                  variant="ghost"
+   547→                                  className="h-8 w-8"
+   548→                                  aria-label="Changer statut"
+   549→                                  disabled={busy}
+   550→                                >
+   551→                                  <Ban className="h-4 w-4" />
+   552→                                </Button>
+   553→                              </DropdownMenuTrigger>
+   554→                              <DropdownMenuContent align="end">
+   555→                                <DropdownMenuLabel>Changer le statut</DropdownMenuLabel>
+   556→                                <DropdownMenuSeparator />
+   557→                                {STATUS_KEYS.map((k) => (
+   558→                                  <DropdownMenuItem
+   559→                                    key={k}
+   560→                                    onClick={() => changeStatus(a, k)}
+   561→                                    disabled={a.status === k}
+   562→                                  >
+   563→                                    {STATUS_META[k].label}
+   564→                                  </DropdownMenuItem>
+   565→                                ))}
+   566→                              </DropdownMenuContent>
+   567→                            </DropdownMenu>
+   568→                            <Button
+   569→                              size="icon"
+   570→                              variant="ghost"
+   571→                              className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
+   572→                              onClick={() => setDeleteId(a.id)}
+   573→                              aria-label="Supprimer"
+   574→                            >
+   575→                              <Trash2 className="h-4 w-4" />
+   576→                            </Button>
+   577→                          </div>
+   578→                        </TableCell>
+   579→                      </TableRow>
+   580→                    );
+   581→                  })}
+   582→                </TableBody>
+   583→              </Table>
+   584→            </div>
+   585→          )}
+   586→        </CardContent>
+   587→      </Card>
+   588→
+   589→      {/* Detail dialog */}
+   590→      <Dialog open={!!detailId} onOpenChange={(o) => !o && setDetailId(null)}>
+   591→        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+   592→          {detailAppt && (
+   593→            <>
+   594→              <DialogHeader>
+   595→                <div className="flex items-start justify-between gap-3">
+   596→                  <div>
+   597→                    <DialogTitle className="font-mono text-navy">
+   598→                      RDV {detailAppt.code}
+   599→                    </DialogTitle>
+   600→                    <DialogDescription>
+   601→                      Détails du rendez-vous et résultat d'inspection
+   602→                    </DialogDescription>
+   603→                  </div>
+   604→                  <StatusBadge status={detailAppt.status} />
+   605→                </div>
+   606→              </DialogHeader>
+   607→              <div className="space-y-4">
+   608→                {/* Client + vehicle */}
+   609→                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+   610→                  <InfoBlock label="Client" value={detailAppt.clientName} sub={detailAppt.clientPhone} />
+   611→                  <InfoBlock label="Véhicule" value={detailAppt.vehiclePlate} sub={detailAppt.vehicleDesc} />
+   612→                  <InfoBlock
+   613→                    label="Catégorie"
+   614→                    value={detailAppt.category?.name ?? "—"}
+   615→                    sub={detailAppt.category?.slug}
+   616→                  />
+   617→                  <InfoBlock
+   618→                    label="Service"
+   619→                    value={detailAppt.service?.name ?? "—"}
+   620→                    sub={`${detailAppt.service?.price ?? 0} MAD · ${detailAppt.service?.durationMin ?? 0} min`}
+   621→                  />
+   622→                  <InfoBlock
+   623→                    label="Date & heure"
+   624→                    value={formatDate(detailAppt.date)}
+   625→                    sub={detailAppt.slot}
+   626→                  />
+   627→                  <InfoBlock
+   628→                    label="File d'attente"
+   629→                    value={detailAppt.queueNumber ? `#${detailAppt.queueNumber}` : "—"}
+   630→                    sub={detailAppt.qrToken ? "QR généré ✓" : "Pas de QR"}
+   631→                  />
+   632→                </div>
+   633→
+   634→                {detailAppt.notes && (
+   635→                  <div className="rounded-md border border-border bg-surface-2/30 p-3">
+   636→                    <p className="text-[11px] font-semibold uppercase text-muted-foreground">
+   637→                      Notes
+   638→                    </p>
+   639→                    <p className="mt-1 text-[13px] text-navy">{detailAppt.notes}</p>
+   640→                  </div>
+   641→                )}
+   642→
+   643→                {/* Inspection result */}
+   644→                {detailAppt.result ? (
+   645→                  <InspectionBlock result={detailAppt.result} />
+   646→                ) : (
+   647→                  <div className="rounded-md border border-dashed border-border bg-surface-2/20 p-4 text-center">
+   648→                    <p className="text-[12px] text-muted-foreground">
+   649→                      Aucun résultat d'inspection enregistré.
+   650→                    </p>
+   651→                  </div>
+   652→                )}
+   653→
+   654→                {detailAppt.qrToken && (
+   655→                  <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3">
+   656→                    <p className="text-[11px] font-semibold uppercase text-emerald-700">
+   657→                      Token QR de validation
+   658→                    </p>
+   659→                    <p className="mt-1 break-all font-mono text-[11px] text-emerald-800">
+   660→                      {detailAppt.qrToken}
+   661→                    </p>
+   662→                  </div>
+   663→                )}
+   664→              </div>
+   665→              <DialogFooter>
+   666→                <Button variant="outline" onClick={() => setDetailId(null)}>
+   667→                  Fermer
+   668→                </Button>
+   669→                <Button
+   670→                  variant="outline"
+   671→                  onClick={() => {
+   672→                    setDetailId(null);
+   673→                    openEdit(detailAppt);
+   674→                  }}
+   675→                >
+   676→                  <Pencil className="h-4 w-4" />
+   677→                  Modifier
+   678→                </Button>
+   679→              </DialogFooter>
+   680→            </>
+   681→          )}
+   682→        </DialogContent>
+   683→      </Dialog>
+   684→
+   685→      {/* Create / edit form */}
+   686→      <Dialog open={formOpen} onOpenChange={(o) => setFormOpen(o)}>
+   687→        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+   688→          <DialogHeader>
+   689→            <DialogTitle>
+   690→              {formMode === "create" ? "Nouveau rendez-vous" : "Modifier le RDV"}
+   691→            </DialogTitle>
+   692→            <DialogDescription>
+   693→              {formMode === "create"
+   694→                ? "Créez un RDV manuellement pour un client."
+   695→                : "Modifiez les informations du rendez-vous."}
+   696→            </DialogDescription>
+   697→          </DialogHeader>
+   698→          <div className="space-y-4">
+   699→            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+   700→              <div className="space-y-1.5">
+   701→                <Label className="text-xs">Nom client *</Label>
+   702→                <Input
+   703→                  value={form.clientName}
+   704→                  onChange={(e) => setForm((p) => ({ ...p, clientName: e.target.value }))}
+   705→                />
+   706→              </div>
+   707→              <div className="space-y-1.5">
+   708→                <Label className="text-xs">Téléphone *</Label>
+   709→                <Input
+   710→                  value={form.clientPhone}
+   711→                  onChange={(e) => setForm((p) => ({ ...p, clientPhone: e.target.value }))}
+   712→                  placeholder="+2126XXXXXXXX"
+   713→                />
+   714→              </div>
+   715→            </div>
+   716→            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+   717→              <div className="space-y-1.5">
+   718→                <Label className="text-xs">Plaque *</Label>
+   719→                <Input
+   720→                  value={form.vehiclePlate}
+   721→                  onChange={(e) => setForm((p) => ({ ...p, vehiclePlate: e.target.value.toUpperCase() }))}
+   722→                  placeholder="12345-A-6"
+   723→                />
+   724→              </div>
+   725→              <div className="space-y-1.5">
+   726→                <Label className="text-xs">Email</Label>
+   727→                <Input
+   728→                  type="email"
+   729→                  value={form.clientEmail}
+   730→                  onChange={(e) => setForm((p) => ({ ...p, clientEmail: e.target.value }))}
+   731→                />
+   732→              </div>
+   733→            </div>
+   734→            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+   735→              <div className="space-y-1.5">
+   736→                <Label className="text-xs">Marque</Label>
+   737→                <Input
+   738→                  value={form.vehicleBrand}
+   739→                  onChange={(e) => setForm((p) => ({ ...p, vehicleBrand: e.target.value }))}
+   740→                  placeholder="Renault"
+   741→                />
+   742→              </div>
+   743→              <div className="space-y-1.5">
+   744→                <Label className="text-xs">Modèle</Label>
+   745→                <Input
+   746→                  value={form.vehicleModel}
+   747→                  onChange={(e) => setForm((p) => ({ ...p, vehicleModel: e.target.value }))}
+   748→                  placeholder="Clio"
+   749→                />
+   750→              </div>
+   751→              <div className="space-y-1.5">
+   752→                <Label className="text-xs">Année</Label>
+   753→                <Input
+   754→                  value={form.vehicleYear}
+   755→                  onChange={(e) => setForm((p) => ({ ...p, vehicleYear: e.target.value }))}
+   756→                  placeholder="2020"
+   757→                />
+   758→              </div>
+   759→            </div>
+   760→            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+   761→              <div className="space-y-1.5">
+   762→                <Label className="text-xs">Catégorie *</Label>
+   763→                <Select
+   764→                  value={form.categoryId}
+   765→                  onValueChange={(v) => setForm((p) => ({ ...p, categoryId: v, serviceId: "" }))}
+   766→                >
+   767→                  <SelectTrigger>
+   768→                    <SelectValue placeholder="Choisir…" />
+   769→                  </SelectTrigger>
+   770→                  <SelectContent>
+   771→                    {categories.map((c) => (
+   772→                      <SelectItem key={c.id} value={c.id}>
+   773→                        {c.name}
+   774→                      </SelectItem>
+   775→                    ))}
+   776→                  </SelectContent>
+   777→                </Select>
+   778→              </div>
+   779→              <div className="space-y-1.5">
+   780→                <Label className="text-xs">Service *</Label>
+   781→                <Select
+   782→                  value={form.serviceId}
+   783→                  onValueChange={(v) => setForm((p) => ({ ...p, serviceId: v }))}
+   784→                  disabled={!form.categoryId}
+   785→                >
+   786→                  <SelectTrigger>
+   787→                    <SelectValue placeholder="Choisir…" />
+   788→                  </SelectTrigger>
+   789→                  <SelectContent>
+   790→                    {(servicesByCat.get(form.categoryId) ?? []).map((s) => (
+   791→                      <SelectItem key={s.id} value={s.id}>
+   792→                        {s.name} — {s.price} MAD
+   793→                      </SelectItem>
+   794→                    ))}
+   795→                  </SelectContent>
+   796→                </Select>
+   797→              </div>
+   798→            </div>
+   799→            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+   800→              <div className="space-y-1.5">
+   801→                <Label className="text-xs">Date *</Label>
+   802→                <Input
+   803→                  type="date"
+   804→                  value={form.date}
+   805→                  onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))}
+   806→                />
+   807→              </div>
+   808→              <div className="space-y-1.5">
+   809→                <Label className="text-xs">Créneau *</Label>
+   810→                <Select
+   811→                  value={form.slot}
+   812→                  onValueChange={(v) => setForm((p) => ({ ...p, slot: v }))}
+   813→                >
+   814→                  <SelectTrigger>
+   815→                    <SelectValue placeholder="Choisir…" />
+   816→                  </SelectTrigger>
+   817→                  <SelectContent>
+   818→                    {DEFAULT_SLOTS.map((s) => (
+   819→                      <SelectItem key={s} value={s}>
+   820→                        {s}
+   821→                      </SelectItem>
+   822→                    ))}
+   823→                  </SelectContent>
+   824→                </Select>
+   825→              </div>
+   826→            </div>
+   827→            {formMode === "edit" && (
+   828→              <div className="space-y-1.5">
+   829→                <Label className="text-xs">Notes</Label>
+   830→                <Textarea
+   831→                  rows={2}
+   832→                  value={form.notes}
+   833→                  onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+   834→                />
+   835→              </div>
+   836→            )}
+   837→          </div>
+   838→          <DialogFooter>
+   839→            <Button variant="outline" onClick={() => setFormOpen(false)}>
+   840→              Annuler
+   841→            </Button>
+   842→            <Button
+   843→              onClick={saveForm}
+   844→              disabled={busy}
+   845→              className="bg-green-600 text-white hover:bg-green-700"
+   846→            >
+   847→              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+   848→              {formMode === "create" ? "Créer le RDV" : "Enregistrer"}
+   849→            </Button>
+   850→          </DialogFooter>
+   851→        </DialogContent>
+   852→      </Dialog>
+   853→
+   854→      {/* Delete confirm */}
+   855→      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+   856→        <AlertDialogContent>
+   857→          <AlertDialogHeader>
+   858→            <AlertDialogTitle>Supprimer le rendez-vous ?</AlertDialogTitle>
+   859→            <AlertDialogDescription>
+   860→              Cette action est irréversible. Le RDV sera définitivement supprimé de la base.
+   861→            </AlertDialogDescription>
+   862→          </AlertDialogHeader>
+   863→          <AlertDialogFooter>
+   864→            <AlertDialogCancel disabled={busy}>Annuler</AlertDialogCancel>
+   865→            <AlertDialogAction
+   866→              disabled={busy}
+   867→              onClick={() => deleteId && remove(deleteId)}
+   868→              className="bg-red-600 text-white hover:bg-red-700"
+   869→            >
+   870→              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+   871→              Supprimer
+   872→            </AlertDialogAction>
+   873→          </AlertDialogFooter>
+   874→        </AlertDialogContent>
+   875→      </AlertDialog>
+   876→    </div>
+   877→  );
+   878→}
+   879→
+   880→function StatusBadge({ status }: { status: AppointmentStatus }) {
+   881→  const st = STATUS_META[status];
+   882→  const sc = COLOR_MAP[st.color];
+   883→  return (
+   884→    <Badge className={cn(sc.soft, sc.fg, "text-[12px]")}>
+   885→      {st.label}
+   886→    </Badge>
+   887→  );
+   888→}
+   889→
+   890→function InfoBlock({ label, value, sub }: { label: string; value: string; sub?: string }) {
+   891→  return (
+   892→    <div className="rounded-md border border-border bg-surface-2/20 p-3">
+   893→      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+   894→        {label}
+   895→      </p>
+   896→      <p className="mt-0.5 text-[14px] font-semibold text-navy">{value}</p>
+   897→      {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
+   898→    </div>
+   899→  );
+   900→}
+   901→
+   902→function InspectionBlock({ result }: { result: NonNullable<Inspection> }) {
+   903→  const pass = result.overallResult === "PASS";
+   904→  const items: { label: string; value: string }[] = [
+   905→    { label: "Freins", value: result.brakes },
+   906→    { label: "Éclairage", value: result.lights },
+   907→    { label: "Pneus", value: result.tires },
+   908→    { label: "Émissions", value: result.emissions },
+   909→    { label: "Carrosserie", value: result.bodywork },
+   910→  ];
+   911→  return (
+   912→    <div
+   913→      className={cn(
+   914→        "rounded-md border p-4",
+   915→        pass ? "border-green-200 bg-green-50/50" : "border-red-200 bg-red-50/50"
+   916→      )}
+   917→    >
+   918→      <div className="mb-3 flex items-center justify-between">
+   919→        <p className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+   920→          Résultat d'inspection
+   921→        </p>
+   922→        <Badge
+   923→          className={cn(
+   924→            pass
+   925→              ? "bg-green-100 text-green-700 hover:bg-green-200"
+   926→              : "bg-red-100 text-red-700 hover:bg-red-200"
+   927→          )}
+   928→        >
+   929→          {pass ? <Award className="mr-1 h-3.5 w-3.5" /> : <XCircle className="mr-1 h-3.5 w-3.5" />}
+   930→          {pass ? "Conforme" : "Non conforme"}
+   931→        </Badge>
+   932→      </div>
+   933→      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+   934→        {items.map((it) => (
+   935→          <div
+   936→            key={it.label}
+   937→            className={cn(
+   938→              "rounded border px-2 py-1.5 text-center",
+   939→              it.value === "PASS"
+   940→                ? "border-green-200 bg-white"
+   941→                : "border-red-200 bg-white"
+   942→            )}
+   943→          >
+   944→            <p className="text-[10px] uppercase text-muted-foreground">{it.label}</p>
+   945→            <p
+   946→              className={cn(
+   947→                "text-[12px] font-bold",
+   948→                it.value === "PASS" ? "text-green-700" : "text-red-700"
+   949→              )}
+   950→            >
+   951→              {it.value === "PASS" ? "OK" : "KO"}
+   952→            </p>
+   953→          </div>
+   954→        ))}
+   955→      </div>
+   956→      {result.inspector && (
+   957→        <p className="mt-3 text-[11px] text-muted-foreground">
+   958→          Inspecteur : <span className="font-medium text-navy">{result.inspector}</span>
+   959→        </p>
+   960→      )}
+   961→      {result.notes && (
+   962→        <p className="mt-1 text-[12px] text-navy">{result.notes}</p>
+   963→      )}
+   964→    </div>
+   965→  );
+   966→}
+   967→

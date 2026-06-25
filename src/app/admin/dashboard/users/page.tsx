@@ -11,6 +11,8 @@ import {
   ShieldCheck,
   Shield,
   ShieldAlert,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -75,7 +77,7 @@ type AdminUser = {
 };
 
 const ROLE_BADGE: Record<AdminRole, { color: CategoryColor; icon: React.ComponentType<{ className?: string }> }> = {
-  SUPER: { color: "emerald", icon: ShieldCheck },
+  SUPER: { color: "green", icon: ShieldCheck },
   VALIDATION: { color: "blue", icon: Shield },
   RECEPTION: { color: "orange", icon: ShieldAlert },
 };
@@ -83,7 +85,7 @@ const ROLE_BADGE: Record<AdminRole, { color: CategoryColor; icon: React.Componen
 type Dialog = {
   open: boolean;
   mode: "create" | "edit";
-  data: Partial<AdminUser>;
+  data: Partial<AdminUser> & { password?: string };
 };
 
 export default function UsersPage() {
@@ -91,6 +93,7 @@ export default function UsersPage() {
   const [me, setMe] = useState<{ sub: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
   const [dialog, setDialog] = useState<Dialog>({
     open: false,
     mode: "create",
@@ -128,11 +131,14 @@ export default function UsersPage() {
         role: "RECEPTION",
         phone: "",
         active: true,
+        password: "",
       },
     });
+    setShowPwd(false);
   }
   function openEdit(u: AdminUser) {
-    setDialog({ open: true, mode: "edit", data: { ...u } });
+    setDialog({ open: true, mode: "edit", data: { ...u, password: "" } });
+    setShowPwd(false);
   }
 
   async function save() {
@@ -141,15 +147,28 @@ export default function UsersPage() {
       toast.error("Nom, email et rôle sont requis");
       return;
     }
+    if (dialog.mode === "create") {
+      if (!d.password || d.password.length < 6) {
+        toast.error("Mot de passe requis (6 caractères min.) à la création");
+        return;
+      }
+    } else if (d.password && d.password.length < 6) {
+      toast.error("Le nouveau mot de passe doit faire au moins 6 caractères");
+      return;
+    }
     setBusy(true);
     try {
-      const body = {
+      const body: Record<string, unknown> = {
         name: d.name,
         email: d.email.toLowerCase().trim(),
         role: d.role,
         phone: d.phone || null,
         active: d.active ?? true,
       };
+      // In edit mode only send password if the user typed a new one.
+      if (dialog.mode === "create" || (dialog.mode === "edit" && d.password)) {
+        body.password = d.password;
+      }
       const res = dialog.mode === "create"
         ? await fetch("/api/admin/users", {
             method: "POST",
@@ -224,7 +243,7 @@ export default function UsersPage() {
   if (loading) {
     return (
       <div className="flex h-72 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -233,23 +252,23 @@ export default function UsersPage() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-navy sm:text-2xl">Utilisateurs administrateur</h2>
+          <h2 className="text-xl font-bold text-foreground sm:text-2xl">Utilisateurs administrateur</h2>
           <p className="text-sm text-muted-foreground">
             Gérez les comptes habilités à accéder aux espaces d'administration.
           </p>
         </div>
-        <Button onClick={openCreate} className="bg-emerald-600 text-white hover:bg-emerald-700">
+        <Button onClick={openCreate} className="bg-primary text-white hover:bg-primary/90">
           <Plus className="h-4 w-4" />
           Ajouter un administrateur
         </Button>
       </div>
 
-      <Card className="border-l-4 border-emerald-500">
+      <Card className="border-l-4 border-primary/60 shadow-card">
         <CardContent className="p-0">
           {sortedUsers.length === 0 ? (
             <div className="flex h-48 flex-col items-center justify-center gap-2 text-center">
               <UserCog className="h-8 w-8 text-muted-foreground/50" />
-              <p className="font-semibold text-navy">Aucun utilisateur</p>
+              <p className="font-semibold text-foreground">Aucun utilisateur</p>
               <p className="text-sm text-muted-foreground">
                 Ajoutez votre premier compte administrateur.
               </p>
@@ -257,7 +276,7 @@ export default function UsersPage() {
           ) : (
             <div className="scroll-thin max-h-[640px] overflow-auto">
               <Table>
-                <TableHeader className="sticky top-0 z-10 bg-white">
+                <TableHeader className="sticky top-0 z-10 bg-card">
                   <TableRow>
                     <TableHead className="text-[11px] uppercase">Administrateur</TableHead>
                     <TableHead className="text-[11px] uppercase">Email</TableHead>
@@ -284,9 +303,9 @@ export default function UsersPage() {
                             </Avatar>
                             <div>
                               <div className="flex items-center gap-1.5">
-                                <span className="font-semibold text-navy">{u.name}</span>
+                                <span className="font-semibold text-foreground">{u.name}</span>
                                 {isMe && (
-                                  <Badge variant="outline" className="text-[9px] text-emerald-700">
+                                  <Badge variant="outline" className="text-[9px] text-primary">
                                     Vous
                                   </Badge>
                                 )}
@@ -330,7 +349,7 @@ export default function UsersPage() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-30 disabled:hover:bg-transparent"
+                              className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive disabled:opacity-30 disabled:hover:bg-transparent"
                               onClick={() => setDeleteTarget(u)}
                               disabled={isMe}
                               aria-label="Supprimer"
@@ -383,6 +402,36 @@ export default function UsersPage() {
               </p>
             </div>
             <div className="space-y-1.5">
+              <Label className="text-xs">
+                {dialog.mode === "create" ? "Mot de passe *" : "Nouveau mot de passe"}
+              </Label>
+              <div className="relative">
+                <Input
+                  type={showPwd ? "text" : "password"}
+                  value={dialog.data.password ?? ""}
+                  onChange={(e) =>
+                    setDialog((p) => ({ ...p, data: { ...p.data, password: e.target.value } }))
+                  }
+                  placeholder={dialog.mode === "create" ? "Securex@2026" : "Laisser vide pour conserver l'actuel"}
+                  className="pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground transition hover:text-foreground"
+                  aria-label={showPwd ? "Masquer" : "Afficher"}
+                  tabIndex={-1}
+                >
+                  {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                {dialog.mode === "create"
+                  ? "Minimum 6 caractères. Sera chiffré (bcrypt) en base."
+                  : "Renseignez uniquement pour réinitialiser le mot de passe."}
+              </p>
+            </div>
+            <div className="space-y-1.5">
               <Label className="text-xs">Rôle *</Label>
               <Select
                 value={dialog.data.role ?? "RECEPTION"}
@@ -415,9 +464,9 @@ export default function UsersPage() {
                 placeholder="+2126XXXXXXXX"
               />
             </div>
-            <div className="flex items-center justify-between rounded-md border border-border bg-surface-2/30 p-3">
+            <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 p-3">
               <div>
-                <p className="text-[13px] font-medium text-navy">Compte actif</p>
+                <p className="text-[13px] font-medium text-foreground">Compte actif</p>
                 <p className="text-[11px] text-muted-foreground">
                   Les comptes désactivés ne peuvent plus se connecter.
                 </p>
@@ -434,7 +483,7 @@ export default function UsersPage() {
             <Button variant="outline" onClick={() => setDialog((p) => ({ ...p, open: false }))}>
               Annuler
             </Button>
-            <Button onClick={save} disabled={busy} className="bg-emerald-600 text-white hover:bg-emerald-700">
+            <Button onClick={save} disabled={busy} className="bg-primary text-white hover:bg-primary/90">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Enregistrer
             </Button>
@@ -457,7 +506,7 @@ export default function UsersPage() {
             <AlertDialogAction
               disabled={busy}
               onClick={() => deleteTarget && remove(deleteTarget)}
-              className="bg-red-600 text-white hover:bg-red-700"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Supprimer

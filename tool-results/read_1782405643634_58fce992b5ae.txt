@@ -1,0 +1,1014 @@
+     1→"use client";
+     2→
+     3→import * as React from "react";
+     4→import { Suspense, useEffect, useState } from "react";
+     5→import { useSearchParams } from "next/navigation";
+     6→import { useForm } from "react-hook-form";
+     7→import { zodResolver } from "@hookform/resolvers/zod";
+     8→import { z } from "zod";
+     9→import { motion, AnimatePresence } from "framer-motion";
+    10→import { fr } from "date-fns/locale";
+    11→import { toast } from "sonner";
+    12→import {
+    13→  CalendarDays,
+    14→  Check,
+    15→  ChevronLeft,
+    16→  ChevronRight,
+    17→  Clock,
+    18→  Loader2,
+    19→  Mail,
+    20→  MessageSquare,
+    21→  Phone,
+    22→  Smartphone,
+    23→  User,
+    24→} from "lucide-react";
+    25→
+    26→import { Button } from "@/components/ui/button";
+    27→import { Card, CardContent } from "@/components/ui/card";
+    28→import { Input } from "@/components/ui/input";
+    29→import { Label } from "@/components/ui/label";
+    30→import { Calendar } from "@/components/ui/calendar";
+    31→import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+    32→import { Badge } from "@/components/ui/badge";
+    33→import {
+    34→  Form,
+    35→  FormControl,
+    36→  FormDescription,
+    37→  FormField,
+    38→  FormItem,
+    39→  FormLabel,
+    40→  FormMessage,
+    41→} from "@/components/ui/form";
+    42→import { cn, formatMAD, isValidMaPhone, isValidMaPlate } from "@/lib/utils";
+    43→import { COLOR_MAP, DEFAULT_SLOTS, type CategoryColor } from "@/lib/constants";
+    44→import { BookingSuccess, type BookingSuccessData } from "@/components/client/booking-success";
+    45→
+    46→interface CategoryItem {
+    47→  id: string;
+    48→  name: string;
+    49→  slug: string;
+    50→  description: string;
+    51→  icon: string;
+    52→  color: string;
+    53→  sort: number;
+    54→  services?: ServiceItem[];
+    55→}
+    56→
+    57→interface ServiceItem {
+    58→  id: string;
+    59→  name: string;
+    60→  description: string;
+    61→  durationMin: number;
+    62→  price: number;
+    63→}
+    64→
+    65→const STEPS = [
+    66→  { num: 1, label: "Véhicule", icon: "car" },
+    67→  { num: 2, label: "Service & Créneau", icon: "calendar" },
+    68→  { num: 3, label: "Informations", icon: "user" },
+    69→  { num: 4, label: "Confirmation", icon: "check" },
+    70→] as const;
+    71→
+    72→const channelOptions = [
+    73→  { value: "SMS", label: "SMS", icon: MessageSquare, hint: "Recevoir les rappels par SMS" },
+    74→  { value: "WHATSAPP", label: "WhatsApp", icon: Smartphone, hint: "Notifications WhatsApp" },
+    75→  { value: "EMAIL", label: "E-mail", icon: Mail, hint: "E-mails de confirmation" },
+    76→] as const;
+    77→
+    78→const formSchema = z.object({
+    79→  clientName: z
+    80→    .string({ required_error: "Le nom est requis" })
+    81→    .min(3, "Nom complet trop court (3 caractères min.)")
+    82→    .max(80, "Nom trop long"),
+    83→  clientPhone: z
+    84→    .string({ required_error: "Le téléphone est requis" })
+    85→    .refine(isValidMaPhone, "Numéro marocain invalide (ex: +212 6 12 34 56 78)"),
+    86→  clientEmail: z
+    87→    .string()
+    88→    .email("Adresse e-mail invalide")
+    89→    .optional()
+    90→    .or(z.literal("")),
+    91→  vehiclePlate: z
+    92→    .string({ required_error: "Immatriculation requise" })
+    93→    .refine(isValidMaPlate, "Plaque invalide (ex: 12345-A-6 ou 1-A-12345)"),
+    94→  vehicleBrand: z.string().min(2, "Marque requise"),
+    95→  vehicleModel: z.string().min(1, "Modèle requis"),
+    96→  vehicleYear: z
+    97→    .coerce.number({ invalid_type_error: "Année invalide" })
+    98→    .int("Année invalide")
+    99→    .min(1980, "Année trop ancienne")
+   100→    .max(new Date().getFullYear() + 1, "Année invalide"),
+   101→  channel: z.enum(["SMS", "EMAIL", "WHATSAPP"], {
+   102→    required_error: "Choisissez un canal de notification",
+   103→  }),
+   104→});
+   105→
+   106→type FormValues = z.infer<typeof formSchema>;
+   107→
+   108→export default function RendezVousPage() {
+   109→  return (
+   110→    <Suspense fallback={<WizardSkeleton />}>
+   111→      <BookingWizard />
+   112→    </Suspense>
+   113→  );
+   114→}
+   115→
+   116→function WizardSkeleton() {
+   117→  return (
+   118→    <div className="mx-auto flex max-w-4xl items-center justify-center px-4 py-24">
+   119→      <Loader2 className="h-8 w-8 animate-spin text-emerald-brand" />
+   120→    </div>
+   121→  );
+   122→}
+   123→
+   124→function BookingWizard() {
+   125→  const searchParams = useSearchParams();
+   126→  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+   127→  const [success, setSuccess] = useState<BookingSuccessData | null>(null);
+   128→
+   129→  // Wizard state
+   130→  const [categories, setCategories] = useState<CategoryItem[]>([]);
+   131→  const [loadingCats, setLoadingCats] = useState(true);
+   132→  const [selectedCat, setSelectedCat] = useState<CategoryItem | null>(null);
+   133→  const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
+   134→  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+   135→  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+   136→  const [submitting, setSubmitting] = useState(false);
+   137→
+   138→  // Pre-select category from ?category=<slug>
+   139→  useEffect(() => {
+   140→    let active = true;
+   141→    (async () => {
+   142→      setLoadingCats(true);
+   143→      try {
+   144→        const res = await fetch("/api/categories?withServices=1", { cache: "no-store" });
+   145→        if (!res.ok) throw new Error("Failed to load categories");
+   146→        const data: CategoryItem[] = await res.json();
+   147→        if (!active) return;
+   148→        setCategories(data);
+   149→        const slug = searchParams.get("category");
+   150→        if (slug) {
+   151→          const found = data.find((c) => c.slug === slug);
+   152→          if (found) {
+   153→            setSelectedCat(found);
+   154→            setStep(2);
+   155→          }
+   156→        }
+   157→      } catch {
+   158→        if (active) toast.error("Impossible de charger les catégories. Réessayez.");
+   159→      } finally {
+   160→        if (active) setLoadingCats(false);
+   161→      }
+   162→    })();
+   163→    return () => {
+   164→      active = false;
+   165→    };
+   166→  }, [searchParams]);
+   167→
+   168→  const form = useForm<FormValues>({
+   169→    resolver: zodResolver(formSchema),
+   170→    defaultValues: {
+   171→      clientName: "",
+   172→      clientPhone: "+212 ",
+   173→      clientEmail: "",
+   174→      vehiclePlate: "",
+   175→      vehicleBrand: "",
+   176→      vehicleModel: "",
+   177→      vehicleYear: new Date().getFullYear(),
+   178→      channel: "SMS",
+   179→    },
+   180→    mode: "onTouched",
+   181→  });
+   182→
+   183→  const canContinueStep1 = !!selectedCat;
+   184→  const canContinueStep2 = !!selectedService && !!selectedDate && !!selectedSlot;
+   185→
+   186→  const submit = form.handleSubmit(async (values) => {
+   187→    if (!selectedCat || !selectedService || !selectedDate || !selectedSlot) {
+   188→      toast.error("Veuillez compléter toutes les étapes précédentes.");
+   189→      setStep(2);
+   190→      return;
+   191→    }
+   192→    setSubmitting(true);
+   193→    try {
+   194→      const body = {
+   195→        clientName: values.clientName.trim(),
+   196→        clientPhone: values.clientPhone.trim(),
+   197→        clientEmail: values.clientEmail?.trim() || null,
+   198→        vehiclePlate: values.vehiclePlate.trim().toUpperCase(),
+   199→        vehicleBrand: values.vehicleBrand.trim(),
+   200→        vehicleModel: values.vehicleModel.trim(),
+   201→        vehicleYear: Number(values.vehicleYear),
+   202→        vehicleCategory: selectedCat.slug.toUpperCase(),
+   203→        categoryId: selectedCat.id,
+   204→        serviceId: selectedService.id,
+   205→        date: selectedDate.toISOString(),
+   206→        slot: selectedSlot,
+   207→        channel: values.channel,
+   208→      };
+   209→      const res = await fetch("/api/appointments", {
+   210→        method: "POST",
+   211→        headers: { "Content-Type": "application/json" },
+   212→        body: JSON.stringify(body),
+   213→      });
+   214→      const data = await res.json();
+   215→      if (!res.ok) {
+   216→        throw new Error(data?.error || "Erreur lors de la réservation");
+   217→      }
+   218→      setSuccess({
+   219→        code: data.code,
+   220→        queueNumber: data.queueNumber ?? 1,
+   221→        date: data.date,
+   222→        slot: data.slot,
+   223→        categoryName: data.category?.name ?? selectedCat.name,
+   224→        categoryColor: (data.category?.color ?? selectedCat.color) as CategoryColor,
+   225→        serviceName: data.service?.name ?? selectedService.name,
+   226→        servicePrice: data.service?.price ?? selectedService.price,
+   227→        vehiclePlate: data.vehiclePlate ?? body.vehiclePlate,
+   228→        vehicleDesc: data.vehicleDesc ?? `${body.vehicleBrand} ${body.vehicleModel} (${body.vehicleYear})`,
+   229→        clientName: data.clientName ?? body.clientName,
+   230→        clientPhone: data.clientPhone ?? body.clientPhone,
+   231→      });
+   232→      window.scrollTo({ top: 0, behavior: "smooth" });
+   233→    } catch (e) {
+   234→      toast.error(e instanceof Error ? e.message : "Erreur lors de la réservation");
+   235→    } finally {
+   236→      setSubmitting(false);
+   237→    }
+   238→  });
+   239→
+   240→  if (success) {
+   241→    return <BookingSuccess data={success} />;
+   242→  }
+   243→
+   244→  return (
+   245→    <div className="mx-auto w-full max-w-5xl px-4 py-8 md:py-12">
+   246→      {/* Header */}
+   247→      <div className="mb-8 text-center">
+   248→        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-brand">
+   249→          Réservation en ligne
+   250→        </p>
+   251→        <h1 className="mt-1 text-3xl font-bold tracking-tight text-navy md:text-4xl">
+   252→          Prendre rendez-vous
+   253→        </h1>
+   254→        <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground md:text-base">
+   255→          Wizard en 4 étapes — choisissez votre véhicule, votre créneau, et confirmez. C&apos;est
+   256→          rapide et sécurisé.
+   257→        </p>
+   258→      </div>
+   259→
+   260→      {/* Progress */}
+   261→      <ProgressIndicator current={step} onStepClick={(n) => n < step && setStep(n as 1 | 2 | 3 | 4)} />
+   262→
+   263→      <AnimatePresence mode="wait">
+   264→        {step === 1 && (
+   265→          <StepWrapper key="step1">
+   266→            <Step1
+   267→              categories={categories}
+   268→              loading={loadingCats}
+   269→              selected={selectedCat}
+   270→              onSelect={(c) => {
+   271→                setSelectedCat(c);
+   272→                // reset downstream if category changes
+   273→                if (selectedService && !c.services?.some((s) => s.id === selectedService.id)) {
+   274→                  setSelectedService(null);
+   275→                  setSelectedSlot(null);
+   276→                }
+   277→              }}
+   278→            />
+   279→            <WizardNav
+   280→              onNext={() => setStep(2)}
+   281→              nextDisabled={!canContinueStep1}
+   282→              nextLabel="Continuer"
+   283→              hideBack
+   284→            />
+   285→          </StepWrapper>
+   286→        )}
+   287→
+   288→        {step === 2 && (
+   289→          <StepWrapper key="step2">
+   290→            <Step2
+   291→              category={selectedCat!}
+   292→              selectedService={selectedService}
+   293→              onSelectService={setSelectedService}
+   294→              selectedDate={selectedDate}
+   295→              onSelectDate={setSelectedDate}
+   296→              selectedSlot={selectedSlot}
+   297→              onSelectSlot={setSelectedSlot}
+   298→            />
+   299→            <WizardNav
+   300→              onBack={() => setStep(1)}
+   301→              onNext={() => setStep(3)}
+   302→              nextDisabled={!canContinueStep2}
+   303→              nextLabel="Continuer"
+   304→            />
+   305→          </StepWrapper>
+   306→        )}
+   307→
+   308→        {step === 3 && (
+   309→          <StepWrapper key="step3">
+   310→            <Step3 form={form} />
+   311→            <WizardNav
+   312→              onBack={() => setStep(2)}
+   313→              onNext={() => setStep(4)}
+   314→              nextLabel="Vérifier la demande"
+   315→              nextDisabled={!form.formState.isValid}
+   316→            />
+   317→          </StepWrapper>
+   318→        )}
+   319→
+   320→        {step === 4 && (
+   321→          <StepWrapper key="step4">
+   322→            <Step4
+   323→              cat={selectedCat!}
+   324→              service={selectedService!}
+   325→              date={selectedDate!}
+   326→              slot={selectedSlot!}
+   327→              values={form.getValues()}
+   328→              onEdit={() => setStep(3)}
+   329→            />
+   330→            <WizardNav
+   331→              onBack={() => setStep(3)}
+   332→              onNext={submit}
+   333→              nextDisabled={submitting}
+   334→              nextLabel={submitting ? "Réservation en cours…" : "Confirmer le rendez-vous"}
+   335→              nextLoading={submitting}
+   336→              highlightNext
+   337→            />
+   338→          </StepWrapper>
+   339→        )}
+   340→      </AnimatePresence>
+   341→    </div>
+   342→  );
+   343→}
+   344→
+   345→/* -------------------------- Progress indicator -------------------------- */
+   346→function ProgressIndicator({
+   347→  current,
+   348→  onStepClick,
+   349→}: {
+   350→  current: number;
+   351→  onStepClick?: (n: number) => void;
+   352→}) {
+   353→  return (
+   354→    <div className="mb-8 flex items-center justify-between gap-1 md:gap-2">
+   355→      {STEPS.map((s, idx) => {
+   356→        const isDone = s.num < current;
+   357→        const isCurrent = s.num === current;
+   358→        const clickable = !!onStepClick && s.num < current;
+   359→        return (
+   360→          <React.Fragment key={s.num}>
+   361→            <button
+   362→              type="button"
+   363→              disabled={!clickable}
+   364→              onClick={() => clickable && onStepClick?.(s.num)}
+   365→              className={cn(
+   366→                "group flex flex-1 flex-col items-center gap-1.5 text-center",
+   367→                clickable && "cursor-pointer"
+   368→              )}
+   369→              aria-current={isCurrent ? "step" : undefined}
+   370→            >
+   371→              <div
+   372→                className={cn(
+   373→                  "flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-bold transition-all md:h-10 md:w-10",
+   374→                  isDone && "border-emerald-brand bg-emerald-brand text-white",
+   375→                  isCurrent && "border-emerald-brand bg-emerald-brand/10 text-emerald-brand ring-4 ring-emerald-brand/10",
+   376→                  !isDone && !isCurrent && "border-border bg-background text-muted-foreground"
+   377→                )}
+   378→              >
+   379→                {isDone ? <Check className="h-4 w-4" strokeWidth={3} /> : s.num}
+   380→              </div>
+   381→              <span
+   382→                className={cn(
+   383→                  "text-[10px] font-medium leading-tight md:text-xs",
+   384→                  isCurrent ? "text-emerald-brand" : isDone ? "text-navy" : "text-muted-foreground"
+   385→                )}
+   386→              >
+   387→                {s.label}
+   388→              </span>
+   389→            </button>
+   390→            {idx < STEPS.length - 1 && (
+   391→              <div
+   392→                className={cn(
+   393→                  "mb-5 h-0.5 flex-1 rounded-full transition-colors md:mb-6",
+   394→                  s.num < current ? "bg-emerald-brand" : "bg-border"
+   395→                )}
+   396→              />
+   397→            )}
+   398→          </React.Fragment>
+   399→        );
+   400→      })}
+   401→    </div>
+   402→  );
+   403→}
+   404→
+   405→function StepWrapper({ children }: { children: React.ReactNode }) {
+   406→  return (
+   407→    <motion.div
+   408→      initial={{ opacity: 0, x: 24 }}
+   409→      animate={{ opacity: 1, x: 0 }}
+   410→      exit={{ opacity: 0, x: -24 }}
+   411→      transition={{ duration: 0.3, ease: "easeOut" }}
+   412→    >
+   413→      {children}
+   414→    </motion.div>
+   415→  );
+   416→}
+   417→
+   418→function WizardNav({
+   419→  onBack,
+   420→  onNext,
+   421→  nextLabel,
+   422→  nextDisabled,
+   423→  nextLoading,
+   424→  hideBack,
+   425→  highlightNext,
+   426→}: {
+   427→  onBack?: () => void;
+   428→  onNext?: () => void;
+   429→  nextLabel: string;
+   430→  nextDisabled?: boolean;
+   431→  nextLoading?: boolean;
+   432→  hideBack?: boolean;
+   433→  highlightNext?: boolean;
+   434→}) {
+   435→  return (
+   436→    <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
+   437→      {!hideBack ? (
+   438→        <Button type="button" variant="outline" onClick={onBack} size="lg" className="w-full sm:w-auto">
+   439→          <ChevronLeft className="mr-1.5 h-4 w-4" /> Retour
+   440→        </Button>
+   441→      ) : (
+   442→        <span className="hidden sm:block" />
+   443→      )}
+   444→      <Button
+   445→        type="button"
+   446→        onClick={onNext}
+   447→        disabled={nextDisabled}
+   448→        size="lg"
+   449→        className={cn(
+   450→          "w-full sm:w-auto",
+   451→          highlightNext && "bg-emerald-brand hover:bg-emerald-brand/90"
+   452→        )}
+   453→      >
+   454→        {nextLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+   455→        {nextLabel}
+   456→        {!nextLoading && <ChevronRight className="ml-1.5 h-4 w-4" />}
+   457→      </Button>
+   458→    </div>
+   459→  );
+   460→}
+   461→
+   462→/* --------------------------------- Step 1 --------------------------------- */
+   463→function Step1({
+   464→  categories,
+   465→  loading,
+   466→  selected,
+   467→  onSelect,
+   468→}: {
+   469→  categories: CategoryItem[];
+   470→  loading: boolean;
+   471→  selected: CategoryItem | null;
+   472→  onSelect: (c: CategoryItem) => void;
+   473→}) {
+   474→  if (loading) {
+   475→    return (
+   476→      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+   477→        {Array.from({ length: 6 }).map((_, i) => (
+   478→          <div key={i} className="h-44 animate-pulse rounded-xl bg-muted" />
+   479→        ))}
+   480→      </div>
+   481→    );
+   482→  }
+   483→
+   484→  if (categories.length === 0) {
+   485→    return (
+   486→      <Card>
+   487→        <CardContent className="py-12 text-center text-muted-foreground">
+   488→          Aucune catégorie disponible pour le moment.
+   489→        </CardContent>
+   490→      </Card>
+   491→    );
+   492→  }
+   493→
+   494→  return (
+   495→    <div>
+   496→      <SectionHeading
+   497→        eyebrow="Étape 1"
+   498→        title="Type de véhicule"
+   499→        subtitle="Sélectionnez la catégorie qui correspond à votre véhicule."
+   500→      />
+   501→      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+   502→        {categories.map((cat) => {
+   503→          const color = COLOR_MAP[cat.color as CategoryColor] ?? COLOR_MAP.blue;
+   504→          const isSelected = selected?.id === cat.id;
+   505→          return (
+   506→            <button
+   507→              key={cat.id}
+   508→              type="button"
+   509→              onClick={() => onSelect(cat)}
+   510→              className={cn(
+   511→                "group relative flex flex-col rounded-xl border-2 bg-card p-5 text-left transition-all hover:shadow-md",
+   512→                isSelected
+   513→                  ? cn(color.border, "shadow-md ring-2", color.ring)
+   514→                  : "border-border hover:border-muted-foreground/30"
+   515→              )}
+   516→              aria-pressed={isSelected}
+   517→            >
+   518→              <div className="mb-3 flex items-center justify-between">
+   519→                <span
+   520→                  className={cn(
+   521→                    "flex h-11 w-11 items-center justify-center rounded-lg text-xl font-bold",
+   522→                    color.soft,
+   523→                    color.fg
+   524→                  )}
+   525→                >
+   526→                  {cat.name.charAt(0)}
+   527→                </span>
+   528→                {isSelected && (
+   529→                  <span className={cn("flex h-6 w-6 items-center justify-center rounded-full text-white", color.bg)}>
+   530→                    <Check className="h-4 w-4" strokeWidth={3} />
+   531→                  </span>
+   532→                )}
+   533→              </div>
+   534→              <h3 className="text-base font-semibold text-navy">{cat.name}</h3>
+   535→              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{cat.description}</p>
+   536→              <div className="mt-3 flex flex-wrap gap-1.5">
+   537→                {cat.services?.slice(0, 3).map((s) => (
+   538→                  <Badge key={s.id} variant="outline" className={cn("font-normal", color.fg, color.border)}>
+   539→                    {s.name}
+   540→                  </Badge>
+   541→                ))}
+   542→              </div>
+   543→            </button>
+   544→          );
+   545→        })}
+   546→      </div>
+   547→    </div>
+   548→  );
+   549→}
+   550→
+   551→/* --------------------------------- Step 2 --------------------------------- */
+   552→function Step2({
+   553→  category,
+   554→  selectedService,
+   555→  onSelectService,
+   556→  selectedDate,
+   557→  onSelectDate,
+   558→  selectedSlot,
+   559→  onSelectSlot,
+   560→}: {
+   561→  category: CategoryItem;
+   562→  selectedService: ServiceItem | null;
+   563→  onSelectService: (s: ServiceItem | null) => void;
+   564→  selectedDate: Date | undefined;
+   565→  onSelectDate: (d: Date | undefined) => void;
+   566→  selectedSlot: string | null;
+   567→  onSelectSlot: (s: string | null) => void;
+   568→}) {
+   569→  const services = category.services ?? [];
+   570→  return (
+   571→    <div className="space-y-8">
+   572→      <SectionHeading
+   573→        eyebrow="Étape 2"
+   574→        title="Service & créneau"
+   575→        subtitle={`Pour ${category.name}. Choisissez un service puis une date et un horaire.`}
+   576→      />
+   577→
+   578→      <div className="grid gap-8 lg:grid-cols-2">
+   579→        {/* Services */}
+   580→        <div>
+   581→          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-navy">
+   582→            <span className="h-4 w-1 rounded bg-emerald-brand" /> Service souhaité
+   583→          </h3>
+   584→          {services.length === 0 ? (
+   585→            <Card>
+   586→              <CardContent className="py-8 text-center text-sm text-muted-foreground">
+   587→                Aucun service actif pour cette catégorie.
+   588→              </CardContent>
+   589→            </Card>
+   590→          ) : (
+   591→            <RadioGroup
+   592→              value={selectedService?.id ?? ""}
+   593→              onValueChange={(v) => {
+   594→                const s = services.find((x) => x.id === v) ?? null;
+   595→                onSelectService(s);
+   596→              }}
+   597→              className="gap-3"
+   598→            >
+   599→              {services.map((s) => {
+   600→                const isSelected = selectedService?.id === s.id;
+   601→                return (
+   602→                  <label
+   603→                    key={s.id}
+   604→                    htmlFor={`svc-${s.id}`}
+   605→                    className={cn(
+   606→                      "flex cursor-pointer items-start gap-3 rounded-xl border-2 bg-card p-4 transition-all hover:border-emerald-brand/40",
+   607→                      isSelected ? "border-emerald-brand ring-2 ring-emerald-brand/10" : "border-border"
+   608→                    )}
+   609→                  >
+   610→                    <RadioGroupItem value={s.id} id={`svc-${s.id}`} className="mt-1" />
+   611→                    <div className="flex-1">
+   612→                      <div className="flex items-center justify-between gap-2">
+   613→                        <span className="font-semibold text-navy">{s.name}</span>
+   614→                        <span className="text-sm font-bold text-emerald-brand">{formatMAD(s.price)}</span>
+   615→                      </div>
+   616→                      <p className="mt-1 text-xs text-muted-foreground">{s.description}</p>
+   617→                      <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+   618→                        <Clock className="h-3 w-3" /> {s.durationMin} min
+   619→                      </div>
+   620→                    </div>
+   621→                  </label>
+   622→                );
+   623→              })}
+   624→            </RadioGroup>
+   625→          )}
+   626→        </div>
+   627→
+   628→        {/* Date + slots */}
+   629→        <div>
+   630→          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-navy">
+   631→            <span className="h-4 w-1 rounded bg-emerald-brand" /> Date
+   632→          </h3>
+   633→          <div className="flex justify-center rounded-xl border border-border bg-card p-2">
+   634→            <Calendar
+   635→              mode="single"
+   636→              selected={selectedDate}
+   637→              onSelect={onSelectDate}
+   638→              disabled={(date) => {
+   639→                const today = new Date();
+   640→                today.setHours(0, 0, 0, 0);
+   641→                const d = new Date(date);
+   642→                d.setHours(0, 0, 0, 0);
+   643→                return d < today || date.getDay() === 0;
+   644→              }}
+   645→              fromDate={new Date()}
+   646→              locale={fr}
+   647→              className="mx-auto"
+   648→            />
+   649→          </div>
+   650→
+   651→          <h3 className="mb-3 mt-6 flex items-center gap-2 text-sm font-semibold text-navy">
+   652→            <span className="h-4 w-1 rounded bg-emerald-brand" /> Créneau horaire
+   653→          </h3>
+   654→          {!selectedDate ? (
+   655→            <p className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+   656→              Veuillez d&apos;abord sélectionner une date.
+   657→            </p>
+   658→          ) : (
+   659→            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+   660→              {DEFAULT_SLOTS.map((slot) => {
+   661→                const isSelected = selectedSlot === slot;
+   662→                return (
+   663→                  <button
+   664→                    key={slot}
+   665→                    type="button"
+   666→                    onClick={() => onSelectSlot(slot)}
+   667→                    className={cn(
+   668→                      "rounded-lg border-2 px-2 py-2.5 text-sm font-medium transition-all",
+   669→                      isSelected
+   670→                        ? "border-emerald-brand bg-emerald-brand text-white shadow-sm"
+   671→                        : "border-border bg-card text-navy hover:border-emerald-brand/40 hover:bg-accent"
+   672→                    )}
+   673→                  >
+   674→                    {slot}
+   675→                  </button>
+   676→                );
+   677→              })}
+   678→            </div>
+   679→          )}
+   680→        </div>
+   681→      </div>
+   682→    </div>
+   683→  );
+   684→}
+   685→
+   686→/* --------------------------------- Step 3 --------------------------------- */
+   687→function Step3({ form }: { form: ReturnType<typeof useForm<FormValues>> }) {
+   688→  return (
+   689→    <div>
+   690→      <SectionHeading
+   691→        eyebrow="Étape 3"
+   692→        title="Informations client & véhicule"
+   693→        subtitle="Renseignez vos coordonnées et celles de votre véhicule."
+   694→      />
+   695→      <Form {...form}>
+   696→        <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
+   697→          <Card>
+   698→            <CardContent className="space-y-4 p-5 md:p-6">
+   699→              <h3 className="flex items-center gap-2 text-sm font-semibold text-navy">
+   700→                <User className="h-4 w-4 text-emerald-brand" /> Coordonnées
+   701→              </h3>
+   702→              <div className="grid gap-4 sm:grid-cols-2">
+   703→                <FormField
+   704→                  control={form.control}
+   705→                  name="clientName"
+   706→                  render={({ field }) => (
+   707→                    <FormItem>
+   708→                      <FormLabel>Nom complet *</FormLabel>
+   709→                      <FormControl>
+   710→                        <Input placeholder="Ex: Mehdi Tazi" autoComplete="name" {...field} />
+   711→                      </FormControl>
+   712→                      <FormMessage />
+   713→                    </FormItem>
+   714→                  )}
+   715→                />
+   716→                <FormField
+   717→                  control={form.control}
+   718→                  name="clientPhone"
+   719→                  render={({ field }) => (
+   720→                    <FormItem>
+   721→                      <FormLabel>Téléphone (+212) *</FormLabel>
+   722→                      <FormControl>
+   723→                        <div className="relative">
+   724→                          <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   725→                          <Input
+   726→                            placeholder="+212 6 12 34 56 78"
+   727→                            className="pl-9"
+   728→                            inputMode="tel"
+   729→                            autoComplete="tel"
+   730→                            {...field}
+   731→                          />
+   732→                        </div>
+   733→                      </FormControl>
+   734→                      <FormDescription>Format marocain. Servira pour vos rappels.</FormDescription>
+   735→                      <FormMessage />
+   736→                    </FormItem>
+   737→                  )}
+   738→                />
+   739→                <FormField
+   740→                  control={form.control}
+   741→                  name="clientEmail"
+   742→                  render={({ field }) => (
+   743→                    <FormItem className="sm:col-span-2">
+   744→                      <FormLabel>E-mail (optionnel)</FormLabel>
+   745→                      <FormControl>
+   746→                        <Input
+   747→                          type="email"
+   748→                          placeholder="vous@exemple.com"
+   749→                          autoComplete="email"
+   750→                          {...field}
+   751→                        />
+   752→                      </FormControl>
+   753→                      <FormMessage />
+   754→                    </FormItem>
+   755→                  )}
+   756→                />
+   757→              </div>
+   758→              <FormField
+   759→                control={form.control}
+   760→                name="channel"
+   761→                render={({ field }) => (
+   762→                  <FormItem className="space-y-3">
+   763→                    <FormLabel>Canal de notification préféré</FormLabel>
+   764→                    <FormControl>
+   765→                      <RadioGroup
+   766→                        onValueChange={field.onChange}
+   767→                        value={field.value}
+   768→                        className="grid gap-2 sm:grid-cols-3"
+   769→                      >
+   770→                        {channelOptions.map((opt) => {
+   771→                          const Icon = opt.icon;
+   772→                          const active = field.value === opt.value;
+   773→                          return (
+   774→                            <label
+   775→                              key={opt.value}
+   776→                              htmlFor={`ch-${opt.value}`}
+   777→                              className={cn(
+   778→                                "flex cursor-pointer items-center gap-2.5 rounded-lg border-2 p-3 transition-all",
+   779→                                active
+   780→                                  ? "border-emerald-brand bg-emerald-brand/5"
+   781→                                  : "border-border hover:border-emerald-brand/40"
+   782→                              )}
+   783→                            >
+   784→                              <RadioGroupItem id={`ch-${opt.value}`} value={opt.value} />
+   785→                              <Icon className={cn("h-4 w-4", active ? "text-emerald-brand" : "text-muted-foreground")} />
+   786→                              <span className="text-sm font-medium text-navy">{opt.label}</span>
+   787→                            </label>
+   788→                          );
+   789→                        })}
+   790→                      </RadioGroup>
+   791→                    </FormControl>
+   792→                    <FormMessage />
+   793→                  </FormItem>
+   794→                )}
+   795→              />
+   796→            </CardContent>
+   797→          </Card>
+   798→
+   799→          <Card>
+   800→            <CardContent className="space-y-4 p-5 md:p-6">
+   801→              <h3 className="flex items-center gap-2 text-sm font-semibold text-navy">
+   802→                <CalendarDays className="h-4 w-4 text-emerald-brand" /> Véhicule
+   803→              </h3>
+   804→              <div className="grid gap-4 sm:grid-cols-2">
+   805→                <FormField
+   806→                  control={form.control}
+   807→                  name="vehiclePlate"
+   808→                  render={({ field }) => (
+   809→                    <FormItem className="sm:col-span-2">
+   810→                      <FormLabel>Immatriculation *</FormLabel>
+   811→                      <FormControl>
+   812→                        <Input
+   813→                          placeholder="Ex: 12345-A-6"
+   814→                          className="uppercase"
+   815→                          {...field}
+   816→                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+   817→                        />
+   818→                      </FormControl>
+   819→                      <FormDescription>Format marocain (chiffres-lettre-chiffres).</FormDescription>
+   820→                      <FormMessage />
+   821→                    </FormItem>
+   822→                  )}
+   823→                />
+   824→                <FormField
+   825→                  control={form.control}
+   826→                  name="vehicleBrand"
+   827→                  render={({ field }) => (
+   828→                    <FormItem>
+   829→                      <FormLabel>Marque *</FormLabel>
+   830→                      <FormControl>
+   831→                        <Input placeholder="Ex: Renault" {...field} />
+   832→                      </FormControl>
+   833→                      <FormMessage />
+   834→                    </FormItem>
+   835→                  )}
+   836→                />
+   837→                <FormField
+   838→                  control={form.control}
+   839→                  name="vehicleModel"
+   840→                  render={({ field }) => (
+   841→                    <FormItem>
+   842→                      <FormLabel>Modèle *</FormLabel>
+   843→                      <FormControl>
+   844→                        <Input placeholder="Ex: Clio" {...field} />
+   845→                      </FormControl>
+   846→                      <FormMessage />
+   847→                    </FormItem>
+   848→                  )}
+   849→                />
+   850→                <FormField
+   851→                  control={form.control}
+   852→                  name="vehicleYear"
+   853→                  render={({ field }) => (
+   854→                    <FormItem>
+   855→                      <FormLabel>Année *</FormLabel>
+   856→                      <FormControl>
+   857→                        <Input
+   858→                          type="number"
+   859→                          min={1980}
+   860→                          max={new Date().getFullYear() + 1}
+   861→                          placeholder="Ex: 2020"
+   862→                          {...field}
+   863→                          value={field.value ?? ""}
+   864→                        />
+   865→                      </FormControl>
+   866→                      <FormMessage />
+   867→                    </FormItem>
+   868→                  )}
+   869→                />
+   870→              </div>
+   871→            </CardContent>
+   872→          </Card>
+   873→        </form>
+   874→      </Form>
+   875→    </div>
+   876→  );
+   877→}
+   878→
+   879→/* --------------------------------- Step 4 --------------------------------- */
+   880→function Step4({
+   881→  cat,
+   882→  service,
+   883→  date,
+   884→  slot,
+   885→  values,
+   886→  onEdit,
+   887→}: {
+   888→  cat: CategoryItem;
+   889→  service: ServiceItem;
+   890→  date: Date;
+   891→  slot: string;
+   892→  values: FormValues;
+   893→  onEdit: () => void;
+   894→}) {
+   895→  const color = COLOR_MAP[cat.color as CategoryColor] ?? COLOR_MAP.blue;
+   896→  return (
+   897→    <div>
+   898→      <SectionHeading
+   899→        eyebrow="Étape 4"
+   900→        title="Confirmation"
+   901→        subtitle="Vérifiez les informations ci-dessous puis confirmez votre rendez-vous."
+   902→      />
+   903→
+   904→      <div className="grid gap-5 lg:grid-cols-3">
+   905→        <Card className="lg:col-span-2">
+   906→          <CardContent className="space-y-5 p-5 md:p-6">
+   907→            <div className="space-y-2">
+   908→              <SectionLabel>Rendez-vous</SectionLabel>
+   909→              <div className="flex flex-wrap items-center gap-2">
+   910→                <Badge className={cn("font-medium", color.bg, "text-white border-transparent")}>{cat.name}</Badge>
+   911→                <Badge variant="outline" className="border-emerald-brand/30 text-emerald-brand">
+   912→                  {service.name}
+   913→                </Badge>
+   914→                <Badge variant="outline" className="font-bold text-navy">{formatMAD(service.price)}</Badge>
+   915→              </div>
+   916→              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+   917→                <RecapLine icon={<CalendarDays className="h-4 w-4 text-emerald-brand" />} label="Date">
+   918→                  {date.toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
+   919→                </RecapLine>
+   920→                <RecapLine icon={<Clock className="h-4 w-4 text-emerald-brand" />} label="Créneau">
+   921→                  {slot}
+   922→                </RecapLine>
+   923→              </div>
+   924→            </div>
+   925→            <Separator />
+   926→            <div className="space-y-2">
+   927→              <SectionLabel>Véhicule</SectionLabel>
+   928→              <div className="grid gap-2 sm:grid-cols-2">
+   929→                <RecapLine label="Immatriculation">
+   930→                  <span className="font-mono font-semibold">{values.vehiclePlate}</span>
+   931→                </RecapLine>
+   932→                <RecapLine label="Véhicule">
+   933→                  {values.vehicleBrand} {values.vehicleModel} ({values.vehicleYear})
+   934→                </RecapLine>
+   935→              </div>
+   936→            </div>
+   937→            <Separator />
+   938→            <div className="space-y-2">
+   939→              <SectionLabel>Client</SectionLabel>
+   940→              <div className="grid gap-2 sm:grid-cols-2">
+   941→                <RecapLine label="Nom">{values.clientName}</RecapLine>
+   942→                <RecapLine label="Téléphone">{values.clientPhone}</RecapLine>
+   943→                {values.clientEmail && <RecapLine label="E-mail">{values.clientEmail}</RecapLine>}
+   944→                <RecapLine label="Notifications">{values.channel}</RecapLine>
+   945→              </div>
+   946→            </div>
+   947→          </CardContent>
+   948→        </Card>
+   949→
+   950→        <Card className="h-fit">
+   951→          <CardContent className="space-y-4 p-5 md:p-6">
+   952→            <SectionLabel>Récapitulatif tarif</SectionLabel>
+   953→            <div className="flex items-center justify-between">
+   954→              <span className="text-sm text-muted-foreground">{service.name}</span>
+   955→              <span className="font-semibold text-navy">{formatMAD(service.price)}</span>
+   956→            </div>
+   957→            <div className="flex items-center justify-between border-t border-border pt-3">
+   958→              <span className="font-semibold text-navy">Total à payer sur place</span>
+   959→              <span className="text-xl font-bold text-emerald-brand">{formatMAD(service.price)}</span>
+   960→            </div>
+   961→            <p className="text-xs text-muted-foreground">
+   962→              Paiement en espèces ou par carte au centre. Aucun paiement en ligne requis.
+   963→            </p>
+   964→            <Button type="button" variant="outline" className="w-full" onClick={onEdit}>
+   965→              Modifier mes informations
+   966→            </Button>
+   967→          </CardContent>
+   968→        </Card>
+   969→      </div>
+   970→    </div>
+   971→  );
+   972→}
+   973→
+   974→/* ------------------------------- shared bits ------------------------------ */
+   975→function SectionHeading({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string }) {
+   976→  return (
+   977→    <div className="mb-6">
+   978→      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-brand">{eyebrow}</p>
+   979→      <h2 className="mt-1 text-2xl font-bold tracking-tight text-navy">{title}</h2>
+   980→      <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+   981→    </div>
+   982→  );
+   983→}
+   984→
+   985→function SectionLabel({ children }: { children: React.ReactNode }) {
+   986→  return (
+   987→    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{children}</p>
+   988→  );
+   989→}
+   990→
+   991→function RecapLine({
+   992→  icon,
+   993→  label,
+   994→  children,
+   995→}: {
+   996→  icon?: React.ReactNode;
+   997→  label: string;
+   998→  children: React.ReactNode;
+   999→}) {
+  1000→  return (
+  1001→    <div className="flex items-start gap-2 rounded-md bg-muted/30 px-3 py-2">
+  1002→      {icon && <span className="mt-0.5">{icon}</span>}
+  1003→      <div className="min-w-0">
+  1004→        <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
+  1005→        <p className="text-sm font-medium text-navy">{children}</p>
+  1006→      </div>
+  1007→    </div>
+  1008→  );
+  1009→}
+  1010→
+  1011→function Separator() {
+  1012→  return <div className="h-px w-full bg-border" />;
+  1013→}
+  1014→

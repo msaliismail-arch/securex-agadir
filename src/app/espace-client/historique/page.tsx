@@ -55,13 +55,13 @@ export default function HistoriquePage() {
   if (loading || unauthorized) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-7 w-7 animate-spin text-emerald-brand" />
+        <Loader2 className="h-7 w-7 animate-spin text-primary" />
       </div>
     );
   }
   if (error || !data) {
     return (
-      <Card>
+      <Card className="glass-card">
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
           {error || "Impossible de charger votre historique."}
         </CardContent>
@@ -81,11 +81,11 @@ export default function HistoriquePage() {
       <div>
         <Link
           href="/espace-client"
-          className="mb-1 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-emerald-brand"
+          className="mb-1 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary"
         >
           <ChevronLeft className="h-3.5 w-3.5" /> Tableau de bord
         </Link>
-        <h1 className="text-2xl font-bold text-navy md:text-3xl">Historique</h1>
+        <h1 className="text-2xl font-bold text-foreground md:text-3xl">Historique</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Tous vos contrôles techniques réalisés chez SÉCUREX CONNECT.
         </p>
@@ -97,13 +97,13 @@ export default function HistoriquePage() {
           icon={<Award className="h-5 w-5" />}
           label="Total contrôles"
           value={completed.length}
-          tone="navy"
+          tone="info"
         />
         <SummaryCard
           icon={<CheckCircle2 className="h-5 w-5" />}
           label="Acceptés"
           value={passed}
-          tone="emerald"
+          tone="primary"
         />
         <SummaryCard
           icon={<XCircle className="h-5 w-5" />}
@@ -114,13 +114,13 @@ export default function HistoriquePage() {
       </div>
 
       {completed.length === 0 ? (
-        <Card>
+        <Card className="glass-card">
           <CardContent className="py-12 text-center">
             <Award className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">
               Aucun contrôle technique terminé pour le moment.
             </p>
-            <Button asChild className="mt-4 bg-emerald-brand hover:bg-emerald-brand/90">
+            <Button asChild className="mt-4 bg-brand-gradient text-white hover:opacity-90">
               <Link href="/rendez-vous">Prendre rendez-vous</Link>
             </Button>
           </CardContent>
@@ -128,89 +128,91 @@ export default function HistoriquePage() {
       ) : (
         <>
           {/* Desktop table */}
-          <Card className="hidden md:block">
+          <Card className="glass-card hidden md:block">
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="w-[120px]">Date</TableHead>
-                    <TableHead>Référence</TableHead>
-                    <TableHead>Véhicule</TableHead>
-                    <TableHead>Catégorie</TableHead>
-                    <TableHead>Résultat</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                    <TableHead className="w-12" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {completed.map((appt) => {
-                    const isOpen = expanded === appt.id;
-                    const isPass = appt.result!.overallResult === "PASS";
-                    return (
-                      <React.Fragment key={appt.id}>
-                        <TableRow
-                          className="cursor-pointer hover:bg-muted/30"
-                          onClick={() => setExpanded(isOpen ? null : appt.id)}
-                        >
-                          <TableCell className="font-medium text-navy">
-                            {formatDate(appt.date)}
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-mono font-bold tracking-wider text-navy">{appt.code}</span>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-mono text-xs font-semibold uppercase text-navy">{appt.vehiclePlate}</p>
-                              <p className="text-xs text-muted-foreground">{appt.vehicleDesc}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <CategoryBadge name={appt.category.name} color={appt.category.color} />
-                          </TableCell>
-                          <TableCell>
-                            <ResultBadge pass={isPass} />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {isPass ? (
-                              <CertificateButton
-                                appointment={appt}
-                                size="sm"
-                                label="Certificat"
-                              />
-                            ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <ChevronDown
-                              className={cn(
-                                "h-4 w-4 text-muted-foreground transition-transform",
-                                isOpen && "rotate-180"
+              <div className="max-h-[60vh] overflow-y-auto scroll-thin">
+                <Table>
+                  <TableHeader className="sticky top-0 z-10 bg-card">
+                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                      <TableHead className="w-[120px]">Date</TableHead>
+                      <TableHead>Référence</TableHead>
+                      <TableHead>Véhicule</TableHead>
+                      <TableHead>Catégorie</TableHead>
+                      <TableHead>Résultat</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="w-12" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {completed.map((appt) => {
+                      const isOpen = expanded === appt.id;
+                      const isPass = appt.result!.overallResult === "PASS";
+                      return (
+                        <React.Fragment key={appt.id}>
+                          <TableRow
+                            className="cursor-pointer hover:bg-muted/30"
+                            onClick={() => setExpanded(isOpen ? null : appt.id)}
+                          >
+                            <TableCell className="font-medium text-foreground">
+                              {formatDate(appt.date)}
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-mono font-bold tracking-wider text-foreground">{appt.code}</span>
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-mono text-xs font-semibold uppercase text-foreground">{appt.vehiclePlate}</p>
+                                <p className="text-xs text-muted-foreground">{appt.vehicleDesc}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <CategoryBadge name={appt.category.name} color={appt.category.color} />
+                            </TableCell>
+                            <TableCell>
+                              <ResultBadge pass={isPass} />
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {isPass ? (
+                                <CertificateButton
+                                  appointment={appt}
+                                  size="sm"
+                                  label="Certificat"
+                                />
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
                               )}
-                            />
-                          </TableCell>
-                        </TableRow>
-                        <AnimatePresence initial={false}>
-                          {isOpen && (
-                            <motion.tr
-                              key={`${appt.id}-detail`}
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              transition={{ duration: 0.2 }}
-                              className="bg-muted/20"
-                            >
-                              <TableCell colSpan={7} className="p-0">
-                                <InspectionDetail appt={appt} />
-                              </TableCell>
-                            </motion.tr>
-                          )}
-                        </AnimatePresence>
-                      </React.Fragment>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                            </TableCell>
+                            <TableCell>
+                              <ChevronDown
+                                className={cn(
+                                  "h-4 w-4 text-muted-foreground transition-transform",
+                                  isOpen && "rotate-180"
+                                )}
+                              />
+                            </TableCell>
+                          </TableRow>
+                          <AnimatePresence initial={false}>
+                            {isOpen && (
+                              <motion.tr
+                                key={`${appt.id}-detail`}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="bg-muted/20"
+                              >
+                                <TableCell colSpan={7} className="p-0">
+                                  <InspectionDetail appt={appt} />
+                                </TableCell>
+                              </motion.tr>
+                            )}
+                          </AnimatePresence>
+                        </React.Fragment>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
 
@@ -235,21 +237,21 @@ function SummaryCard({
   icon: React.ReactNode;
   label: string;
   value: number;
-  tone: "navy" | "emerald" | "red";
+  tone: "info" | "primary" | "red";
 }) {
   const toneCls = {
-    navy: "bg-navy/10 text-navy",
-    emerald: "bg-emerald-brand/10 text-emerald-brand",
-    red: "bg-red-50 text-red-700",
+    info: "bg-info/10 text-info",
+    primary: "bg-primary/10 text-primary",
+    red: "bg-destructive/10 text-destructive",
   } as const;
   return (
-    <Card>
+    <Card className="glass-card">
       <CardContent className="flex items-center gap-3 p-4">
         <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", toneCls[tone])}>
           {icon}
         </div>
         <div>
-          <p className="text-2xl font-bold leading-none text-navy">{value}</p>
+          <p className="text-2xl font-bold leading-none text-foreground">{value}</p>
           <p className="mt-1 text-xs text-muted-foreground">{label}</p>
         </div>
       </CardContent>
@@ -259,11 +261,11 @@ function SummaryCard({
 
 function ResultBadge({ pass }: { pass: boolean }) {
   return pass ? (
-    <Badge variant="outline" className="border-transparent bg-emerald-brand text-white">
+    <Badge variant="outline" className="border-transparent bg-primary text-white">
       <CheckCircle2 className="mr-1 h-3 w-3" /> Accepté
     </Badge>
   ) : (
-    <Badge variant="outline" className="border-transparent bg-red-500 text-white">
+    <Badge variant="outline" className="border-transparent bg-destructive text-white">
       <XCircle className="mr-1 h-3 w-3" /> Refusé
     </Badge>
   );
@@ -283,17 +285,17 @@ function InspectionDetail({ appt }: { appt: AppointmentItem }) {
             key={f.label}
             className={cn(
               "flex items-center gap-2 rounded-lg border p-2.5",
-              f.pass ? "border-emerald-brand/30 bg-emerald-50" : "border-red-300 bg-red-50"
+              f.pass ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"
             )}
           >
             {f.pass ? (
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-brand" />
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
             ) : (
-              <XCircle className="h-4 w-4 shrink-0 text-red-500" />
+              <XCircle className="h-4 w-4 shrink-0 text-destructive" />
             )}
             <div className="min-w-0">
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{f.label}</p>
-              <p className={cn("text-sm font-semibold", f.pass ? "text-emerald-brand" : "text-red-600")}>
+              <p className={cn("text-sm font-semibold", f.pass ? "text-primary" : "text-destructive")}>
                 {f.pass ? "OK" : "Défaut"}
               </p>
             </div>
@@ -304,14 +306,14 @@ function InspectionDetail({ appt }: { appt: AppointmentItem }) {
         <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/20 p-3 text-sm">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div>
-            <p className="font-semibold text-navy">Notes de l&apos;inspecteur</p>
+            <p className="font-semibold text-foreground">Notes de l&apos;inspecteur</p>
             <p className="mt-0.5 text-muted-foreground">{r.notes}</p>
           </div>
         </div>
       ) : null}
       {r.inspector ? (
         <p className="text-xs text-muted-foreground">
-          Inspecté par <span className="font-medium text-navy">{r.inspector}</span> le {formatDate(r.createdAt)}
+          Inspecté par <span className="font-medium text-foreground">{r.inspector}</span> le {formatDate(r.createdAt)}
         </p>
       ) : null}
     </div>
@@ -323,21 +325,21 @@ function MobileHistoryCard({ appt }: { appt: AppointmentItem }) {
   const isPass = r.overallResult === "PASS";
   const [open, setOpen] = useState(false);
   return (
-    <Card>
+    <Card className="glass-card">
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-base font-bold tracking-wider text-navy">{appt.code}</span>
+              <span className="font-mono text-base font-bold tracking-wider text-foreground">{appt.code}</span>
               <ResultBadge pass={isPass} />
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
               {formatDate(appt.date)} · {appt.service.name}
             </p>
             <div className="mt-2 flex items-center gap-1.5 rounded-md bg-muted/40 p-2">
-              <Car className="h-3.5 w-3.5 shrink-0 text-emerald-brand" />
+              <Car className="h-3.5 w-3.5 shrink-0 text-primary" />
               <div className="min-w-0">
-                <p className="font-mono text-xs font-semibold uppercase text-navy">{appt.vehiclePlate}</p>
+                <p className="font-mono text-xs font-semibold uppercase text-foreground">{appt.vehiclePlate}</p>
                 <p className="truncate text-[11px] text-muted-foreground">{appt.vehicleDesc}</p>
               </div>
             </div>

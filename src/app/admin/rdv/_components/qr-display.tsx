@@ -47,7 +47,7 @@ export function QrDisplay({
   return (
     <div className={cn("flex flex-col items-center", className)}>
       <div
-        className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-border"
+        className="rounded-2xl bg-white p-3 shadow-card ring-1 ring-border"
         style={{ width: size + 24, height: size + 24 }}
       >
         <img

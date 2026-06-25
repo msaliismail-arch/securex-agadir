@@ -37,13 +37,13 @@ export default function ApprovedPage() {
 
   return (
     <div className="space-y-5">
-      <Card className="p-4">
+      <Card className="glass-card p-4">
         <div className="flex items-center gap-2">
-          <div className="rounded-lg bg-emerald-50 p-2 ring-1 ring-emerald-200">
-            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+          <div className="rounded-lg bg-primary/10 p-2 ring-1 ring-primary/20">
+            <CheckCircle2 className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-navy">Rendez-vous validés</h2>
+            <h2 className="text-base font-bold text-foreground">Rendez-vous validés</h2>
             <p className="text-xs text-muted-foreground">
               {approved.length} RDV avec QR de validation généré. Marquez comme terminé après le contrôle.
             </p>
@@ -58,11 +58,11 @@ export default function ApprovedPage() {
           ))}
         </div>
       ) : approved.length === 0 ? (
-        <Card className="p-12 flex flex-col items-center justify-center text-center">
-          <div className="rounded-full bg-surface-2 p-4">
+        <Card className="glass-card p-12 flex flex-col items-center justify-center text-center">
+          <div className="rounded-full bg-muted p-4">
             <QrIcon className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="mt-3 text-base font-semibold text-navy">Aucun RDV validé</h3>
+          <h3 className="mt-3 text-base font-semibold text-foreground">Aucun RDV validé</h3>
           <p className="mt-1 text-sm text-muted-foreground max-w-sm">
             Validez des rendez-vous en attente pour les voir apparaître ici avec leur QR code.
           </p>
@@ -76,10 +76,10 @@ export default function ApprovedPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.04 }}
             >
-              <Card className="p-4 hover:border-[#2D9CDB]/40 transition-colors h-full flex flex-col">
+              <Card className="glass-card p-4 hover:border-primary/40 transition-colors h-full flex flex-col">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <div className="font-mono font-bold text-navy tracking-wider">{appt.code}</div>
+                    <div className="font-mono font-bold text-foreground tracking-wider">{appt.code}</div>
                     <div className="text-[10px] text-muted-foreground">
                       FILE {appt.queueNumber ?? "—"} · {formatDate(appt.date, { day: "2-digit", month: "short" })} · {appt.slot}
                     </div>
@@ -88,9 +88,9 @@ export default function ApprovedPage() {
                 </div>
 
                 <div className="mt-2 text-xs">
-                  <div className="font-medium text-navy">{appt.clientName}</div>
+                  <div className="font-medium text-foreground">{appt.clientName}</div>
                   <div className="text-muted-foreground">
-                    <span className="font-mono font-medium text-navy">{appt.vehiclePlate}</span> · {appt.vehicleDesc}
+                    <span className="font-mono font-medium text-foreground">{appt.vehiclePlate}</span> · {appt.vehicleDesc}
                   </div>
                   <div className="text-muted-foreground">{appt.service?.name ?? "—"}</div>
                   {appt.category && (
@@ -105,7 +105,7 @@ export default function ApprovedPage() {
                   {appt.qrToken ? (
                     <QrDisplay token={appt.qrToken} size={140} />
                   ) : (
-                    <div className="h-[140px] w-[140px] rounded-xl bg-surface-2 flex items-center justify-center text-xs text-muted-foreground">
+                    <div className="h-[140px] w-[140px] rounded-xl bg-muted flex items-center justify-center text-xs text-muted-foreground">
                       Pas de QR
                     </div>
                   )}
@@ -120,7 +120,7 @@ export default function ApprovedPage() {
                 <div className="mt-auto pt-3 flex items-center gap-2">
                   <Button
                     size="sm"
-                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white h-9"
+                    className="flex-1 bg-brand-gradient text-white hover:opacity-90 h-9"
                     onClick={() => dialogs.open("complete", appt)}
                   >
                     <Award className="h-4 w-4 mr-1.5" /> Marquer terminé

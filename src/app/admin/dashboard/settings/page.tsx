@@ -13,6 +13,7 @@ import {
   Instagram,
   Linkedin,
   Settings as SettingsIcon,
+  Music2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -34,6 +35,7 @@ const DEFAULTS: Record<string, string> = {
   "contact.facebook": "",
   "contact.instagram": "",
   "contact.linkedin": "",
+  "contact.tiktok": "",
   "hours.week": "08:00-18:00",
   "hours.sat": "08:00-13:00",
   "hours.sun": "Fermé",
@@ -92,7 +94,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="flex h-72 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -101,22 +103,22 @@ export default function SettingsPage() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-navy sm:text-2xl">Paramètres système</h2>
+          <h2 className="text-xl font-bold text-foreground sm:text-2xl">Paramètres système</h2>
           <p className="text-sm text-muted-foreground">
             Coordonnées, horaires d'ouverture et configuration des créneaux.
           </p>
         </div>
-        <Button onClick={save} disabled={saving} className="bg-gray-700 text-white hover:bg-gray-800">
+        <Button onClick={save} disabled={saving} className="bg-primary text-white hover:bg-primary/90">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Enregistrer les modifications
         </Button>
       </div>
 
       {/* Contact */}
-      <Card className="border-l-4 border-gray-400">
+      <Card className="border-l-4 border-primary/60 shadow-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base font-semibold text-navy">
-            <MapPin className="h-4 w-4 text-gray-500" />
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <MapPin className="h-4 w-4 text-primary" />
             Coordonnées du centre
           </CardTitle>
           <CardDescription className="text-xs">
@@ -160,7 +162,7 @@ export default function SettingsPage() {
             <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
               Réseaux sociaux
             </p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-1.5">
                 <Label className="text-xs flex items-center gap-1">
                   <Facebook className="h-3 w-3" /> Facebook
@@ -191,16 +193,26 @@ export default function SettingsPage() {
                   placeholder="https://linkedin.com/company/…"
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs flex items-center gap-1">
+                  <Music2 className="h-3 w-3" /> TikTok
+                </Label>
+                <Input
+                  value={settings["contact.tiktok"] ?? ""}
+                  onChange={(e) => set("contact.tiktok", e.target.value)}
+                  placeholder="https://tiktok.com/@…"
+                />
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Hours */}
-      <Card className="border-l-4 border-gray-400">
+      <Card className="border-l-4 border-primary/60 shadow-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base font-semibold text-navy">
-            <Clock className="h-4 w-4 text-gray-500" />
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <Clock className="h-4 w-4 text-primary" />
             Horaires d'ouverture
           </CardTitle>
           <CardDescription className="text-xs">
@@ -238,10 +250,10 @@ export default function SettingsPage() {
       </Card>
 
       {/* Slots */}
-      <Card className="border-l-4 border-gray-400">
+      <Card className="border-l-4 border-primary/60 shadow-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base font-semibold text-navy">
-            <CalendarClock className="h-4 w-4 text-gray-500" />
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <CalendarClock className="h-4 w-4 text-primary" />
             Configuration des créneaux
           </CardTitle>
           <CardDescription className="text-xs">
@@ -267,12 +279,12 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between rounded-md border border-gray-200 bg-gray-50 p-3 text-[12px] text-gray-700">
+      <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 p-3 text-[12px] text-muted-foreground">
         <span className="inline-flex items-center gap-2">
           <SettingsIcon className="h-3.5 w-3.5" />
           Les modifications sont journalisées dans le journal d'audit.
         </span>
-        <Button onClick={save} disabled={saving} size="sm" className="bg-gray-700 text-white hover:bg-gray-800">
+        <Button onClick={save} disabled={saving} size="sm" className="bg-primary text-white hover:bg-primary/90">
           {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
           Enregistrer
         </Button>

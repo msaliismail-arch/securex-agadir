@@ -129,11 +129,11 @@ export function CompleteDialog({
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-purple-50 p-2 ring-1 ring-purple-200">
-              <Award className="h-5 w-5 text-purple-600" />
+            <div className="rounded-lg bg-primary/10 p-2 ring-1 ring-primary/20">
+              <Award className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <DialogTitle className="text-navy">Marquer comme terminé</DialogTitle>
+              <DialogTitle className="text-foreground">Marquer comme terminé</DialogTitle>
               <DialogDescription>
                 Enregistrer les résultats du contrôle technique.
               </DialogDescription>
@@ -141,9 +141,9 @@ export function CompleteDialog({
           </div>
         </DialogHeader>
 
-        <div className="rounded-lg border border-border bg-surface p-3">
+        <div className="rounded-lg border border-border bg-muted/30 p-3">
           <div className="flex items-center justify-between gap-2">
-            <div className="font-mono font-bold text-navy">{appointment.code}</div>
+            <div className="font-mono font-bold text-foreground">{appointment.code}</div>
             <StatusBadge status={appointment.status} />
           </div>
           <div className="mt-2 text-xs text-muted-foreground">
@@ -169,12 +169,12 @@ export function CompleteDialog({
             </div>
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3">
+          <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-4 py-3">
             <div>
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
                 Résultat global (auto)
               </div>
-              <div className="text-sm font-semibold text-navy">
+              <div className="text-sm font-semibold text-foreground">
                 {overall === "PASS" ? "Conforme" : "Non conforme"}
               </div>
             </div>
@@ -182,8 +182,8 @@ export function CompleteDialog({
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-bold",
                 overall === "PASS"
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                  : "bg-red-50 text-red-700 border border-red-200",
+                  ? "bg-primary/10 text-primary border border-primary/20"
+                  : "bg-destructive/10 text-destructive border border-destructive/20",
               )}
             >
               {overall === "PASS" ? (
@@ -232,7 +232,7 @@ export function CompleteDialog({
           <Button
             onClick={submit}
             disabled={submitting}
-            className="bg-purple-600 hover:bg-purple-700 text-white"
+            className="bg-brand-gradient text-white hover:opacity-90"
           >
             {submitting ? (
               <>
@@ -264,10 +264,10 @@ function CheckRow({
   onChange: (v: Pass) => void;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-white p-3">
+    <div className="rounded-lg border border-border bg-card p-3">
       <div className="flex items-center gap-2 mb-2">
         <Icon className="h-4 w-4 text-muted-foreground" />
-        <div className="text-sm font-medium text-navy">{label}</div>
+        <div className="text-sm font-medium text-foreground">{label}</div>
       </div>
       <RadioGroup
         value={value}
@@ -278,8 +278,8 @@ function CheckRow({
           className={cn(
             "flex items-center gap-1.5 cursor-pointer text-xs font-medium rounded-md px-2 py-1 border",
             value === "PASS"
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-              : "bg-white text-muted-foreground border-border hover:bg-surface",
+              ? "bg-primary/10 text-primary border-primary/20"
+              : "bg-card text-muted-foreground border-border hover:bg-muted/40",
           )}
         >
           <RadioGroupItem value="PASS" className="sr-only" />
@@ -290,8 +290,8 @@ function CheckRow({
           className={cn(
             "flex items-center gap-1.5 cursor-pointer text-xs font-medium rounded-md px-2 py-1 border",
             value === "FAIL"
-              ? "bg-red-50 text-red-700 border-red-200"
-              : "bg-white text-muted-foreground border-border hover:bg-surface",
+              ? "bg-destructive/10 text-destructive border-destructive/20"
+              : "bg-card text-muted-foreground border-border hover:bg-muted/40",
           )}
         >
           <RadioGroupItem value="FAIL" className="sr-only" />

@@ -82,7 +82,7 @@ export default function RdvPlanningPage() {
   return (
     <div className="space-y-5">
       {/* Toolbar */}
-      <Card className="p-3 sm:p-4">
+      <Card className="glass-card p-3 sm:p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
             <form onSubmit={onSearchSubmit} className="relative flex-1 min-w-0">
@@ -136,7 +136,7 @@ export default function RdvPlanningPage() {
               type="button"
               variant={isTodayFilter ? "default" : "outline"}
               onClick={setQuickToday}
-              className={cn(isTodayFilter && "bg-[#2D9CDB] hover:bg-[#2D9CDB]/90 text-white")}
+              className={cn(isTodayFilter && "bg-brand-gradient text-white hover:opacity-90")}
             >
               Aujourd&apos;hui
             </Button>
@@ -144,7 +144,7 @@ export default function RdvPlanningPage() {
 
           <Button
             onClick={() => dialogs.open("new")}
-            className="bg-[#2D9CDB] hover:bg-[#2D9CDB]/90 text-white shrink-0"
+            className="bg-brand-gradient text-white hover:opacity-90 shrink-0"
           >
             <Plus className="h-4 w-4 mr-2" />
             Nouveau RDV
@@ -172,7 +172,7 @@ export default function RdvPlanningPage() {
             )}
             <button
               onClick={() => { setQInput(""); setFilters({}); }}
-              className="text-[11px] text-muted-foreground hover:text-navy underline underline-offset-2"
+              className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2"
             >
               Tout effacer
             </button>
@@ -190,7 +190,7 @@ export default function RdvPlanningPage() {
       </div>
 
       {/* Table */}
-      <Card className="overflow-hidden">
+      <Card className="glass-card overflow-hidden">
         {loading ? (
           <div className="p-6 space-y-3">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -202,16 +202,16 @@ export default function RdvPlanningPage() {
             title="Aucun rendez-vous"
             message="Aucun RDV ne correspond à vos filtres. Ajustez les critères ou créez un nouveau rendez-vous."
             action={
-              <Button onClick={() => dialogs.open("new")} className="bg-[#2D9CDB] hover:bg-[#2D9CDB]/90 text-white">
+              <Button onClick={() => dialogs.open("new")} className="bg-brand-gradient text-white hover:opacity-90">
                 <Plus className="h-4 w-4 mr-2" /> Nouveau RDV
               </Button>
             }
           />
         ) : (
-          <div className="overflow-x-auto scroll-thin">
+          <div className="overflow-x-auto scroll-thin max-h-[60vh] overflow-y-auto">
             <Table>
-              <TableHeader>
-                <TableRow className="bg-surface hover:bg-surface">
+              <TableHeader className="sticky top-0 z-10 bg-card">
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead className="w-[110px]">Code</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Véhicule</TableHead>
@@ -223,24 +223,24 @@ export default function RdvPlanningPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {itemsEnriched.map((appt, idx) => (
+                {itemsEnriched.map((appt) => (
                   <TableRow
                     key={appt.id}
                     onClick={() => dialogs.open("detail", appt)}
-                    className="cursor-pointer hover:bg-surface/60 transition-colors"
+                    className="cursor-pointer hover:bg-muted/30 transition-colors"
                   >
                     <TableCell>
-                      <div className="font-mono font-bold text-navy tracking-wider">{appt.code}</div>
+                      <div className="font-mono font-bold text-foreground tracking-wider">{appt.code}</div>
                       {appt.queueNumber != null && (
                         <div className="text-[10px] text-muted-foreground">FILE {appt.queueNumber}</div>
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium text-navy text-sm">{appt.clientName}</div>
+                      <div className="font-medium text-foreground text-sm">{appt.clientName}</div>
                       <div className="text-xs text-muted-foreground">{appt.clientPhone}</div>
                     </TableCell>
                     <TableCell>
-                      <div className="font-mono text-sm font-medium text-navy">{appt.vehiclePlate}</div>
+                      <div className="font-mono text-sm font-medium text-foreground">{appt.vehiclePlate}</div>
                       <div className="text-xs text-muted-foreground truncate max-w-[160px]">{appt.vehicleDesc}</div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
@@ -250,7 +250,7 @@ export default function RdvPlanningPage() {
                     </TableCell>
                     <TableCell className="hidden lg:table-cell text-sm">{appt.service?.name ?? "—"}</TableCell>
                     <TableCell>
-                      <div className="text-sm font-medium text-navy">
+                      <div className="text-sm font-medium text-foreground">
                         {formatDate(appt.date, { day: "2-digit", month: "short" })}
                       </div>
                       <div className="text-xs text-muted-foreground">{appt.slot}</div>
@@ -302,7 +302,7 @@ function RowActions({
         <>
           <Button
             size="sm"
-            className="h-8 bg-purple-600 hover:bg-purple-700 text-white"
+            className="h-8 bg-brand-gradient text-white hover:opacity-90"
             onClick={() => dialogs.open("validate", appt)}
           >
             <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Valider
@@ -310,7 +310,7 @@ function RowActions({
           <Button
             size="sm"
             variant="outline"
-            className="h-8 text-red-600 border-red-200 hover:bg-red-50"
+            className="h-8 text-destructive border-destructive/30 hover:bg-destructive/10"
             onClick={() => dialogs.open("reject", appt)}
           >
             <XCircle className="h-3.5 w-3.5" />
@@ -320,7 +320,7 @@ function RowActions({
 
       {appt.status === "APPROVED" && (
         <>
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200">
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary border border-primary/20">
             <QrCode className="h-3 w-3" /> QR généré
           </span>
           <Button
@@ -330,11 +330,11 @@ function RowActions({
             onClick={() => dialogs.open("detail", appt)}
             title="Voir le QR"
           >
-            <QrCode className="h-4 w-4 text-emerald-600" />
+            <QrCode className="h-4 w-4 text-primary" />
           </Button>
           <Button
             size="sm"
-            className="h-8 bg-purple-600 hover:bg-purple-700 text-white"
+            className="h-8 bg-brand-gradient text-white hover:opacity-90"
             onClick={() => dialogs.open("complete", appt)}
           >
             <Award className="h-3.5 w-3.5 mr-1" /> Terminer
@@ -359,7 +359,7 @@ function RowActions({
             onClick={() => dialogs.open("detail", appt)}
             title="Voir le QR"
           >
-            <QrCode className="h-4 w-4 text-emerald-600" />
+            <QrCode className="h-4 w-4 text-primary" />
           </Button>
         </>
       )}
@@ -375,26 +375,26 @@ function MiniStat({ label, value, dot }: { label: string; value: number; dot: st
   const dotColor: Record<string, string> = {
     gray: "bg-gray-400",
     orange: "bg-orange-500",
-    green: "bg-green-500",
+    green: "bg-primary",
     purple: "bg-purple-500",
-    red: "bg-red-500",
+    red: "bg-destructive",
   };
   return (
-    <Card className="p-3">
+    <Card className="glass-card p-3">
       <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
         <span className={cn("h-1.5 w-1.5 rounded-full", dotColor[dot])} />
         {label}
       </div>
-      <div className="text-xl font-bold text-navy mt-0.5">{value}</div>
+      <div className="text-xl font-bold text-foreground mt-0.5">{value}</div>
     </Card>
   );
 }
 
 function Chip({ children, onClear }: { children: React.ReactNode; onClear: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-[#2D9CDB]/10 px-2 py-0.5 text-[#2D9CDB] font-medium">
+    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-primary font-medium border border-primary/20">
       {children}
-      <button onClick={onClear} className="hover:bg-[#2D9CDB]/20 rounded-full p-0.5">
+      <button onClick={onClear} className="hover:bg-primary/20 rounded-full p-0.5">
         <X className="h-3 w-3" />
       </button>
     </span>
@@ -416,10 +416,10 @@ function EmptyState({
       animate={{ opacity: 1, y: 0 }}
       className="flex flex-col items-center justify-center text-center py-16 px-4"
     >
-      <div className="rounded-full bg-surface-2 p-4">
+      <div className="rounded-full bg-muted p-4">
         <CalIcon className="h-8 w-8 text-muted-foreground" />
       </div>
-      <h3 className="mt-3 text-base font-semibold text-navy">{title}</h3>
+      <h3 className="mt-3 text-base font-semibold text-foreground">{title}</h3>
       <p className="mt-1 text-sm text-muted-foreground max-w-sm">{message}</p>
       {action && <div className="mt-4">{action}</div>}
     </motion.div>

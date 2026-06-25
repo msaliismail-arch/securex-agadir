@@ -57,7 +57,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDateTime } from "@/lib/utils";
+import { COLOR_MAP, type CategoryColor } from "@/lib/constants";
+import { cn, formatDateTime } from "@/lib/utils";
 
 type Announcement = {
   id: string;
@@ -69,11 +70,11 @@ type Announcement = {
   publishedAt: string;
 };
 
-const CAT_META: Record<string, { label: string; badge: string }> = {
-  INFO: { label: "Info", badge: "bg-blue-50 text-blue-700 hover:bg-blue-100" },
-  PROMO: { label: "Promo", badge: "bg-orange-50 text-orange-700 hover:bg-orange-100" },
-  MAINTENANCE: { label: "Maintenance", badge: "bg-gray-100 text-gray-700 hover:bg-gray-200" },
-  ALERT: { label: "Alerte", badge: "bg-red-50 text-red-700 hover:bg-red-100" },
+const CAT_META: Record<string, { label: string; color: CategoryColor }> = {
+  INFO: { label: "Info", color: "blue" },
+  PROMO: { label: "Promo", color: "orange" },
+  MAINTENANCE: { label: "Maintenance", color: "gray" },
+  ALERT: { label: "Alerte", color: "red" },
 };
 
 type Dialog = {
@@ -228,7 +229,7 @@ export default function AnnoncesPage() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-navy sm:text-2xl">Annonces</h2>
+          <h2 className="text-xl font-bold text-foreground sm:text-2xl">Annonces</h2>
           <p className="text-sm text-muted-foreground">
             Gérez les messages affichés sur le site public (bannière, promos, alertes).
           </p>
@@ -249,18 +250,18 @@ export default function AnnoncesPage() {
       </div>
 
       {/* Info banner */}
-      <div className="rounded-md border border-orange-200 bg-orange-50 px-4 py-2.5 text-[12px] text-orange-800">
+      <div className="rounded-md border border-orange-200 bg-orange-50 px-4 py-2.5 text-[12px] text-orange-800 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300">
         ℹ️ Seules les annonces <strong>visibles</strong> sont listées ici. Si vous masquez une annonce,
         elle disparaît de cette liste — mais reste en base et peut être ré-affichée via la base de données.
       </div>
 
-      <Card className="border-l-4 border-orange-400">
+      <Card className="border-l-4 border-orange-400 shadow-card">
         <CardContent className="p-0">
           {items.length === 0 ? (
             <div className="flex h-48 flex-col items-center justify-center gap-3 text-center">
               <Megaphone className="h-8 w-8 text-muted-foreground/50" />
               <div>
-                <p className="font-semibold text-navy">Aucune annonce visible</p>
+                <p className="font-semibold text-foreground">Aucune annonce visible</p>
                 <p className="text-sm text-muted-foreground">
                   Créez votre première annonce pour qu'elle apparaisse sur le site.
                 </p>
@@ -274,7 +275,7 @@ export default function AnnoncesPage() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-orange-50/50">
+                  <TableRow className="bg-orange-50/40 dark:bg-orange-500/5">
                     <TableHead className="min-w-[260px] text-[11px] uppercase">Titre</TableHead>
                     <TableHead className="text-[11px] uppercase">Catégorie</TableHead>
                     <TableHead className="text-center text-[11px] uppercase">Épinglée</TableHead>
@@ -286,6 +287,7 @@ export default function AnnoncesPage() {
                 <TableBody>
                   {items.map((a) => {
                     const meta = CAT_META[a.category] ?? CAT_META.INFO;
+                    const mc = COLOR_MAP[meta.color];
                     return (
                       <TableRow key={a.id} className="text-[13px]">
                         <TableCell>
@@ -294,7 +296,7 @@ export default function AnnoncesPage() {
                               <Pin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-500" />
                             )}
                             <div>
-                              <div className="font-semibold text-navy">{a.title}</div>
+                              <div className="font-semibold text-foreground">{a.title}</div>
                               <div className="line-clamp-1 max-w-md text-[11px] text-muted-foreground">
                                 {a.content}
                               </div>
@@ -302,7 +304,7 @@ export default function AnnoncesPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge className={meta.badge}>{meta.label}</Badge>
+                          <Badge className={cn(mc.soft, mc.fg, "hover:opacity-90")}>{meta.label}</Badge>
                         </TableCell>
                         <TableCell className="text-center">
                           <Switch
@@ -333,7 +335,7 @@ export default function AnnoncesPage() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
+                              className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                               onClick={() => setDeleteId(a.id)}
                               aria-label="Supprimer"
                             >
@@ -406,11 +408,11 @@ export default function AnnoncesPage() {
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center justify-between rounded-md border border-border bg-surface-2/30 p-3">
+              <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 p-3">
                 <div className="flex items-center gap-2">
                   <Pin className="h-4 w-4 text-orange-500" />
                   <div>
-                    <p className="text-[13px] font-medium text-navy">Épinglée</p>
+                    <p className="text-[13px] font-medium text-foreground">Épinglée</p>
                     <p className="text-[11px] text-muted-foreground">Affichage prioritaire</p>
                   </div>
                 </div>
@@ -421,15 +423,15 @@ export default function AnnoncesPage() {
                   }
                 />
               </div>
-              <div className="flex items-center justify-between rounded-md border border-border bg-surface-2/30 p-3">
+              <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 p-3">
                 <div className="flex items-center gap-2">
                   {dialog.data.visible ? (
-                    <Eye className="h-4 w-4 text-emerald-600" />
+                    <Eye className="h-4 w-4 text-primary" />
                   ) : (
                     <EyeOff className="h-4 w-4 text-muted-foreground" />
                   )}
                   <div>
-                    <p className="text-[13px] font-medium text-navy">Visible</p>
+                    <p className="text-[13px] font-medium text-foreground">Visible</p>
                     <p className="text-[11px] text-muted-foreground">Affichée publiquement</p>
                   </div>
                 </div>
@@ -472,7 +474,7 @@ export default function AnnoncesPage() {
             <AlertDialogAction
               disabled={busy}
               onClick={() => deleteId && remove(deleteId)}
-              className="bg-red-600 text-white hover:bg-red-700"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Supprimer

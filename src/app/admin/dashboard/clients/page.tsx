@@ -130,7 +130,7 @@ export default function ClientsPage() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-navy sm:text-2xl">Clients</h2>
+          <h2 className="text-xl font-bold text-foreground sm:text-2xl">Clients</h2>
           <p className="text-sm text-muted-foreground">
             Base de clients enregistrés, leurs véhicules et historique de RDV.
           </p>
@@ -146,7 +146,7 @@ export default function ClientsPage() {
           {search && (
             <button
               onClick={() => setSearch("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-navy"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               aria-label="Effacer"
             >
               <X className="h-4 w-4" />
@@ -155,7 +155,7 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      <Card className="border-l-4 border-blue-400">
+      <Card className="border-l-4 border-blue-400/80 shadow-card">
         <CardContent className="p-0">
           {loading ? (
             <div className="flex h-48 items-center justify-center">
@@ -164,7 +164,7 @@ export default function ClientsPage() {
           ) : filtered.length === 0 ? (
             <div className="flex h-48 flex-col items-center justify-center gap-2 text-center">
               <Users className="h-8 w-8 text-muted-foreground/50" />
-              <p className="font-semibold text-navy">Aucun client</p>
+              <p className="font-semibold text-foreground">Aucun client</p>
               <p className="text-sm text-muted-foreground">
                 {search ? "Aucun résultat pour cette recherche." : "Aucun client enregistré."}
               </p>
@@ -172,7 +172,7 @@ export default function ClientsPage() {
           ) : (
             <div className="scroll-thin max-h-[640px] overflow-auto">
               <Table>
-                <TableHeader className="sticky top-0 z-10 bg-white">
+                <TableHeader className="sticky top-0 z-10 bg-card">
                   <TableRow>
                     <TableHead className="text-[11px] uppercase">Nom</TableHead>
                     <TableHead className="text-[11px] uppercase">Téléphone</TableHead>
@@ -187,7 +187,7 @@ export default function ClientsPage() {
                 <TableBody>
                   {filtered.map((c) => (
                     <TableRow key={c.id} className="text-[13px]">
-                      <TableCell className="font-medium text-navy">{c.name}</TableCell>
+                      <TableCell className="font-medium text-foreground">{c.name}</TableCell>
                       <TableCell>
                         <span className="flex items-center gap-1 text-muted-foreground">
                           <Phone className="h-3 w-3" />
@@ -203,7 +203,7 @@ export default function ClientsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-100">
+                        <Badge className="bg-primary/10 text-primary hover:bg-primary/15">
                           {c._count.appointments}
                         </Badge>
                       </TableCell>
@@ -241,7 +241,7 @@ export default function ClientsPage() {
           {detail && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-navy">{detail.name}</DialogTitle>
+                <DialogTitle className="text-foreground">{detail.name}</DialogTitle>
                 <DialogDescription>
                   Fiche client · inscrit le {formatDate(detail.createdAt)}
                 </DialogDescription>
@@ -249,30 +249,30 @@ export default function ClientsPage() {
               <div className="space-y-4">
                 {/* Contact */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="rounded-md border border-border bg-surface-2/20 p-3">
+                  <div className="rounded-md border border-border bg-muted/20 p-3">
                     <p className="text-[11px] font-semibold uppercase text-muted-foreground">
                       Téléphone
                     </p>
-                    <p className="mt-0.5 flex items-center gap-1.5 text-[13px] font-medium text-navy">
-                      <Phone className="h-3.5 w-3.5 text-blue-500" />
+                    <p className="mt-0.5 flex items-center gap-1.5 text-[13px] font-medium text-foreground">
+                      <Phone className="h-3.5 w-3.5 text-primary" />
                       {detail.phone}
                     </p>
                   </div>
-                  <div className="rounded-md border border-border bg-surface-2/20 p-3">
+                  <div className="rounded-md border border-border bg-muted/20 p-3">
                     <p className="text-[11px] font-semibold uppercase text-muted-foreground">
                       Email
                     </p>
-                    <p className="mt-0.5 flex items-center gap-1.5 text-[13px] font-medium text-navy">
-                      <Mail className="h-3.5 w-3.5 text-blue-500" />
+                    <p className="mt-0.5 flex items-center gap-1.5 text-[13px] font-medium text-foreground">
+                      <Mail className="h-3.5 w-3.5 text-primary" />
                       {detail.email || "—"}
                     </p>
                   </div>
-                  <div className="rounded-md border border-border bg-surface-2/20 p-3">
+                  <div className="rounded-md border border-border bg-muted/20 p-3">
                     <p className="text-[11px] font-semibold uppercase text-muted-foreground">
                       Canal préféré
                     </p>
-                    <p className="mt-0.5 flex items-center gap-1.5 text-[13px] font-medium text-navy">
-                      <MessageSquare className="h-3.5 w-3.5 text-blue-500" />
+                    <p className="mt-0.5 flex items-center gap-1.5 text-[13px] font-medium text-foreground">
+                      <MessageSquare className="h-3.5 w-3.5 text-primary" />
                       {CHANNEL_LABEL[detail.channel] ?? detail.channel}
                     </p>
                   </div>
@@ -284,7 +284,7 @@ export default function ClientsPage() {
                     Véhicules ({detail.vehicles.length})
                   </p>
                   {detail.vehicles.length === 0 ? (
-                    <p className="rounded-md border border-dashed border-border bg-white p-4 text-center text-[12px] text-muted-foreground">
+                    <p className="rounded-md border border-dashed border-border bg-card p-4 text-center text-[12px] text-muted-foreground">
                       Aucun véhicule enregistré.
                     </p>
                   ) : (
@@ -292,11 +292,11 @@ export default function ClientsPage() {
                       {detail.vehicles.map((v) => (
                         <div
                           key={v.id}
-                          className="flex items-start gap-2 rounded-md border border-border bg-white p-3"
+                          className="flex items-start gap-2 rounded-md border border-border bg-card p-3"
                         >
-                          <Car className="mt-0.5 h-4 w-4 text-blue-500" />
+                          <Car className="mt-0.5 h-4 w-4 text-primary" />
                           <div className="min-w-0">
-                            <p className="font-mono text-[13px] font-semibold text-navy">
+                            <p className="font-mono text-[13px] font-semibold text-foreground">
                               {v.plate}
                             </p>
                             <p className="text-[11px] text-muted-foreground">
@@ -316,7 +316,7 @@ export default function ClientsPage() {
                     Historique des RDV ({detailAppts.length})
                   </p>
                   {detailAppts.length === 0 ? (
-                    <p className="rounded-md border border-dashed border-border bg-white p-4 text-center text-[12px] text-muted-foreground">
+                    <p className="rounded-md border border-dashed border-border bg-card p-4 text-center text-[12px] text-muted-foreground">
                       Aucun rendez-vous.
                     </p>
                   ) : (
@@ -328,12 +328,12 @@ export default function ClientsPage() {
                         return (
                           <div
                             key={a.id}
-                            className="flex items-center gap-3 rounded-md border border-border bg-white p-2.5"
+                            className="flex items-center gap-3 rounded-md border border-border bg-card p-2.5"
                           >
                             <span className={cn("h-2 w-2 shrink-0 rounded-full", catColor.bg)} />
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <span className="font-mono text-[12px] font-semibold text-navy">
+                                <span className="font-mono text-[12px] font-semibold text-foreground">
                                   {a.code}
                                 </span>
                                 <Badge className={cn(sc.soft, sc.fg, "text-[10px]")}>
@@ -345,7 +345,7 @@ export default function ClientsPage() {
                               </p>
                             </div>
                             <div className="shrink-0 text-right">
-                              <p className="text-[12px] font-medium text-navy">
+                              <p className="text-[12px] font-medium text-foreground">
                                 {formatDate(a.date)}
                               </p>
                               <p className="text-[11px] text-muted-foreground">{a.slot}</p>

@@ -101,11 +101,11 @@ export function ValidationDialog({
           <>
             <DialogHeader>
               <div className="flex items-center gap-2">
-                <div className="rounded-lg bg-purple-50 p-2 ring-1 ring-purple-200">
-                  <ShieldCheck className="h-5 w-5 text-purple-600" />
+                <div className="rounded-lg bg-primary/10 p-2 ring-1 ring-primary/20">
+                  <ShieldCheck className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <DialogTitle className="text-navy">Valider le rendez-vous</DialogTitle>
+                  <DialogTitle className="text-foreground">Valider le rendez-vous</DialogTitle>
                   <DialogDescription>
                     Approuver et générer le QR de validation pour le client.
                   </DialogDescription>
@@ -152,7 +152,7 @@ export function ValidationDialog({
               <Button
                 onClick={approve}
                 disabled={phase === "submitting" || !inspector.trim()}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
+                className="bg-brand-gradient text-white hover:opacity-90"
               >
                 {phase === "submitting" ? (
                   <>
@@ -169,7 +169,7 @@ export function ValidationDialog({
             </DialogFooter>
 
             {phase === "error" && (
-              <div className="flex items-center gap-2 rounded-md bg-red-50 px-3 py-2 text-xs text-red-700 border border-red-200">
+              <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive border border-destructive/20">
                 <AlertTriangle className="h-4 w-4 shrink-0" />
                 Une erreur est survenue. Réessayez.
               </div>
@@ -190,10 +190,10 @@ function SuccessView({ appt, onClose }: { appt: Appointment; onClose: () => void
         transition={{ type: "spring", stiffness: 200, damping: 18 }}
         className="flex flex-col items-center text-center"
       >
-        <div className="rounded-full bg-emerald-100 p-3 ring-4 ring-emerald-50">
-          <CheckCircle2 className="h-10 w-10 text-emerald-600" />
+        <div className="rounded-full bg-primary/15 p-3 ring-4 ring-primary/10">
+          <CheckCircle2 className="h-10 w-10 text-primary" />
         </div>
-        <h3 className="mt-3 text-lg font-bold text-navy">Rendez-vous validé</h3>
+        <h3 className="mt-3 text-lg font-bold text-foreground">Rendez-vous validé</h3>
         <p className="text-xs text-muted-foreground">
           Le QR de validation a été généré avec succès.
         </p>
@@ -203,11 +203,11 @@ function SuccessView({ appt, onClose }: { appt: Appointment; onClose: () => void
         {appt.qrToken && <QrDisplay token={appt.qrToken} size={200} />}
       </div>
 
-      <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2.5 text-center">
-        <div className="text-[10px] uppercase tracking-wider text-emerald-700 font-semibold">
+      <div className="rounded-lg bg-brand-gradient-soft border border-primary/20 px-3 py-2.5 text-center">
+        <div className="text-[10px] uppercase tracking-wider text-primary font-semibold">
           Code de référence client
         </div>
-        <div className="font-mono text-2xl font-bold text-emerald-700 tracking-[0.25em] mt-1">
+        <div className="font-mono text-2xl font-bold text-primary tracking-[0.25em] mt-1">
           {appt.code}
         </div>
       </div>
@@ -217,7 +217,7 @@ function SuccessView({ appt, onClose }: { appt: Appointment; onClose: () => void
       </p>
 
       <div className="flex justify-end">
-        <Button onClick={onClose} className="bg-navy hover:bg-navy/90">
+        <Button onClick={onClose} className="bg-brand-gradient text-white hover:opacity-90">
           Fermer
         </Button>
       </div>
@@ -227,9 +227,9 @@ function SuccessView({ appt, onClose }: { appt: Appointment; onClose: () => void
 
 function RecapCard({ appt }: { appt: Appointment }) {
   return (
-    <div className="rounded-lg border border-border bg-surface p-3 space-y-2">
+    <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <div className="font-mono font-bold text-navy tracking-wider">{appt.code}</div>
+        <div className="font-mono font-bold text-foreground tracking-wider">{appt.code}</div>
         <StatusBadge status={appt.status} />
       </div>
       <div className="grid grid-cols-2 gap-2 text-xs">
@@ -256,7 +256,7 @@ function Field({ label, value, mono }: { label: string; value: string; mono?: bo
   return (
     <div>
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={mono ? "font-mono font-medium text-navy" : "font-medium text-navy"}>{value}</div>
+      <div className={mono ? "font-mono font-medium text-foreground" : "font-medium text-foreground"}>{value}</div>
     </div>
   );
 }

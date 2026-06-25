@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 
 const jsonLd = {
   "@context": "https://schema.org",
-  "@type": "AutoWash",
+  "@type": "LocalBusiness",
   name: "SÉCUREX CONNECT",
   description:
     "Centre de contrôle technique automobile agréé à Agadir. Réservation en ligne, inspection fiable, certificat officiel.",

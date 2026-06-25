@@ -40,14 +40,14 @@ export default function PendingQueuePage() {
 
   return (
     <div className="space-y-5">
-      <Card className="p-4">
+      <Card className="glass-card p-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-orange-50 p-2 ring-1 ring-orange-200">
-              <ListChecks className="h-5 w-5 text-orange-600" />
+            <div className="rounded-lg bg-warning/10 p-2 ring-1 ring-warning/20">
+              <ListChecks className="h-5 w-5 text-warning" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-navy">File d&apos;attente — Validation requise</h2>
+              <h2 className="text-base font-bold text-foreground">File d&apos;attente — Validation requise</h2>
               <p className="text-xs text-muted-foreground">
                 {pending.length} rendez-vous{pending.length > 1 ? "s" : ""} en attente d&apos;approbation.
               </p>
@@ -58,7 +58,7 @@ export default function PendingQueuePage() {
               size="sm"
               variant={sort === "soonest" ? "default" : "outline"}
               onClick={() => setSort("soonest")}
-              className={cn(sort === "soonest" && "bg-[#2D9CDB] hover:bg-[#2D9CDB]/90 text-white")}
+              className={cn(sort === "soonest" && "bg-brand-gradient text-white hover:opacity-90")}
             >
               Plus proche
             </Button>
@@ -66,7 +66,7 @@ export default function PendingQueuePage() {
               size="sm"
               variant={sort === "oldest" ? "default" : "outline"}
               onClick={() => setSort("oldest")}
-              className={cn(sort === "oldest" && "bg-[#2D9CDB] hover:bg-[#2D9CDB]/90 text-white")}
+              className={cn(sort === "oldest" && "bg-brand-gradient text-white hover:opacity-90")}
             >
               Plus ancien
             </Button>
@@ -81,11 +81,11 @@ export default function PendingQueuePage() {
           ))}
         </div>
       ) : pending.length === 0 ? (
-        <Card className="p-12 flex flex-col items-center justify-center text-center">
-          <div className="rounded-full bg-emerald-50 p-4 ring-1 ring-emerald-200">
-            <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+        <Card className="glass-card p-12 flex flex-col items-center justify-center text-center">
+          <div className="rounded-full bg-primary/10 p-4 ring-1 ring-primary/20">
+            <CheckCircle2 className="h-8 w-8 text-primary" />
           </div>
-          <h3 className="mt-3 text-base font-semibold text-navy">File vide</h3>
+          <h3 className="mt-3 text-base font-semibold text-foreground">File vide</h3>
           <p className="mt-1 text-sm text-muted-foreground max-w-sm">
             Aucun rendez-vous en attente de validation. Nouveau travail à venir.
           </p>
@@ -99,14 +99,14 @@ export default function PendingQueuePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.04 }}
             >
-              <Card className="p-4 hover:border-[#2D9CDB]/40 transition-colors h-full flex flex-col">
+              <Card className="glass-card p-4 hover:border-primary/40 transition-colors h-full flex flex-col">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#2D9CDB]/10 text-[10px] font-bold text-[#2D9CDB]">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
                       {idx + 1}
                     </span>
                     <div>
-                      <div className="font-mono font-bold text-navy tracking-wider">{appt.code}</div>
+                      <div className="font-mono font-bold text-foreground tracking-wider">{appt.code}</div>
                       <div className="text-[10px] text-muted-foreground">
                         FILE {appt.queueNumber ?? "—"} · Créé {formatDate(appt.createdAt, { day: "2-digit", month: "short" })}
                       </div>
@@ -118,25 +118,25 @@ export default function PendingQueuePage() {
                 <div className="mt-3 grid grid-cols-2 gap-y-1.5 gap-x-2 text-xs">
                   <div>
                     <div className="text-[10px] uppercase text-muted-foreground">Client</div>
-                    <div className="font-medium text-navy">{appt.clientName}</div>
+                    <div className="font-medium text-foreground">{appt.clientName}</div>
                   </div>
                   <div>
                     <div className="text-[10px] uppercase text-muted-foreground">Téléphone</div>
-                    <div className="font-medium text-navy">{appt.clientPhone}</div>
+                    <div className="font-medium text-foreground">{appt.clientPhone}</div>
                   </div>
                   <div>
                     <div className="text-[10px] uppercase text-muted-foreground">Plaque</div>
-                    <div className="font-mono font-medium text-navy">{appt.vehiclePlate}</div>
+                    <div className="font-mono font-medium text-foreground">{appt.vehiclePlate}</div>
                   </div>
                   <div>
                     <div className="text-[10px] uppercase text-muted-foreground">Date · Créneau</div>
-                    <div className="font-medium text-navy">
+                    <div className="font-medium text-foreground">
                       {formatDate(appt.date, { day: "2-digit", month: "short" })} · {appt.slot}
                     </div>
                   </div>
                   <div className="col-span-2">
                     <div className="text-[10px] uppercase text-muted-foreground">Service</div>
-                    <div className="font-medium text-navy">{appt.service?.name ?? "—"}</div>
+                    <div className="font-medium text-foreground">{appt.service?.name ?? "—"}</div>
                   </div>
                   {appt.category && (
                     <div className="col-span-2 mt-0.5">
@@ -148,7 +148,7 @@ export default function PendingQueuePage() {
                 <div className="mt-auto pt-3 flex items-center gap-2">
                   <Button
                     size="sm"
-                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white h-9"
+                    className="flex-1 bg-brand-gradient text-white hover:opacity-90 h-9"
                     onClick={() => dialogs.open("validate", appt)}
                   >
                     <CheckCircle2 className="h-4 w-4 mr-1.5" /> Valider
@@ -156,7 +156,7 @@ export default function PendingQueuePage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="text-red-600 border-red-200 hover:bg-red-50 h-9"
+                    className="text-destructive border-destructive/30 hover:bg-destructive/10 h-9"
                     onClick={() => dialogs.open("reject", appt)}
                   >
                     <XCircle className="h-4 w-4 mr-1.5" /> Rejeter
