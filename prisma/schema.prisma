@@ -110,6 +110,8 @@ model Appointment {
   status        String       @default("PENDING") // PENDING | APPROVED | REJECTED | COMPLETED | CANCELLED
   qrToken       String?
   qrGeneratedAt DateTime?
+  checkedInAt   DateTime?   // one-time use: set on first successful check-in, blocks re-verification
+  checkedInBy   String?
   queueNumber   Int?
   notes         String?
   clientName    String

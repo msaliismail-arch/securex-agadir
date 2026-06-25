@@ -5,7 +5,10 @@ import { audit } from "@/lib/audit";
 
 /**
  * Reception verification: by 6-char code OR by qrToken.
- * Returns the appointment + result so the reception screen can render success/fail.
+ *
+ * ONE-TIME USE: each code/QR can be verified only once. After the first
+ * successful check-in, `checkedInAt` is set and any subsequent attempt
+ * (by the same code OR the same QR token) is rejected with a clear message.
  */
 export async function POST(req: Request) {
   const guard = await requireAdminRole(["SUPER", "RECEPTION"]);
@@ -37,9 +40,36 @@ export async function POST(req: Request) {
     return NextResponse.json({ found: false, message: "Aucune réservation trouvée pour ce code." }, { status: 200 });
   }
 
+  // ONE-TIME USE: reject if already checked in
+  if (appt.checkedInAt) {
+    const when = new Date(appt.checkedInAt).toLocaleString("fr-FR", {
+      day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+    });
+    await audit({
+      adminId: guard.session.sub, adminName: guard.session.name, adminRole: guard.session.role,
+      action: "CHECKIN_REPLAY_BLOCKED", target: appt.id,
+      details: `RDV ${appt.code} déjà vérifié le ${when} — seconde tentative bloquée`,
+      ipAddress: clientIp(req),
+    });
+    return NextResponse.json({
+      found: false,
+      alreadyCheckedIn: true,
+      message: `Ce code a déjà été vérifié le ${when}. Chaque code n'est valable qu'une seule fois.`,
+    }, { status: 200 });
+  }
+
+  // Mark as checked in — one-time use enforced
+  await db.appointment.update({
+    where: { id: appt.id },
+    data: {
+      checkedInAt: new Date(),
+      checkedInBy: guard.session.name,
+    },
+  });
+
   await audit({
     adminId: guard.session.sub, adminName: guard.session.name, adminRole: guard.session.role,
-    action: "CHECKIN_SUCCESS", target: appt.id, details: `Vérification RDV ${appt.code} (${appt.status})`,
+    action: "CHECKIN_SUCCESS", target: appt.id, details: `Vérification RDV ${appt.code} (${appt.status}) — usage unique consommé`,
     ipAddress: clientIp(req),
   });
 

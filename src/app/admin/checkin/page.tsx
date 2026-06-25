@@ -30,7 +30,8 @@ import type { Appointment } from "../../rdv/_components/types";
 type VerifyResult =
   | { kind: "success"; appt: Appointment }
   | { kind: "not-approved"; appt: Appointment }
-  | { kind: "not-found"; message: string };
+  | { kind: "not-found"; message: string }
+  | { kind: "already-used"; message: string };
 
 type Mode = "scan" | "manual";
 
@@ -69,7 +70,12 @@ export default function CheckinPage() {
       });
       const data = await res.json();
       if (!data.found) {
-        setResult({ kind: "not-found", message: data.message || "Aucune réservation trouvée." });
+        // Distinguish "already checked in" from "not found" for a clearer message
+        if (data.alreadyCheckedIn) {
+          setResult({ kind: "already-used", message: data.message || "Ce code a déjà été vérifié." });
+        } else {
+          setResult({ kind: "not-found", message: data.message || "Aucune réservation trouvée." });
+        }
         return;
       }
       const appt = data.appointment as Appointment;
@@ -508,6 +514,18 @@ function ResultView({
             <NotFoundCard message={result.message} onReset={onReset} />
           </motion.div>
         )}
+
+        {result.kind === "already-used" && (
+          <motion.div
+            key="alreadyused"
+            initial={{ opacity: 0, scale: 0.92, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 220, damping: 22 }}
+          >
+            <AlreadyUsedCard message={result.message} onReset={onReset} />
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );
@@ -652,6 +670,35 @@ function NotFoundCard({ message, onReset }: { message: string; onReset: () => vo
         <Button onClick={onReset} size="lg" className="w-full h-14 text-base bg-brand-gradient text-white hover:opacity-90">
           <RotateCcw className="h-5 w-5 mr-2" />
           Réessayer
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function AlreadyUsedCard({ message, onReset }: { message: string; onReset: () => void }) {
+  return (
+    <div className="rounded-2xl overflow-hidden shadow-float border border-amber-200">
+      <div className="bg-gradient-to-br from-amber-500 to-amber-600 px-6 py-8 text-center text-white">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.1, type: "spring", stiffness: 260, damping: 16 }}
+          className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm mb-3"
+        >
+          <AlertTriangle className="h-9 w-9" />
+        </motion.div>
+        <h3 className="text-xl font-bold">Code déjà utilisé</h3>
+        <p className="text-white/90 text-sm mt-2 max-w-sm mx-auto">{message}</p>
+        <p className="text-white/70 text-[12px] mt-2">
+          Chaque code et QR n&apos;est valable qu&apos;une seule fois.
+        </p>
+      </div>
+
+      <div className="bg-card p-4">
+        <Button onClick={onReset} size="lg" className="w-full h-14 text-base bg-brand-gradient text-white hover:opacity-90">
+          <RotateCcw className="h-5 w-5 mr-2" />
+          Nouvelle vérification
         </Button>
       </div>
     </div>
