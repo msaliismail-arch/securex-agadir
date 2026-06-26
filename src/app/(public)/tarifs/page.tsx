@@ -8,6 +8,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/public/reveal";
 
+// ⬇️⬇️⬇️ HADI LI ZIDTHA BACH T7ELL L'ERREUR DYAL VERCEL ⬇️⬇️⬇️
+export const dynamic = 'force-dynamic';
+// ⬆️⬆️⬆️ HADI LI ZIDTHA BACH T7ELL L'ERREUR DYAL VERCEL ⬆️⬆️⬆️
+
 export const metadata: Metadata = {
   title: "Tarifs du contrôle technique à Agadir",
   description:
