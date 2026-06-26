@@ -21,7 +21,13 @@ const MONTHS = [
 ];
 
 function toYMD(d: Date) {
-  return d.toISOString().slice(0, 10);
+  // Build YYYY-MM-DD using LOCAL date components (not UTC).
+  // toISOString() shifts the date to UTC and can turn day 26 into 25
+  // for UTC+ timezones (e.g. Morocco UTC+1).
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function buildMonthGrid(year: number, month: number) {
@@ -47,6 +53,7 @@ export default function RdvCalendarPage() {
   const { catMap, svcMap } = buildLookups(categories, services);
 
   const today = new Date();
+  const todayYmd = toYMD(today);
   const [cursor, setCursor] = useState({ year: today.getFullYear(), month: today.getMonth() });
   const [selectedDay, setSelectedDay] = useState<string | null>(toYMD(today));
 
@@ -127,13 +134,14 @@ export default function RdvCalendarPage() {
               }
               const ymd = toYMD(cell.date);
               const dayAppts = byDay.get(ymd) ?? [];
-              const isToday = ymd === toYMD(today);
+              const isToday = ymd === todayYmd;
               const isSelected = ymd === selectedDay;
               const isPast = cell.date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
               return (
                 <button
                   key={idx}
+                  suppressHydrationWarning
                   onClick={() => setSelectedDay(ymd)}
                   className={cn(
                     "aspect-square rounded-md p-1.5 text-left transition-all border relative overflow-hidden flex flex-col",
