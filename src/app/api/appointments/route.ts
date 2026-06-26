@@ -5,6 +5,14 @@ import { hashPassword } from "@/lib/auth";
 import { generateCode, normalizePhone, isValidMaPhone } from "@/lib/utils";
 import { DEFAULT_DAILY_CAPACITY } from "@/lib/constants";
 
+/** Build a local YYYY-MM-DD key (no UTC shift) for date comparison. */
+function ymdKeyLocal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 /** Public booking: create appointment + register/login client with email+password. */
 export async function POST(req: Request) {
   const body = await req.json();
@@ -29,9 +37,12 @@ export async function POST(req: Request) {
   const email = clientEmail.toLowerCase().trim();
 
   // === RULE 3: Block past time slots (same day only) ===
-  const apptDate = new Date(date);
+  // The client sends a local YYYY-MM-DD string (no timezone shift). Reconstruct
+  // a local Date so the comparison with "today" is correct regardless of the
+  // server's timezone.
+  const apptDate = new Date(date + "T00:00:00");
   const now = new Date();
-  const isToday = apptDate.toDateString() === now.toDateString();
+  const isToday = ymdKeyLocal(apptDate) === ymdKeyLocal(now);
   if (isToday) {
     const [slotH, slotM] = slot.split(":").map(Number);
     const slotMinutes = slotH * 60 + slotM;
@@ -39,6 +50,10 @@ export async function POST(req: Request) {
     if (slotMinutes <= nowMinutes) {
       return NextResponse.json({ error: "Ce créneau horaire est déjà passé. Veuillez choisir un créneau ultérieur." }, { status: 400 });
     }
+  }
+  // Block past dates entirely
+  if (apptDate < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+    return NextResponse.json({ error: "Cette date est passée. Veuillez choisir une date future." }, { status: 400 });
   }
 
   // === RULE 2: Capacity check — only CONFIRMED (APPROVED) appointments count ===

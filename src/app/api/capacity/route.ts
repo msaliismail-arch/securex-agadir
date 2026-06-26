@@ -11,6 +11,14 @@ import { DEFAULT_DAILY_CAPACITY } from "@/lib/constants";
  *
  * Query: ?from=YYYY-MM-DD&to=YYYY-MM-DD
  */
+/** Build a local YYYY-MM-DD key (no UTC shift) for date comparison. */
+function ymdKeyLocal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const fromStr = searchParams.get("from");
@@ -18,14 +26,14 @@ export async function GET(req: Request) {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const from = fromStr ? new Date(fromStr) : today;
-  const to = toStr ? new Date(toStr) : new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000); // default +60 days
+  const from = fromStr ? new Date(fromStr + "T00:00:00") : today;
+  const to = toStr ? new Date(toStr + "T00:00:00") : new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000); // default +60 days
 
   // Fetch all capacities in range
   const caps = await db.dailyCapacity.findMany({
     where: { date: { gte: from, lte: to } },
   });
-  const capMap = new Map(caps.map((c) => [c.date.toISOString().slice(0, 10), c.capaciteMax]));
+  const capMap = new Map(caps.map((c) => [ymdKeyLocal(c.date), c.capaciteMax]));
 
   // Count confirmed (APPROVED) appointments per day in range
   const appts = await db.appointment.findMany({
@@ -37,7 +45,7 @@ export async function GET(req: Request) {
   });
   const countMap = new Map<string, number>();
   for (const a of appts) {
-    const key = a.date.toISOString().slice(0, 10);
+    const key = ymdKeyLocal(a.date);
     countMap.set(key, (countMap.get(key) ?? 0) + 1);
   }
 
@@ -45,7 +53,7 @@ export async function GET(req: Request) {
   const result: { date: string; capaciteMax: number; confirmedCount: number; isFull: boolean }[] = [];
   const cursor = new Date(from);
   while (cursor <= to) {
-    const key = cursor.toISOString().slice(0, 10);
+    const key = ymdKeyLocal(cursor);
     const cap = capMap.get(key) ?? DEFAULT_DAILY_CAPACITY;
     const count = countMap.get(key) ?? 0;
     result.push({

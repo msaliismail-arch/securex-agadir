@@ -218,7 +218,9 @@ function BookingWizard() {
         vehicleCategory: selectedCat.slug.toUpperCase(),
         categoryId: selectedCat.id,
         serviceId: selectedService.id,
-        date: selectedDate.toISOString(),
+        // Send local YYYY-MM-DD to avoid UTC timezone shifts (toISOString would
+        // shift "tomorrow" to "today" in UTC for Morocco timezone).
+        date: ymdKey(selectedDate),
         slot: selectedSlot,
         channel: values.channel,
       };
@@ -578,10 +580,13 @@ interface CapacityDay {
 }
 
 function ymdKey(d: Date): string {
-  // Normalize to local midnight then ISO UTC string — matches the /api/capacity
-  // key generation (cursor at local midnight → toISOString().slice(0,10)).
-  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  return x.toISOString().slice(0, 10);
+  // Build YYYY-MM-DD using LOCAL date components (not UTC).
+  // toISOString() shifts the date in UTC and would turn "tomorrow" into "today"
+  // for Morocco timezone — causing the "date not valid" bug.
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function Step2({
@@ -791,7 +796,9 @@ function Step2({
               {getSlotsForDate(selectedDate).map((slot) => {
                 const isSelected = selectedSlot === slot;
                 const now = new Date();
-                const isToday = selectedDate.toDateString() === now.toDateString();
+                // Use local YYYY-MM-DD comparison (not toDateString which can
+                // differ across timezones in edge cases).
+                const isToday = ymdKey(selectedDate) === ymdKey(now);
                 const [h, m] = slot.split(":").map(Number);
                 const slotPast =
                   isToday && h * 60 + m <= now.getHours() * 60 + now.getMinutes();
