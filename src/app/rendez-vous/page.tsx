@@ -718,16 +718,23 @@ function Step2({
             <Calendar
               mode="single"
               selected={selectedDate}
-              onSelect={onSelectDate}
+              onSelect={(d) => {
+                if (!d) return;
+                // react-day-picker returns a Date at 00:00:00 UTC. Normalize to
+                // local midnight so getFullYear/getMonth/getDate (used by ymdKey
+                // and getSlotsForDate) return the same calendar day the user
+                // clicked — otherwise date 26 becomes 25 in UTC+ timezones.
+                const local = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                onSelectDate(local);
+              }}
               month={visibleMonth}
               onMonthChange={setVisibleMonth}
               disabled={(date) => {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
-                const d = new Date(date);
-                d.setHours(0, 0, 0, 0);
+                const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
                 if (d < today || date.getDay() === 0) return true;
-                const key = ymdKey(date);
+                const key = ymdKey(d);
                 return capacityDays[key]?.isFull === true;
               }}
               fromDate={new Date()}
