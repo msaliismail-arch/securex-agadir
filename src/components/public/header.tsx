@@ -14,6 +14,11 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetClose } from "@/com
 export function PublicHeader() {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
+  // Gate Radix interactive components (Sheet) until after client mount.
+  // This prevents the `aria-controls` hydration mismatch caused by Radix's
+  // useId() generating different IDs on server vs client.
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
 
   return (
     <header className="sticky top-0 z-50 w-full">
@@ -71,23 +76,24 @@ export function PublicHeader() {
               </Link>
             </Button>
 
-            <Sheet open={open} onOpenChange={setOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden" aria-label="Ouvrir le menu">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] border-border bg-background p-0 sm:w-[340px]">
-                <SheetTitle className="sr-only">Navigation</SheetTitle>
-                <div className="flex h-16 items-center justify-between border-b border-border px-4">
-                  <Logo size={36} />
-                  <SheetClose asChild>
-                    <Button variant="ghost" size="icon" aria-label="Fermer le menu">
-                      <X className="h-5 w-5" />
-                    </Button>
-                  </SheetClose>
-                </div>
-                <nav className="flex flex-col p-3" aria-label="Navigation mobile">
+            {mounted ? (
+              <Sheet open={open} onOpenChange={setOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="md:hidden" aria-label="Ouvrir le menu">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[300px] border-border bg-background p-0 sm:w-[340px]">
+                  <SheetTitle className="sr-only">Navigation</SheetTitle>
+                  <div className="flex h-16 items-center justify-between border-b border-border px-4">
+                    <Logo size={36} />
+                    <SheetClose asChild>
+                      <Button variant="ghost" size="icon" aria-label="Fermer le menu">
+                        <X className="h-5 w-5" />
+                      </Button>
+                    </SheetClose>
+                  </div>
+                  <nav className="flex flex-col p-3" aria-label="Navigation mobile">
                   {PUBLIC_NAV.map((item) => (
                     <SheetClose asChild key={item.href}>
                       <Link
@@ -119,6 +125,11 @@ export function PublicHeader() {
                 </nav>
               </SheetContent>
             </Sheet>
+            ) : (
+              <Button variant="ghost" size="icon" className="md:hidden" aria-label="Ouvrir le menu" disabled>
+                <Menu className="h-5 w-5" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
