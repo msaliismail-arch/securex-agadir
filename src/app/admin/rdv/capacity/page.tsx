@@ -52,8 +52,13 @@ interface CapacityDay {
 
 /** Build a "YYYY-MM-DD" key from a Date — matches the /api/capacity output. */
 function ymdKey(d: Date): string {
-  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  return x.toISOString().slice(0, 10);
+  // Build YYYY-MM-DD using LOCAL date components (not UTC).
+  // toISOString() shifts the date in UTC and would turn day 27 into 26
+  // for Morocco timezone (UTC+1).
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 export default function RdvCapacityPage() {
@@ -288,10 +293,15 @@ export default function RdvCapacityPage() {
             <Calendar
               mode="single"
               selected={selectedDate}
-              onSelect={setSelectedDate}
+              onSelect={(d) => {
+                if (!d) return;
+                // react-day-picker returns a Date at 00:00:00 UTC. Normalize to
+                // local midnight so the displayed day matches the clicked day.
+                const local = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                setSelectedDate(local);
+              }}
               disabled={(date) => {
-                const d = new Date(date);
-                d.setHours(0, 0, 0, 0);
+                const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
                 return d < today;
               }}
               fromDate={today}

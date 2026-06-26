@@ -27,7 +27,20 @@ export function formatMAD(amount: number): string {
 
 /** Format a date string (ISO) to fr-FR. */
 export function formatDate(iso: string | Date, opts?: Intl.DateTimeFormatOptions): string {
-  const d = typeof iso === "string" ? new Date(iso) : iso;
+  let d: Date;
+  if (typeof iso === "string") {
+    // If the string is a plain YYYY-MM-DD (no time/timezone), parse it as
+    // LOCAL midnight — otherwise new Date("2026-06-27") is parsed as UTC and
+    // displays as the previous day in UTC+ timezones.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+      const [y, m, day] = iso.split("-").map(Number);
+      d = new Date(y, m - 1, day);
+    } else {
+      d = new Date(iso);
+    }
+  } else {
+    d = iso;
+  }
   return new Intl.DateTimeFormat("fr-FR", opts ?? { day: "2-digit", month: "long", year: "numeric" }).format(d);
 }
 
