@@ -45,7 +45,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { cn, formatMAD, isValidMaPhone, isValidMaPlate } from "@/lib/utils";
-import { COLOR_MAP, DEFAULT_SLOTS, type CategoryColor } from "@/lib/constants";
+import { COLOR_MAP, DEFAULT_SLOTS, getSlotsForDate, type CategoryColor } from "@/lib/constants";
 import { BookingSuccess, type BookingSuccessData } from "@/components/client/booking-success";
 
 interface CategoryItem {
@@ -782,9 +782,13 @@ function Step2({
             <p className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
               Veuillez d&apos;abord sélectionner une date.
             </p>
+          ) : getSlotsForDate(selectedDate).length === 0 ? (
+            <p className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+              Le centre est fermé ce jour (dimanche). Veuillez choisir un autre jour.
+            </p>
           ) : (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {DEFAULT_SLOTS.map((slot) => {
+              {getSlotsForDate(selectedDate).map((slot) => {
                 const isSelected = selectedSlot === slot;
                 const now = new Date();
                 const isToday = selectedDate.toDateString() === now.toDateString();

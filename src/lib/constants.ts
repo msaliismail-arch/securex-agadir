@@ -153,11 +153,31 @@ export const STATUS_META: Record<
 /** Statuses the RDV admin can set. */
 export const RDV_STATUSES: AppointmentStatus[] = ["PENDING", "APPROVED", "COMPLETED", "CANCELLED"];
 
-/** Default time slots (configurable via settings). */
-export const DEFAULT_SLOTS = [
+/** Morning slots (both weekdays and Saturday). */
+export const MORNING_SLOTS = [
   "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-  "14:00", "14:30", "15:00", "15:30", "16:00", "16:30",
 ];
+
+/** Afternoon slots — weekdays ONLY (Saturday closes at 12:00). Last slot 15:30 → inspection ends 16:00. */
+export const WEEKDAY_AFTERNOON_SLOTS = [
+  "14:00", "14:30", "15:00", "15:30",
+];
+
+/** All weekday slots (morning + afternoon). Kept for backward compat. */
+export const DEFAULT_SLOTS = [...MORNING_SLOTS, ...WEEKDAY_AFTERNOON_SLOTS];
+
+/**
+ * Returns the available time slots for a given date, respecting real opening hours:
+ *  - Sunday (day 0): closed → no slots
+ *  - Saturday (day 6): 08:00–12:00 → morning slots only
+ *  - Monday–Friday: 08:00–16:00 → morning + afternoon slots
+ */
+export function getSlotsForDate(date: Date): string[] {
+  const day = date.getDay();
+  if (day === 0) return []; // Sunday closed
+  if (day === 6) return MORNING_SLOTS; // Saturday morning only
+  return DEFAULT_SLOTS; // Mon-Fri: morning + afternoon
+}
 
 /** Default daily capacity (RDV admin can override per-day via DailyCapacity). */
 export const DEFAULT_DAILY_CAPACITY = 20;
