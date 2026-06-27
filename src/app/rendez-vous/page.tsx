@@ -44,7 +44,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { cn, formatMAD, isValidMaPhone, isValidMaPlate } from "@/lib/utils";
+import { cn, formatMAD, isValidMaPhone, isValidMaPlateArabic, formatMaPlate } from "@/lib/utils";
 import { COLOR_MAP, DEFAULT_SLOTS, getSlotsForDate, type CategoryColor } from "@/lib/constants";
 import { BookingSuccess, type BookingSuccessData } from "@/components/client/booking-success";
 

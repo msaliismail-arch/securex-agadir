@@ -29,9 +29,6 @@ export function formatMAD(amount: number): string {
 export function formatDate(iso: string | Date, opts?: Intl.DateTimeFormatOptions): string {
   let d: Date;
   if (typeof iso === "string") {
-    // If the string is a plain YYYY-MM-DD (no time/timezone), parse it as
-    // LOCAL midnight — otherwise new Date("2026-06-27") is parsed as UTC and
-    // displays as the previous day in UTC+ timezones.
     if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
       const [y, m, day] = iso.split("-").map(Number);
       d = new Date(y, m - 1, day);
@@ -67,10 +64,36 @@ export function normalizePhone(phone: string): string {
   return cleaned;
 }
 
-/** Validate Moroccan plate format like 12345-A-6 or 1-A-12345. */
-export function isValidMaPlate(plate: string): boolean {
-  const v = plate.trim().toUpperCase();
-  return /^(\d{1,5}-[A-Z]-\d{1,2}|\d{1,2}-[A-Z]{1,3}-\d{1,5})$/.test(v);
+/** Validate Moroccan plate format: NNNNN-LettreArabe-CC ou WW... */
+export function isValidMaPlateArabic(v: string): boolean {
+  const cleaned = v.replace(/[\s\-]/g, '');
+  // Standard: 1-5 chiffres, 1 hrf 3arbi, 1-2 chiffres (code préfecture)
+  const standardRegex = /^\d{1,5}[\u0621-\u064A]\d{1,2}$/;
+  // Spécial WW (temporaire)
+  const wwRegex = /^WW\d+$/i;
+  
+  return standardRegex.test(cleaned) || wwRegex.test(cleaned);
+}
+
+/** Format Moroccan plate to standard display: 00123-أ-01 */
+export function formatMaPlate(raw: string): string {
+  const cleaned = raw.replace(/[\s\-]/g, '');
+  
+  // Handle WW
+  if (cleaned.toUpperCase().startsWith('WW')) {
+    return cleaned.toUpperCase();
+  }
+  
+  // Handle Standard
+  const match = cleaned.match(/^(\d{1,5})([\u0621-\u064A])(\d{1,2})$/);
+  if (match) {
+    const num = match[1].padStart(5, '0'); // 123 -> 00123
+    const arabicLetter = match[2];
+    const code = match[3].padStart(2, '0'); // 1 -> 01
+    return `${num}-${arabicLetter}-${code}`;
+  }
+  
+  return raw; // Fallback
 }
 
 export function initials(name: string): string {
