@@ -19,27 +19,10 @@ import { HeroInspectionScene } from "@/components/public/hero-inspection-scene";
 export const dynamic = 'force-dynamic';
 
 const ICONS: Record<string, LucideIcon> = { Car, Truck, Bike, Bus };
-
-const STEPS: { icon: LucideIcon; title: string; desc: string }[] = [
-  { icon: CalendarCheck, title: "Prenez rendez-vous", desc: "Réservez en ligne en moins de 2 minutes, choisissez votre créneau." },
-  { icon: FileText, title: "Préparez vos documents", desc: "Carte grise, assurance et pièce d'identité du propriétaire." },
-  { icon: SearchCheck, title: "Contrôle par nos experts", desc: "Inspection complète par nos techniciens certifiés, en 30 minutes." },
-  { icon: Award, title: "Recevez votre certificat", desc: "Certificat officiel remis immédiatement après validation." },
-];
-
-const FEATURES: { icon: LucideIcon; title: string; desc: string }[] = [
-  { icon: Zap, title: "Équipements de pointe", desc: "Bancs d'essai et outils de diagnostic dernière génération." },
-  { icon: BadgeCheck, title: "Techniciens certifiés", desc: "Une équipe agréée et formée aux normes les plus strictes." },
-  { icon: ShieldCheck, title: "Certificat officiel", desc: "Document reconnu par les autorités marocaines." },
-  { icon: Clock, title: "Rapide & fiable", desc: "Un contrôle complet en seulement 30 minutes en moyenne." },
-  { icon: MessageCircle, title: "Rappel SMS / WhatsApp", desc: "Ne laissez plus passer la date d'expiration de votre contrôle." },
-  { icon: Gauge, title: "Tarifs transparents", desc: "Des prix clairs, affichés à l'avance, sans surprise." },
-];
-
 const TESTIMONIALS: { name: string; role: string; quote: string; rating: number; color: CategoryColor; }[] = [
-  { name: "Mehdi Tazi", role: "Agadir", quote: "Service rapide et professionnel. J'ai pris RDV en ligne et tout s'est déroulé sans attente. Je recommande vivement SÉCUREX CONNECT.", rating: 5, color: "blue" },
-  { name: "Salma Ouazzani", role: "Dcheira", quote: "Accueil chaleureux, équipe compétente. Le rappel par WhatsApp avant l'expiration m'a été très utile. Centre sérieux.", rating: 5, color: "green" },
-  { name: "Hicham Berrada", role: "Inezgane", quote: "Installation moderne et propre. Le certificat m'a été remis immédiatement. Tarifs très corrects par rapport à la qualité.", rating: 5, color: "orange" },
+  { name: "Mehdi Tazi", role: "Agadir", quote: "Service rapide et professionnel. Je recommande vivement SÉCUREX CONNECT.", rating: 5, color: "blue" },
+  { name: "Salma Ouazzani", role: "Dcheira", quote: "Accueil chaleureux, équipe compétente. Centre sérieux.", rating: 5, color: "green" },
+  { name: "Hicham Berrada", role: "Inezgane", quote: "Installation moderne et propre. Tarifs très corrects.", rating: 5, color: "orange" },
 ];
 
 function HighlightTitle({ title, highlight, highlightClassName = "text-brand-gradient" }: { title: string; highlight?: string; highlightClassName?: string; }) {
@@ -50,23 +33,21 @@ function HighlightTitle({ title, highlight, highlightClassName = "text-brand-gra
 }
 
 export default async function HomePage() {
-  const [content, categories, announcements] = await Promise.all([
+  const [content, categories] = await Promise.all([
     getWebsiteContent(),
     db.category.findMany({ orderBy: { sort: "asc" }, include: { services: { where: { active: true }, orderBy: { price: "asc" } } } }),
-    db.announcement.findMany({ where: { visible: true }, orderBy: [{ pinned: "desc" }, { publishedAt: "desc" }] }),
   ]);
-
   const heroTitle = content["hero.title"] ?? "Contrôle technique automobile agréé à Agadir";
   const heroHighlight = content["hero.titleHighlight"] || "agréé";
-  const heroSubtitle = content["hero.subtitle"] ?? "Sécurité, fiabilité et conformité pour tous vos véhicules. Prenez rendez-vous en ligne et recevez votre certificat officiel en 30 minutes.";
+  const heroSubtitle = content["hero.subtitle"] ?? "Sécurité, fiabilité et conformité pour tous vos véhicules.";
   const heroBadge = content["hero.badge"] ?? "Agréé Ministère du Transport";
   const ctaPrimary = content["hero.ctaPrimary"] ?? "Prendre rendez-vous";
   const ctaSecondary = content["hero.ctaSecondary"] ?? "Voir les tarifs";
   const stats = [
-    { value: Number(content["stats.controls"] ?? "15000"), suffix: content["stats.controlsSuffix"] ?? "+", label: content["stats.controlsLabel"] ?? "Contrôles réalisés" },
-    { value: Number(content["stats.satisfaction"] ?? "49"), suffix: content["stats.satisfactionSuffix"] ?? "/50", label: content["stats.satisfactionLabel"] ?? "Satisfaction client" },
-    { value: Number(content["stats.duration"] ?? "30"), suffix: content["stats.durationSuffix"] ?? " min", label: content["stats.durationLabel"] ?? "Durée moyenne" },
-    { value: Number(content["stats.certified"] ?? "100"), suffix: content["stats.certifiedSuffix"] ?? "%", label: content["stats.certifiedLabel"] ?? "Agréé & conforme" },
+    { value: Number(content["stats.controls"] ?? "15000"), suffix: "+", label: "Contrôles réalisés" },
+    { value: Number(content["stats.satisfaction"] ?? "49"), suffix: "/50", label: "Satisfaction client" },
+    { value: Number(content["stats.duration"] ?? "30"), suffix: " min", label: "Durée moyenne" },
+    { value: Number(content["stats.certified"] ?? "100"), suffix: "%", label: "Agréé & conforme" },
   ];
 
   return (
@@ -74,12 +55,7 @@ export default async function HomePage() {
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url(/hero-inspection-bg.png)" }} aria-hidden="true" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#00C896]/85 via-[#00A87E]/80 to-[#00876A]/90" />
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 bg-hero-dots opacity-[0.08]" />
-          <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute -bottom-32 left-0 h-96 w-96 rounded-full bg-white/8 blur-3xl" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#00876A]/60 via-transparent to-transparent lg:from-[#00876A]/70" />
-        </div>
+        <div className="pointer-events-none absolute inset-0"><div className="absolute inset-0 bg-hero-dots opacity-[0.08]" /><div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-white/10 blur-3xl" /><div className="absolute inset-0 bg-gradient-to-r from-[#00876A]/60 via-transparent to-transparent lg:from-[#00876A]/70" /></div>
         <div className="relative mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-24 lg:py-28">
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
             <Reveal>
@@ -100,11 +76,13 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      
       <section className="border-y border-border bg-secondary/40">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-4 px-6 py-12 md:grid-cols-4 md:gap-6">
           {stats.map((s) => (<Reveal key={s.label}><div className="rounded-2xl glass-card p-6 text-center shadow-soft"><div className="text-3xl font-bold text-primary md:text-4xl"><StatsCounter value={s.value} suffix={s.suffix} /></div><p className="mt-1.5 text-sm text-muted-foreground">{s.label}</p></div></Reveal>))}
         </div>
       </section>
+
       <section className="bg-secondary/40 py-20">
         <div className="mx-auto max-w-7xl px-6">
           <Reveal><div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end"><div className="max-w-2xl"><p className="text-sm font-semibold uppercase tracking-wider text-primary">Nos services</p><h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">Catégories de véhicules &amp; tarifs</h2></div><Button asChild variant="outline" className="border-primary/30 text-primary hover:bg-primary/5"><Link href="/tarifs">Tous les tarifs <ChevronRight className="ml-1 h-4 w-4" /></Link></Button></div></Reveal>
@@ -118,11 +96,12 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
       <section className="bg-brand-gradient py-20">
         <div className="mx-auto max-w-4xl px-6 text-center">
           <Sparkles className="mx-auto h-10 w-10 text-white" />
           <h2 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-4xl">Prêt à passer le contrôle technique ?</h2>
-          <p className="mx-auto mt-4 max-w-xl text-white/85">Réservez votre créneau en ligne dès maintenant et évitez l'attente. Certification officielle garantie.</p>
+          <p className="mx-auto mt-4 max-w-xl text-white/85">Réservez votre créneau en ligne dès maintenant et évitez l'attente.</p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="h-12 bg-white px-8 text-base text-primary shadow-float hover:bg-white/90"><Link href="/rendez-vous"><CalendarCheck className="mr-2 h-5 w-5" /> {ctaPrimary}</Link></Button>
             <Button asChild size="lg" variant="outline" className="h-12 border-white/40 bg-white/10 px-8 text-base text-white hover:bg-white/20 hover:text-white"><Link href="/contact">Poser une question</Link></Button>
@@ -133,7 +112,6 @@ export default async function HomePage() {
   );
 }
 
-/* ---------- small helpers ---------- */
 function ContactRow({ icon: Icon, title, children, accent }: { icon: LucideIcon; title: string; children: any; accent?: boolean; }) {
   return (<div className="flex gap-4"><div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${accent ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}><Icon className="h-5 w-5" /></div><div><p className="text-sm font-semibold text-foreground">{title}</p>{children}</div></div>);
 }

@@ -59,7 +59,7 @@ export function normalizePhone(phone: string): string {
   return cleaned;
 }
 
-// --- NOUVELLES FONCTIONS IMMATRICULATION ---
+// --- IMMATRICULATION MAGHREB (3arbiya) ---
 export function isValidMaPlateArabic(v: string): boolean {
   const cleaned = v.replace(/[\s\-]/g, '');
   const standardRegex = /^\d{1,5}[\u0621-\u064A]\d{1,2}$/;
@@ -75,12 +75,11 @@ export function formatMaPlate(raw: string): string {
   return raw;
 }
 
-// --- ANCIENNE FONCTION POUR L'ADMIN (Ne pas supprimer) ---
+// --- Ancienne fonction (Backward compatibility pour l'admin) ---
 export function isValidMaPlate(plate: string): boolean {
   const v = plate.trim().toUpperCase();
   return /^(\d{1,5}-[A-Z]-\d{1,2}|\d{1,2}-[A-Z]{1,3}-\d{1,5})$/.test(v) || isValidMaPlateArabic(plate);
 }
-// --------------------------------------
 
 export function initials(name: string): string {
   return name.split(" ").filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("");
