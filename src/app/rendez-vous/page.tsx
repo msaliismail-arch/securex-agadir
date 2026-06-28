@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { cn, formatMAD, isValidMaPhone, isValidMaPlateArabic, formatMaPlate } from "@/lib/utils";
 import { COLOR_MAP, DEFAULT_SLOTS, getSlotsForDate, type CategoryColor } from "@/lib/constants";
 import { BookingSuccess, type BookingSuccessData } from "@/components/client/booking-success";
