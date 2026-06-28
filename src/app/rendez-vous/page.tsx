@@ -107,7 +107,26 @@ function BookingWizard() {
         {step === 1 && (<StepWrapper key="s1"><Step1 categories={categories} loading={loadingCats} selected={selectedCat} onSelect={(c) => { setSelectedCat(c); if (selectedService && !c.services?.some((s) => s.id === selectedService.id)) { setSelectedService(null); setSelectedSlot(null); } }} /><WizardNav onNext={() => setStep(2)} nextDisabled={!selectedCat} nextLabel="Continuer" hideBack /></StepWrapper>)}
         {step === 2 && (<StepWrapper key="s2"><Step2 category={selectedCat!} selectedService={selectedService} onSelectService={setSelectedService} selectedDate={selectedDate} onSelectDate={setSelectedDate} selectedSlot={selectedSlot} onSelectSlot={setSelectedSlot} /><WizardNav onBack={() => setStep(1)} onNext={() => setStep(3)} nextDisabled={!selectedService || !selectedDate || !selectedSlot} nextLabel="Continuer" /></StepWrapper>)}
         {step === 3 && (<StepWrapper key="s3"><Step3 form={form} /><WizardNav onBack={() => setStep(2)} onNext={() => setStep(4)} nextDisabled={!form.formState.isValid} nextLabel="Vérifier" /></StepWrapper>)}
-        {step === 4 && (<StepWrapper key="s4"><Step4 cat={selectedCat!} service={selectedService!} date={selectedDate!} slot={selectedSlot!} values={form.getValues()} onEdit={() => setStep(3)} /><WizardNav onBack={() => setStep(3)} onNext={submit} nextDisabled={submitting} nextLabel={submitting ? "En cours..." : "Confirmer" nextLoading={submitting} highlightNext /></StepWrapper>)}
+                {step === 4 && (
+          <StepWrapper key="s4">
+            <Step4
+              cat={selectedCat!}
+              service={selectedService!}
+              date={selectedDate!}
+              slot={selectedSlot!}
+              values={form.getValues()}
+              onEdit={() => setStep(3)}
+            />
+            <WizardNav
+              onBack={() => setStep(3)}
+              onNext={submit}
+              nextDisabled={submitting}
+              nextLabel={submitting ? "En cours..." : "Confirmer"}
+              nextLoading={submitting}
+              highlightNext
+            />
+          </StepWrapper>
+        )}
       </AnimatePresence>
     </div>
   );
