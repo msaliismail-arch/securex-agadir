@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import {
-  AlertCircle, CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock,
+  CalendarDays, Check, ChevronLeft, ChevronRight, Clock,
   Eye, EyeOff, Loader2, Lock, Mail, MessageSquare, Phone, Smartphone, User, X,
 } from "lucide-react";
 
@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { cn, formatMAD, isValidMaPhone, isValidMaPlateArabic, formatMaPlate } from "@/lib/utils";
 import { COLOR_MAP, DEFAULT_SLOTS, getSlotsForDate, type CategoryColor } from "@/lib/constants";
 import { BookingSuccess, type BookingSuccessData } from "@/components/client/booking-success";
@@ -37,7 +37,7 @@ const formSchema = z.object({
   clientEmail: z.string({ required_error: "L'e-mail est requis" }).email("E-mail invalide"),
   clientPassword: z.string({ required_error: "Mot de passe requis" }).min(6, "6 caractères min."),
   clientPasswordConfirm: z.string({ required_error: "Veuillez confirmer" }),
-  vehiclePlate: z.string({ required_error: "Immatriculation requise" }).refine(isValidMaPlateArabic, "Format invalide. Saisissez une lettre arabe (Ex: 12345-أ-6)"),
+  vehiclePlate: z.string({ required_error: "Immatriculation requise" }).refine(isValidMaPlateArabic, "Format invalide. Saisissez une lettre arabe (Ex: 12345-A-6)"),
   vehicleBrand: z.string().min(2, "Marque requise"),
   vehicleModel: z.string().min(1, "Modèle requis"),
   vehicleYear: z.coerce.number().int().min(1980).max(new Date().getFullYear() + 1, "Année invalide"),
@@ -107,7 +107,7 @@ function BookingWizard() {
         {step === 1 && (<StepWrapper key="s1"><Step1 categories={categories} loading={loadingCats} selected={selectedCat} onSelect={(c) => { setSelectedCat(c); if (selectedService && !c.services?.some((s) => s.id === selectedService.id)) { setSelectedService(null); setSelectedSlot(null); } }} /><WizardNav onNext={() => setStep(2)} nextDisabled={!selectedCat} nextLabel="Continuer" hideBack /></StepWrapper>)}
         {step === 2 && (<StepWrapper key="s2"><Step2 category={selectedCat!} selectedService={selectedService} onSelectService={setSelectedService} selectedDate={selectedDate} onSelectDate={setSelectedDate} selectedSlot={selectedSlot} onSelectSlot={setSelectedSlot} /><WizardNav onBack={() => setStep(1)} onNext={() => setStep(3)} nextDisabled={!selectedService || !selectedDate || !selectedSlot} nextLabel="Continuer" /></StepWrapper>)}
         {step === 3 && (<StepWrapper key="s3"><Step3 form={form} /><WizardNav onBack={() => setStep(2)} onNext={() => setStep(4)} nextDisabled={!form.formState.isValid} nextLabel="Vérifier" /></StepWrapper>)}
-        {step === 4 && (<StepWrapper key="s4"><Step4 cat={selectedCat!} service={selectedService!} date={selectedDate!} slot={selectedSlot!} values={form.getValues()} onEdit={() => setStep(3)} /><WizardNav onBack={() => setStep(3)} onNext={submit} nextDisabled={submitting} nextLabel={submitting ? "En cours…" : "Confirmer"} nextLoading={submitting} highlightNext /></StepWrapper>)}
+        {step === 4 && (<StepWrapper key="s4"><Step4 cat={selectedCat!} service={selectedService!} date={selectedDate!} slot={selectedSlot!} values={form.getValues()} onEdit={() => setStep(3)} /><WizardNav onBack={() => setStep(3)} onNext={submit} nextDisabled={submitting} nextLabel={submitting ? "En cours..." : "Confirmer" nextLoading={submitting} highlightNext /></StepWrapper>)}
       </AnimatePresence>
     </div>
   );
@@ -154,7 +154,7 @@ function Step2({ category, selectedService, onSelectService, selectedDate, onSel
 
   return (
     <div className="space-y-8">
-      <SectionHeading eyebrow="Étape 2" title="Service & créneau" subtitle={`Pour ${category.name}.`} />
+      <SectionHeading eyebrow="Étape 2" title="Service et créneau" subtitle={`Pour ${category.name}.`} />
       <div className="grid gap-8 lg:grid-cols-2">
         <div>
           <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground"><span className="h-4 w-1 rounded bg-brand-gradient" /> Service</h3>
@@ -202,14 +202,17 @@ function Step3({ form }: { form: ReturnType<typeof useForm<FormValues>> }) {
         <FormField control={form.control} name="clientName" render={({ field }) => (<FormItem><FormLabel>Nom complet *</FormLabel><FormControl><Input placeholder="Ex: Mehdi Tazi" {...field} /></FormControl><FormMessage /></FormItem>)} />
         <FormField control={form.control} name="clientPhone" render={({ field }) => (<FormItem><FormLabel>Téléphone (+212) *</FormLabel><FormControl><div className="relative"><Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input placeholder="+212 6 12 34 56 78" className="pl-9" inputMode="tel" {...field} /></div></FormControl><FormMessage /></FormItem>)} />
         <FormField control={form.control} name="clientEmail" render={({ field }) => (<FormItem className="sm:col-span-2"><FormLabel>E-mail *</FormLabel><FormControl><div className="relative"><Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input type="email" placeholder="vous@exemple.com" className="pl-9" {...field} /></div></FormControl><FormMessage /></FormItem>)} />
-        <FormField control={form.control} name="clientPassword" render={({ field }) => (<FormItem><FormLabel>Mot de passe *</FormLabel><FormControl><div className="relative"><Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input type={showPwd ? "text" : "password" placeholder="********" className="pl-9 pr-10" {...field} /><button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1.5 text-muted-foreground hover:text-foreground">{showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></FormControl><FormMessage /></FormItem>)} />
-        <FormField control={form.control} name="clientPasswordConfirm" render={({ field }) => (<FormItem><FormLabel>Confirmer *</FormLabel><FormControl><div className="relative"><Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input type={showPwdConfirm ? "text" : "password" placeholder="********" className="pl-9 pr-10" {...field} /><button type="button" onClick={() => setShowPwdConfirm(!showPwdConfirm)} className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1.5 text-muted-foreground hover:text-foreground">{showPwdConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></FormControl><FormMessage /></FormItem>)} />
+        
+        <FormField control={form.control} name="clientPassword" render={({ field }) => (<FormItem><FormLabel>Mot de passe *</FormLabel><FormControl><div className="relative"><Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input type={showPwd ? "text" : "password"} placeholder="Votre mot de passe" className="pl-9 pr-10" {...field} /><button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1.5 text-muted-foreground hover:text-foreground">{showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></FormControl><FormMessage /></FormItem>)} />
+        
+        <FormField control={form.control} name="clientPasswordConfirm" render={({ field }) => (<FormItem><FormLabel>Confirmer *</FormLabel><FormControl><div className="relative"><Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input type={showPwdConfirm ? "text" : "password"} placeholder="Confirmez le mot de passe" className="pl-9 pr-10" {...field} /><button type="button" onClick={() => setShowPwdConfirm(!showPwdConfirm)} className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1.5 text-muted-foreground hover:text-foreground">{showPwdConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></FormControl><FormMessage /></FormItem>)} />
+
       </div>
     </CardContent></Card>
     <Card className="glass-card"><CardContent className="space-y-4 p-5 md:p-6">
       <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground"><CalendarDays className="h-4 w-4 text-primary" /> Véhicule</h3>
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField control={form.control} name="vehiclePlate" render={({ field }) => (<FormItem className="sm:col-span-2"><FormLabel>Immatriculation *</FormLabel><FormControl><Input placeholder="Ex: 12345-أ-6" {...field} onBlur={(e) => { field.onBlur(e); field.onChange(formatMaPlate(e.target.value)); }} /></FormControl><FormDescription>Format : Chiffres - Lettre arabe - Code.</FormDescription><FormMessage /></FormItem>)} />
+        <FormField control={form.control} name="vehiclePlate" render={({ field }) => (<FormItem className="sm:col-span-2"><FormLabel>Immatriculation *</FormLabel><FormControl><Input placeholder="Ex: 12345-A-6" {...field} onBlur={(e) => { field.onBlur(e); field.onChange(formatMaPlate(e.target.value)); }} /></FormControl><FormDescription>Format : Chiffres - Lettre arabe - Code.</FormDescription><FormMessage /></FormItem>)} />
         <FormField control={form.control} name="vehicleBrand" render={({ field }) => (<FormItem><FormLabel>Marque *</FormLabel><FormControl><Input placeholder="Ex: Renault" {...field} /></FormControl><FormMessage /></FormItem>)} />
         <FormField control={form.control} name="vehicleModel" render={({ field }) => (<FormItem><FormLabel>Modèle *</FormLabel><FormControl><Input placeholder="Ex: Clio" {...field} /></FormControl><FormMessage /></FormItem>)} />
         <FormField control={form.control} name="vehicleYear" render={({ field }) => (<FormItem><FormLabel>Année *</FormLabel><FormControl><Input type="number" min={1980} max={new Date().getFullYear() + 1} placeholder="2020" {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>)} />
