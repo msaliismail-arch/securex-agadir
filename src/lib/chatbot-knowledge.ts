@@ -271,6 +271,56 @@ export const SUGGESTED_QUESTIONS = [
   "C'est quoi une contre-visite ?",
 ];
 
+/* ------------------------------------------------------------------ */
+/* Base de connaissances pour l'IA (Groq)                              */
+/* ------------------------------------------------------------------ */
+
+/** FAQ de référence — sert à nourrir le contexte de l'IA. */
+export const FAQ_ENTRIES: { q: string; a: string }[] = [
+  { q: "À quelle fréquence dois-je passer le contrôle technique au Maroc ?", a: "Tous les ans pour les véhicules de moins de 10 ans, et tous les 6 mois pour ceux de plus de 10 ans. La première visite doit avoir lieu dans l'année suivant la première mise en circulation." },
+  { q: "Combien de temps dure un contrôle technique ?", a: "En moyenne 30 minutes. Prévoyez environ 45 minutes au total (accueil, contrôle, remise du certificat)." },
+  { q: "Quels documents dois-je apporter ?", a: "La carte grise originale en cours de validité, l'attestation d'assurance en cours de validité, et la carte d'identité nationale (CIN) du propriétaire. Pour une contre-visite, ajoutez le procès-verbal précédent." },
+  { q: "Qu'est-ce qu'une contre-visite et combien coûte-t-elle ?", a: "Une re-vérification après réparation des défauts. 100 MAD pour une voiture particulière, à effectuer dans un délai de 2 mois." },
+  { q: "Que se passe-t-il si mon véhicule ne passe pas le contrôle ?", a: "Un procès-verbal de non-conformité vous est remis. Vous avez 2 mois pour réparer et passer la contre-visite, sinon une nouvelle visite complète est nécessaire." },
+  { q: "Le certificat est-il valable immédiatement ?", a: "Oui, dès validation par l'équipe. Il est valable jusqu'à la prochaine échéance (1 an ou 6 mois selon l'âge du véhicule)." },
+  { q: "Puis-je passer le contrôle avec un véhicule qui n'est pas à mon nom ?", a: "Oui, avec une procuration signée par le propriétaire et une copie de sa CIN, en plus des documents habituels." },
+  { q: "Comment prendre rendez-vous en ligne ?", a: "Sur la page Rendez-vous : choisissez le type de véhicule, le service, la date et le créneau, puis renseignez vos informations. Vous recevez un code de référence à 6 caractères." },
+  { q: "Quels moyens de paiement acceptez-vous ?", a: "Espèces, carte bancaire (TPE) et virement. Le règlement se fait après le contrôle." },
+  { q: "Le contrôle est-il obligatoire pour vendre mon véhicule ?", a: "Une visite de cession peut être exigée lors de la vente. Nous la proposons (400 MAD pour une voiture particulière)." },
+  { q: "Reçois-je un rappel avant l'expiration ?", a: "Oui, si vous avez un compte client : un rappel par SMS, email ou WhatsApp 30 jours avant l'expiration." },
+];
+
+/** Étapes de prise de rendez-vous. */
+const BOOKING_STEPS =
+  "Prise de rendez-vous (4 étapes) : 1) type de véhicule, 2) service souhaité, " +
+  "3) date et créneau, 4) informations client + confirmation. Un code de référence à 6 caractères est ensuite fourni.";
+
+/**
+ * Construit le bloc de connaissances (texte) injecté dans le prompt système de l'IA.
+ * @param liveTarifs texte des tarifs à jour (récupéré côté serveur depuis la base). Si absent, utilise les tarifs par défaut.
+ */
+export function buildKnowledgeBase(liveTarifs?: string): string {
+  return [
+    `NOM : ${BRAND.name} — ${BRAND.tagline}.`,
+    `ADRESSE : ${BRAND.address} (ville : ${BRAND.city}).`,
+    `TÉLÉPHONE : ${BRAND.phone} · EMAIL : ${BRAND.email}.`,
+    `HORAIRES : ${BRAND.hours} (Lun–Ven 08:00–16:00 · Sam 08:00–12:00 · Dim fermé).`,
+    "",
+    "TARIFS (en MAD / dirham) :",
+    liveTarifs && liveTarifs.trim() ? liveTarifs : tarifsText(),
+    "",
+    BOOKING_STEPS,
+    "",
+    "DOCUMENTS À APPORTER : carte grise originale valide, attestation d'assurance valide, CIN du propriétaire. " +
+      "Contre-visite : ajouter le procès-verbal précédent. Véhicule au nom d'un tiers : procuration signée + copie CIN du propriétaire.",
+    "",
+    "MOYENS DE PAIEMENT : espèces, carte bancaire (TPE), virement — après le contrôle.",
+    "",
+    "FAQ :",
+    ...FAQ_ENTRIES.map((f) => `Q: ${f.q}\nR: ${f.a}`),
+  ].join("\n");
+}
+
 /**
  * Trouve la meilleure réponse pour un message donné.
  * Score = nombre de mots-clés correspondants (le plus élevé gagne).

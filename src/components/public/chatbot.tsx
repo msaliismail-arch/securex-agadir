@@ -37,7 +37,7 @@ export function Chatbot() {
     {
       id: nextId(),
       from: "bot",
-      text: `Bonjour 👋 Je suis l'assistant virtuel de ${BRAND.name}. Posez-moi une question sur le contrôle technique, les tarifs, les horaires ou la prise de rendez-vous !`,
+      text: `Bonjour 👋 Je suis l'assistant virtuel de ${BRAND.name}. Posez-moi votre question sur le contrôle technique, les tarifs, les horaires ou la prise de rendez-vous — en français, arabe ou anglais !`,
     },
   ]);
 
@@ -54,23 +54,44 @@ export function Chatbot() {
     if (open) setTimeout(() => inputRef.current?.focus(), 250);
   }, [open]);
 
-  function send(text: string) {
+  async function send(text: string) {
     const clean = text.trim();
     if (!clean || typing) return;
+
+    // Historique envoyé à l'IA (rôles OpenAI), en excluant le message d'accueil
+    const history = messages
+      .filter((m) => m.text.trim().length > 0)
+      .map((m) => ({ role: m.from === "bot" ? "assistant" : "user", content: m.text }));
 
     setMessages((m) => [...m, { id: nextId(), from: "user", text: clean }]);
     setInput("");
     setTyping(true);
 
-    // Petit délai pour simuler une "réflexion" naturelle
-    const answer = getBotAnswer(clean);
-    window.setTimeout(() => {
+    try {
+      const res = await fetch("/api/chatbot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [...history, { role: "user", content: clean }].slice(-12),
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      const reply: string =
+        (data && typeof data.reply === "string" && data.reply) ||
+        // secours local si la réponse est vide/inattendue
+        getBotAnswer(clean).text;
+      const action = data?.action ?? undefined;
+      setMessages((m) => [...m, { id: nextId(), from: "bot", text: reply, action }]);
+    } catch {
+      // secours 100% hors-ligne : l'assistant à règles
+      const answer = getBotAnswer(clean);
       setMessages((m) => [
         ...m,
         { id: nextId(), from: "bot", text: answer.text, action: answer.action },
       ]);
+    } finally {
       setTyping(false);
-    }, 550);
+    }
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -152,7 +173,7 @@ export function Chatbot() {
                 <p className="truncate text-sm font-semibold leading-tight">Assistant SÉCUREX</p>
                 <p className="flex items-center gap-1.5 text-xs text-white/85">
                   <span className="inline-block h-2 w-2 rounded-full bg-emerald-300" />
-                  En ligne · réponse instantanée
+                  En ligne · FR · AR · EN
                 </p>
               </div>
               <button
@@ -180,7 +201,7 @@ export function Chatbot() {
                         : "rounded-bl-md border border-border bg-background text-foreground"
                     )}
                   >
-                    <p className="whitespace-pre-line">{m.text}</p>
+                    <p dir="auto" className="whitespace-pre-line">{m.text}</p>
                     {m.action && (
                       <Link
                         href={m.action.href}
