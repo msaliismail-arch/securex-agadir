@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PublicHeader } from "@/components/public/header";
 import { PublicFooter } from "@/components/public/footer";
+import { Chatbot } from "@/components/public/chatbot";
 
 export const metadata: Metadata = {
   title: {
@@ -46,6 +47,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <PublicHeader />
       <main className="flex-1">{children}</main>
       <PublicFooter />
+      <Chatbot />
     </div>
   );
 }
