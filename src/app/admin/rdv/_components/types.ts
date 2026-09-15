@@ -3,6 +3,7 @@
 export type AppointmentStatus =
   | "PENDING"
   | "APPROVED"
+  | "REJECTED"
   | "COMPLETED"
   | "CANCELLED";
 
@@ -56,6 +57,11 @@ export interface Appointment {
   clientPhone: string;
   vehiclePlate: string;
   vehicleDesc: string;
+  totalAmountCents: number;
+  depositAmountCents: number;
+  amountPaidCents: number;
+  balanceDueCents: number;
+  paymentStatus: string;
   category?: CategoryRef;
   service?: ServiceRef;
   result?: InspectionResultRef | null;

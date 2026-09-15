@@ -93,7 +93,7 @@ const ICON_CHOICES = [
 const COLOR_KEYS = Object.keys(COLOR_MAP) as CategoryColor[];
 
 function getIcon(name: string) {
-  return (LucideIcons as Record<string, React.ComponentType<{ className?: string }>>)[name] ?? LucideIcons.Folder;
+  return (LucideIcons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[name] ?? LucideIcons.Folder;
 }
 
 function slugify(s: string) {

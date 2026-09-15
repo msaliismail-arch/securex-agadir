@@ -7,8 +7,9 @@
 
 - **Framework**: Next.js 16 (App Router) + React 19 + TypeScript 5
 - **Styling**: Tailwind CSS 4 + shadcn/ui (New York) + Lucide icons + Framer Motion
-- **Database**: Prisma ORM (SQLite) — `prisma/schema.prisma`, client at `src/lib/db.ts`
-- **Auth**: Custom JWT sessions (`jose`) in httpOnly cookies + simulated OTP (demo code `123456`)
+- **Database**: Prisma ORM + PostgreSQL Supabase — `prisma/schema.prisma`, client serveur dans `src/lib/db.ts`
+- **Auth**: Supabase Auth SSR pour les clients (email/mot de passe + code de confirmation) ; JWT httpOnly existant conservé pour les trois rôles administrateurs
+- **Payments**: Stripe Checkout pour l’acompte de 25 %, webhook signé et registre serveur idempotent
 - **State**: Zustand (client) + TanStack Query (server) + react-hook-form + zod
 - **QR**: `qrcode` (generation) + `html5-qrcode` (camera scan)
 - **PDF**: `jspdf` (client-side certificate generation)
@@ -49,11 +50,12 @@ src/
 
 ### Public → Client
 1. Public home (`/`) → browse services / pricing / announcements / contact
-2. Book appointment (`/rendez-vous`) → 4-step wizard:
+2. Authentification client vérifiée, puis rendez-vous (`/rendez-vous`) → assistant en 4 étapes:
    category → service → date/time → client+vehicle info + confirm
-3. **Success screen**: generates a **6-character reference code** (e.g. `SX-7K2Q9`).
+3. Paiement Stripe de l’acompte de 25 %, ou exemption via un code généré par le Super Admin. Seul le webhook signé confirme le paiement et le rendez-vous.
+4. **Success screen**: generates a **6-character reference code** (e.g. `SX-7K2Q9`).
    The QR code is **NOT** shown here (per spec — QR is only generated after validation).
-4. Client space (`/espace-client`) — phone + OTP login → dashboard shows upcoming
+5. Client space (`/espace-client`) — email + mot de passe Supabase → dashboard shows upcoming
    RDV with reference code; after validation, shows the validation QR + downloadable
    certificate PDF.
 

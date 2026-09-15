@@ -35,7 +35,7 @@ import { CategoryBadge } from "@/components/client/badges";
 import { CertificateButton } from "@/components/client/qr-dialog";
 import { cn, formatDate } from "@/lib/utils";
 
-const INSPECTION_FIELDS: { key: keyof AppointmentItem["result"]; label: string }[] = [
+const INSPECTION_FIELDS: { key: keyof NonNullable<AppointmentItem["result"]>; label: string }[] = [
   { key: "brakes", label: "Freinage" },
   { key: "lights", label: "Éclairage" },
   { key: "tires", label: "Pneumatiques" },

@@ -32,17 +32,15 @@ const STEPS = [ { num: 1, label: "Véhicule" }, { num: 2, label: "Service & Cré
 const channelOptions = [ { value: "SMS", label: "SMS", icon: MessageSquare }, { value: "WHATSAPP", label: "WhatsApp", icon: Smartphone }, { value: "EMAIL", label: "E-mail", icon: Mail } ] as const;
 
 const formSchema = z.object({
-  clientName: z.string({ required_error: "Le nom est requis" }).min(2, "Nom trop court"),
-  clientPhone: z.string({ required_error: "Le téléphone est requis" }).refine(isValidMaPhone, "Numéro marocain invalide"),
-  clientEmail: z.string({ required_error: "L'e-mail est requis" }).email("E-mail invalide"),
-  clientPassword: z.string({ required_error: "Mot de passe requis" }).min(6, "6 caractères min."),
-  clientPasswordConfirm: z.string({ required_error: "Veuillez confirmer" }),
-  vehiclePlate: z.string({ required_error: "Immatriculation requise" }).refine(isValidMaPlateArabic, "Format invalide. Saisissez une lettre arabe (Ex: 12345-A-6)"),
+  clientName: z.string().min(2, "Nom trop court"),
+  clientPhone: z.string().refine(isValidMaPhone, "Numéro marocain invalide"),
+  clientEmail: z.string().email("E-mail invalide"),
+  vehiclePlate: z.string().refine(isValidMaPlateArabic, "Format invalide. Saisissez une lettre arabe (Ex: 12345-A-6)"),
   vehicleBrand: z.string().min(2, "Marque requise"),
   vehicleModel: z.string().min(1, "Modèle requis"),
-  vehicleYear: z.coerce.number().int().min(1980).max(new Date().getFullYear() + 1, "Année invalide"),
+  vehicleYear: z.number().int().min(1980).max(new Date().getFullYear() + 1, "Année invalide"),
   channel: z.enum(["SMS", "EMAIL", "WHATSAPP"]),
-}).refine((d) => d.clientPassword === d.clientPasswordConfirm, { message: "Les mots de passe ne correspondent pas", path: ["clientPasswordConfirm"] });
+});
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -62,6 +60,9 @@ function BookingWizard() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [clientProfile, setClientProfile] = useState<{ name: string; phone: string; email: string; channel: "SMS" | "EMAIL" | "WHATSAPP" } | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [promoCode, setPromoCode] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -79,21 +80,37 @@ function BookingWizard() {
     return () => { active = false; };
   }, [searchParams]);
 
-  const form = useForm<FormValues>({ resolver: zodResolver(formSchema), defaultValues: { clientName: "", clientPhone: "+212 ", clientEmail: "", clientPassword: "", clientPasswordConfirm: "", vehiclePlate: "", vehicleBrand: "", vehicleModel: "", vehicleYear: new Date().getFullYear(), channel: "SMS" }, mode: "onTouched" });
+  const form = useForm<FormValues>({ resolver: zodResolver(formSchema), defaultValues: { clientName: "", clientPhone: "+212 ", clientEmail: "", vehiclePlate: "", vehicleBrand: "", vehicleModel: "", vehicleYear: new Date().getFullYear(), channel: "SMS" }, mode: "onTouched" });
+
+  useEffect(() => {
+    fetch("/api/clients/me", { cache: "no-store" })
+      .then(async (response) => response.ok ? response.json() : null)
+      .then((profile) => {
+        if (!profile) return;
+        setClientProfile(profile);
+        form.reset({ ...form.getValues(), clientName: profile.name, clientPhone: profile.phone, clientEmail: profile.email, channel: profile.channel });
+      })
+      .finally(() => setAuthLoading(false));
+  }, [form]);
 
   const submit = form.handleSubmit(async (values) => {
     if (!selectedCat || !selectedService || !selectedDate || !selectedSlot) return;
     setSubmitting(true);
     try {
-      const res = await fetch("/api/appointments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...values, vehiclePlate: values.vehiclePlate.trim(), vehicleYear: Number(values.vehicleYear), vehicleCategory: selectedCat.slug.toUpperCase(), categoryId: selectedCat.id, serviceId: selectedService.id, date: ymdKey(selectedDate), slot: selectedSlot }) });
+      const res = await fetch("/api/appointments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...values, promoCode, vehiclePlate: values.vehiclePlate.trim(), vehicleYear: Number(values.vehicleYear), vehicleCategory: selectedCat.slug.toUpperCase(), categoryId: selectedCat.id, serviceId: selectedService.id, date: ymdKey(selectedDate), slot: selectedSlot }) });
       if (res.status === 409) { toast.error("Un compte existe déjà avec ces identifiants."); return; }
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Erreur lors de la réservation");
+      if (data.checkoutUrl) { window.location.assign(data.checkoutUrl); return; }
       setSuccess({ code: data.code, queueNumber: data.queueNumber ?? 1, date: data.date, slot: data.slot, categoryName: data.category?.name ?? selectedCat.name, categoryColor: (data.category?.color ?? selectedCat.color) as CategoryColor, serviceName: data.service?.name ?? selectedService.name, servicePrice: data.service?.price ?? selectedService.price, vehiclePlate: data.vehiclePlate ?? values.vehiclePlate, vehicleDesc: `${values.vehicleBrand} ${values.vehicleModel}`, clientName: data.clientName ?? values.clientName, clientPhone: data.clientPhone ?? values.clientPhone });
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) { toast.error(e instanceof Error ? e.message : "Erreur"); } finally { setSubmitting(false); }
   });
 
+  if (authLoading) return <WizardSkeleton />;
+  if (!clientProfile) {
+    return (<div className="mx-auto flex min-h-[65vh] max-w-lg items-center px-4 py-12"><Card className="glass-card w-full border-primary/20 shadow-card"><CardContent className="p-7 text-center"><Lock className="mx-auto h-12 w-12 text-primary" /><h1 className="mt-4 text-2xl font-bold">Identifiez-vous avant de réserver</h1><p className="mt-2 text-sm text-muted-foreground">Créez votre compte, confirmez votre email avec le code reçu, puis revenez automatiquement au rendez-vous.</p><Button asChild className="mt-6 bg-brand-gradient text-white"><a href="/espace-client?next=/rendez-vous">Connexion ou inscription</a></Button></CardContent></Card></div>);
+  }
   if (success) return <BookingSuccess data={success} />;
 
   return (
@@ -115,13 +132,15 @@ function BookingWizard() {
               date={selectedDate!}
               slot={selectedSlot!}
               values={form.getValues()}
+              promoCode={promoCode}
+              onPromoCodeChange={setPromoCode}
               onEdit={() => setStep(3)}
             />
             <WizardNav
               onBack={() => setStep(3)}
               onNext={submit}
               nextDisabled={submitting}
-              nextLabel={submitting ? "En cours..." : "Confirmer"}
+              nextLabel={submitting ? "En cours..." : promoCode.trim() ? "Confirmer avec le code" : "Payer l'acompte de 25 %"}
               nextLoading={submitting}
               highlightNext
             />
@@ -213,25 +232,19 @@ function Step2({ category, selectedService, onSelectService, selectedDate, onSel
 }
 
 function Step3({ form }: { form: ReturnType<typeof useForm<FormValues>> }) {
-  const [showPwd, setShowPwd] = useState(false);
-  const [showPwdConfirm, setShowPwdConfirm] = useState(false);
   return (<div><SectionHeading eyebrow="Étape 3" title="Informations" subtitle="Coordonnées et véhicule." /><Form {...form}><form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
     <Card className="glass-card"><CardContent className="space-y-4 p-5 md:p-6">
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField control={form.control} name="clientName" render={({ field }) => (<FormItem><FormLabel>Nom complet *</FormLabel><FormControl><Input placeholder="Ex: Mehdi Tazi" {...field} /></FormControl><FormMessage /></FormItem>)} />
-        <FormField control={form.control} name="clientPhone" render={({ field }) => (<FormItem><FormLabel>Téléphone (+212) *</FormLabel><FormControl><div className="relative"><Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input placeholder="+212 6 12 34 56 78" className="pl-9" inputMode="tel" {...field} /></div></FormControl><FormMessage /></FormItem>)} />
-        <FormField control={form.control} name="clientEmail" render={({ field }) => (<FormItem className="sm:col-span-2"><FormLabel>E-mail *</FormLabel><FormControl><div className="relative"><Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input type="email" placeholder="vous@exemple.com" className="pl-9" {...field} /></div></FormControl><FormMessage /></FormItem>)} />
-        
-        <FormField control={form.control} name="clientPassword" render={({ field }) => (<FormItem><FormLabel>Mot de passe *</FormLabel><FormControl><div className="relative"><Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input type={showPwd ? "text" : "password"} placeholder="Votre mot de passe" className="pl-9 pr-10" {...field} /><button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1.5 text-muted-foreground hover:text-foreground">{showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></FormControl><FormMessage /></FormItem>)} />
-        
-        <FormField control={form.control} name="clientPasswordConfirm" render={({ field }) => (<FormItem><FormLabel>Confirmer *</FormLabel><FormControl><div className="relative"><Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input type={showPwdConfirm ? "text" : "password"} placeholder="Confirmez le mot de passe" className="pl-9 pr-10" {...field} /><button type="button" onClick={() => setShowPwdConfirm(!showPwdConfirm)} className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1.5 text-muted-foreground hover:text-foreground">{showPwdConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></FormControl><FormMessage /></FormItem>)} />
+        <FormField control={form.control} name="clientName" render={({ field }) => (<FormItem><FormLabel>Nom complet</FormLabel><FormControl><Input readOnly className="bg-muted/30" {...field} /></FormControl></FormItem>)} />
+        <FormField control={form.control} name="clientPhone" render={({ field }) => (<FormItem><FormLabel>Téléphone</FormLabel><FormControl><div className="relative"><Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input readOnly className="bg-muted/30 pl-9" {...field} /></div></FormControl></FormItem>)} />
+        <FormField control={form.control} name="clientEmail" render={({ field }) => (<FormItem className="sm:col-span-2"><FormLabel>E-mail vérifié</FormLabel><FormControl><div className="relative"><Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input readOnly className="bg-muted/30 pl-9" {...field} /></div></FormControl></FormItem>)} />
 
       </div>
     </CardContent></Card>
     <Card className="glass-card"><CardContent className="space-y-4 p-5 md:p-6">
       <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground"><CalendarDays className="h-4 w-4 text-primary" /> Véhicule</h3>
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField control={form.control} name="vehiclePlate" render={({ field }) => (<FormItem className="sm:col-span-2"><FormLabel>Immatriculation *</FormLabel><FormControl><Input placeholder="Ex: 12345-A-6" {...field} onBlur={(e) => { field.onBlur(e); field.onChange(formatMaPlate(e.target.value)); }} /></FormControl><FormDescription>Format : Chiffres - Lettre arabe - Code.</FormDescription><FormMessage /></FormItem>)} />
+        <FormField control={form.control} name="vehiclePlate" render={({ field }) => (<FormItem className="sm:col-span-2"><FormLabel>Immatriculation *</FormLabel><FormControl><Input placeholder="Ex: 12345-A-6" {...field} onBlur={(e) => { field.onBlur(); field.onChange(formatMaPlate(e.target.value)); }} /></FormControl><FormDescription>Format : Chiffres - Lettre arabe - Code.</FormDescription><FormMessage /></FormItem>)} />
         <FormField control={form.control} name="vehicleBrand" render={({ field }) => (<FormItem><FormLabel>Marque *</FormLabel><FormControl><Input placeholder="Ex: Renault" {...field} /></FormControl><FormMessage /></FormItem>)} />
         <FormField control={form.control} name="vehicleModel" render={({ field }) => (<FormItem><FormLabel>Modèle *</FormLabel><FormControl><Input placeholder="Ex: Clio" {...field} /></FormControl><FormMessage /></FormItem>)} />
         <FormField control={form.control} name="vehicleYear" render={({ field }) => (<FormItem><FormLabel>Année *</FormLabel><FormControl><Input type="number" min={1980} max={new Date().getFullYear() + 1} placeholder="2020" {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>)} />
@@ -240,14 +253,14 @@ function Step3({ form }: { form: ReturnType<typeof useForm<FormValues>> }) {
   </form></Form></div>);
 }
 
-function Step4({ cat, service, date, slot, values, onEdit }: { cat: CategoryItem; service: ServiceItem; date: Date; slot: string; values: FormValues; onEdit: () => void; }) {
+function Step4({ cat, service, date, slot, values, promoCode, onPromoCodeChange, onEdit }: { cat: CategoryItem; service: ServiceItem; date: Date; slot: string; values: FormValues; promoCode: string; onPromoCodeChange: (value: string) => void; onEdit: () => void; }) {
   const color = COLOR_MAP[cat.color as CategoryColor] ?? COLOR_MAP.blue;
   return (<div><SectionHeading eyebrow="Étape 4" title="Confirmation" subtitle="Vérifiez et confirmez." /><div className="grid gap-5 lg:grid-cols-3"><Card className="glass-card lg:col-span-2"><CardContent className="space-y-5 p-5 md:p-6">
     <div className="flex flex-wrap items-center gap-2"><Badge className={cn("font-medium", color.bg, "text-white border-transparent")}>{cat.name}</Badge><Badge variant="outline" className="border-primary/30 text-primary">{service.name}</Badge><Badge variant="outline" className="font-bold text-foreground">{formatMAD(service.price)}</Badge></div>
     <div className="mt-2 grid gap-2 sm:grid-cols-2"><div className="rounded-md bg-muted/30 px-3 py-2"><p className="text-[11px] uppercase tracking-wider text-muted-foreground">Date</p><p className="text-sm font-medium text-foreground">{date.toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</p></div><div className="rounded-md bg-muted/30 px-3 py-2"><p className="text-[11px] uppercase tracking-wider text-muted-foreground">Créneau</p><p className="text-sm font-medium text-foreground">{slot}</p></div></div>
     <div className="h-px w-full bg-border" />
     <div className="grid gap-2 sm:grid-cols-2"><div className="rounded-md bg-muted/30 px-3 py-2"><p className="text-[11px] uppercase tracking-wider text-muted-foreground">Immatriculation</p><p className="text-sm font-mono font-semibold text-foreground">{values.vehiclePlate}</p></div><div className="rounded-md bg-muted/30 px-3 py-2"><p className="text-[11px] uppercase tracking-wider text-muted-foreground">Véhicule</p><p className="text-sm font-medium text-foreground">{values.vehicleBrand} {values.vehicleModel} ({values.vehicleYear})</p></div></div>
-  </CardContent></Card><Card className="glass-card h-fit"><CardContent className="space-y-4 p-5"><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Récapitulatif</p><div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Total à payer sur place</span><span className="text-xl font-bold text-primary">{formatMAD(service.price)}</span></div><Button type="button" variant="outline" className="w-full" onClick={onEdit}>Modifier</Button></CardContent></Card></div></div>);
+  </CardContent></Card><Card className="glass-card h-fit"><CardContent className="space-y-4 p-5"><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Paiement</p><div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Prix total</span><span className="font-semibold">{formatMAD(service.price)}</span></div><div className="flex items-center justify-between rounded-lg bg-primary/5 p-3"><span className="text-sm text-muted-foreground">Acompte en ligne (25 %)</span><span className="text-xl font-bold text-primary">{formatMAD(Math.round(service.price * 25) / 100)}</span></div><div className="space-y-1.5"><label htmlFor="promo-code" className="text-xs font-medium">Code d’exemption (facultatif)</label><Input id="promo-code" value={promoCode} onChange={(e) => onPromoCodeChange(e.target.value.toUpperCase())} placeholder="SX-XXXXXXXX" className="font-mono uppercase" /><p className="text-[11px] text-muted-foreground">Un code valide supprime l’acompte ; la totalité sera alors payée à l’agence.</p></div><Button type="button" variant="outline" className="w-full" onClick={onEdit}>Modifier</Button></CardContent></Card></div></div>);
 }
 
 function SectionHeading({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string; }) { return (<div className="mb-6"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{eyebrow}</p><h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground">{title}</h2><p className="mt-1 text-sm text-muted-foreground">{subtitle}</p></div>); }

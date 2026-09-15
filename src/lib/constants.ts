@@ -137,6 +137,7 @@ export const DEMO_OTP = "123456";
 export type AppointmentStatus =
   | "PENDING"
   | "APPROVED"
+  | "REJECTED"
   | "COMPLETED"
   | "CANCELLED";
 
@@ -146,12 +147,13 @@ export const STATUS_META: Record<
 > = {
   PENDING: { label: "En attente", color: "orange", icon: "Clock" },
   APPROVED: { label: "Confirmé", color: "green", icon: "CheckCircle2" },
+  REJECTED: { label: "Rejeté", color: "red", icon: "XCircle" },
   COMPLETED: { label: "Terminé", color: "purple", icon: "Award" },
   CANCELLED: { label: "Annulé", color: "gray", icon: "Ban" },
 };
 
 /** Statuses the RDV admin can set. */
-export const RDV_STATUSES: AppointmentStatus[] = ["PENDING", "APPROVED", "COMPLETED", "CANCELLED"];
+export const RDV_STATUSES: AppointmentStatus[] = ["PENDING", "APPROVED", "REJECTED", "COMPLETED", "CANCELLED"];
 
 /** Morning slots (both weekdays and Saturday). */
 export const MORNING_SLOTS = [

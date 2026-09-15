@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils";
 
 const profileSchema = z.object({
   name: z
-    .string({ required_error: "Le nom est requis" })
+    .string()
     .min(3, "Nom trop court")
     .max(80, "Nom trop long"),
   email: z
@@ -45,9 +45,7 @@ const profileSchema = z.object({
     .email("Adresse e-mail invalide")
     .optional()
     .or(z.literal("")),
-  channel: z.enum(["SMS", "EMAIL", "WHATSAPP"], {
-    required_error: "Choisissez un canal de notification",
-  }),
+  channel: z.enum(["SMS", "EMAIL", "WHATSAPP"]),
 });
 type ProfileValues = z.infer<typeof profileSchema>;
 
@@ -99,7 +97,7 @@ export default function ProfilPage() {
       if (!res.ok) {
         throw new Error(body?.error || "Erreur lors de l'enregistrement");
       }
-      toast.success("Profil mis à jour avec succès.");
+      toast.success(body.emailConfirmationRequired ? "Profil mis à jour. Confirmez votre nouvelle adresse via l’email Supabase." : "Profil mis à jour avec succès.");
       await refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erreur lors de l'enregistrement");

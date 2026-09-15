@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 /** Client's own profile + vehicles + appointments (for the client space). */
 export async function GET() {
@@ -9,7 +10,7 @@ export async function GET() {
     return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
   }
   const client = await db.client.findUnique({
-    where: { phone: session.phone! },
+    where: { id: session.sub },
     include: {
       vehicles: true,
       appointments: {
@@ -29,10 +30,23 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
   }
   const body = await req.json();
-  const { channel, email, name } = body;
+  const { channel, email, name } = body as { channel?: string; email?: string; name?: string };
+  const current = await db.client.findUnique({ where: { id: session.sub } });
+  if (!current) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+
+  let emailConfirmationRequired = false;
+  if (email && email.toLowerCase().trim() !== current.email) {
+    const supabase = await createSupabaseServerClient();
+    const { error } = await supabase.auth.updateUser({ email: email.toLowerCase().trim() });
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    emailConfirmationRequired = true;
+  }
   const client = await db.client.update({
-    where: { phone: session.phone! },
-    data: { channel, email, name },
+    where: { id: session.sub },
+    data: {
+      ...(channel ? { channel } : {}),
+      ...(name?.trim() ? { name: name.trim() } : {}),
+    },
   });
-  return NextResponse.json(client);
+  return NextResponse.json({ ...client, emailConfirmationRequired });
 }

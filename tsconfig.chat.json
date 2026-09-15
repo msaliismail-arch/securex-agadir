@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "skipLibCheck": true, "noEmit": true },
+  "include": [
+    "src/lib/chatbot-knowledge.ts",
+    "src/components/public/chatbot.tsx",
+    "src/app/(public)/layout.tsx",
+    "next-env.d.ts"
+  ]
+}

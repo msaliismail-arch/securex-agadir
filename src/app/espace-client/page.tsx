@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -76,7 +77,11 @@ export default function EspaceClientPage() {
     );
   }
 
-  return hasSession ? <Dashboard /> : <LoginScreen />;
+  return hasSession ? <Dashboard /> : (
+    <React.Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div>}>
+      <LoginScreen />
+    </React.Suspense>
+  );
 }
 
 /* --------------------------------- Login ---------------------------------- */
@@ -148,6 +153,7 @@ function LoginScreen() {
 
 /* ------------------------------ Login Form -------------------------------- */
 function LoginForm() {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -171,8 +177,10 @@ function LoginForm() {
         throw new Error(data?.error || "Identifiants incorrects");
       }
       toast.success(`Bienvenue${data?.name ? `, ${data.name}` : ""} !`);
-      // Full reload so the layout's session check re-runs and the shell appears.
-      window.location.reload();
+      const requestedNext = searchParams.get("next");
+      window.location.href = requestedNext?.startsWith("/") && !requestedNext.startsWith("//")
+        ? requestedNext
+        : "/espace-client";
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur de connexion");
     } finally {
@@ -233,18 +241,61 @@ function LoginForm() {
         {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Se connecter
       </Button>
+      <a href="/mot-de-passe-oublie" className="block text-center text-xs font-medium text-primary hover:underline">
+        Mot de passe oublié ?
+      </a>
     </form>
   );
 }
 
 /* ----------------------------- Register Form ------------------------------ */
 function RegisterForm() {
+  const searchParams = useSearchParams();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("+212 ");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState<string | null>(null);
+  const [verificationCode, setVerificationCode] = useState("");
+
+  const verifyEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!confirmationEmail || !/^\d{6}$/.test(verificationCode)) {
+      toast.error("Saisissez le code à 6 chiffres reçu par email.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: confirmationEmail, token: verificationCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Code incorrect ou expiré");
+      toast.success("Adresse email confirmée. Votre compte est prêt.");
+      const requestedNext = searchParams.get("next");
+      window.location.href = requestedNext?.startsWith("/") && !requestedNext.startsWith("//")
+        ? requestedNext
+        : "/espace-client";
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Vérification impossible");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const resendCode = async () => {
+    if (!confirmationEmail) return;
+    const res = await fetch("/api/auth/resend-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: confirmationEmail }),
+    });
+    toast[res.ok ? "success" : "error"](res.ok ? "Nouveau code envoyé." : "Envoi impossible.");
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -264,8 +315,8 @@ function RegisterForm() {
       toast.error("Adresse email invalide.");
       return;
     }
-    if (password.length < 6) {
-      toast.error("Le mot de passe doit contenir au moins 6 caractères.");
+    if (password.length < 8) {
+      toast.error("Le mot de passe doit contenir au moins 8 caractères.");
       return;
     }
 
@@ -288,14 +339,45 @@ function RegisterForm() {
         }
         throw new Error(data?.error || "Inscription impossible");
       }
-      toast.success(`Compte créé. Bienvenue${data?.name ? `, ${data.name}` : ""} !`);
-      window.location.reload();
+      setConfirmationEmail(data.email || trimmedEmail.toLowerCase());
+      toast.success("Un code de vérification vient de vous être envoyé.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur lors de l'inscription");
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (confirmationEmail) {
+    return (
+      <form onSubmit={verifyEmail} className="space-y-4">
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+          Saisissez le code à 6 chiffres envoyé à <strong className="text-foreground">{confirmationEmail}</strong>.
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="verification-code">Code de vérification</Label>
+          <Input
+            id="verification-code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            placeholder="123456"
+            className="text-center font-mono text-xl tracking-[0.4em]"
+            value={verificationCode}
+            onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ""))}
+            disabled={submitting}
+          />
+        </div>
+        <Button type="submit" className="w-full bg-brand-gradient text-white hover:opacity-90" disabled={submitting}>
+          {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Vérifier et continuer
+        </Button>
+        <Button type="button" variant="ghost" className="w-full" onClick={resendCode} disabled={submitting}>
+          Renvoyer le code
+        </Button>
+      </form>
+    );
+  }
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
@@ -360,7 +442,7 @@ function RegisterForm() {
             id="reg-password"
             type={showPassword ? "text" : "password"}
             autoComplete="new-password"
-            placeholder="6 caractères minimum"
+            placeholder="8 caractères minimum"
             className="pl-9 pr-9"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -376,7 +458,7 @@ function RegisterForm() {
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
-        <p className="text-xs text-muted-foreground">6 caractères minimum.</p>
+        <p className="text-xs text-muted-foreground">8 caractères minimum.</p>
       </div>
 
       <Button

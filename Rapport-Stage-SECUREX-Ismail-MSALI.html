@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Rapport de Stage — SECUREX Agadir — Ismail MSALI</title>
+<style>
+  @page { size: A4; margin: 2.2cm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Calibri, Arial, sans-serif; color: #1a202c; line-height: 1.7; margin: 0; background: #f5f6f8; }
+  .page { background: white; max-width: 21cm; margin: 20px auto; padding: 2.2cm; box-shadow: 0 2px 12px rgba(0,0,0,.08); page-break-after: always; }
+  h1 { color: #0b7a55; font-size: 26px; border-bottom: 3px solid #0b7a55; padding-bottom: 8px; }
+  h2 { color: #0b7a55; font-size: 20px; margin-top: 28px; }
+  h3 { color: #14532d; font-size: 16px; }
+  p, li { font-size: 14px; text-align: justify; }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; }
+  th, td { border: 1px solid #cbd5e0; padding: 8px 10px; font-size: 13px; }
+  th { background: #0b7a55; color: white; text-align: left; }
+  tr:nth-child(even) td { background: #f0faf5; }
+  .garde { text-align: center; display: flex; flex-direction: column; justify-content: space-between; min-height: 26cm; }
+  .garde .uni { font-size: 15px; font-weight: 600; color: #444; }
+  .garde .titre { border: 3px solid #0b7a55; border-radius: 14px; padding: 34px 20px; margin: 30px 0; background: #f0faf5; }
+  .garde .titre .t1 { font-size: 15px; color: #555; letter-spacing: 2px; }
+  .garde .titre .t2 { font-size: 27px; font-weight: 800; color: #0b7a55; margin: 12px 0; }
+  .garde .titre .t3 { font-size: 16px; color: #333; }
+  .infos { display: flex; justify-content: space-between; text-align: left; font-size: 14px; margin-top: 24px; }
+  .encadre { background: #f0faf5; border-left: 4px solid #0b7a55; padding: 12px 16px; margin: 14px 0; border-radius: 0 8px 8px 0; }
+  .capture { border: 2px dashed #94a3b8; border-radius: 10px; padding: 34px 10px; text-align: center; color: #64748b; background: #f8fafc; margin: 16px 0; font-size: 13px; }
+  .legende { text-align: center; font-size: 12px; color: #64748b; font-style: italic; margin-top: 4px; }
+  code, pre { font-family: Consolas, monospace; font-size: 12.5px; }
+  pre { background: #0f172a; color: #e2e8f0; padding: 14px; border-radius: 8px; overflow-x: auto; }
+  .sommaire li { margin: 6px 0; font-size: 14.5px; }
+  .footer-note { font-size: 11px; color: #94a3b8; text-align: center; margin-top: 30px; }
+</style>
+</head>
+<body>
+
+<!-- ============ PAGE DE GARDE ============ -->
+<div class="page garde">
+  <div>
+    <div class="uni">
+      Université Mohammed Premier — Oujda<br>
+      École Supérieure de Technologie (EST Oujda)<br>
+      Filière : Systèmes d'Information et Ingénierie de Données
+    </div>
+  </div>
+  <div class="titre">
+    <div class="t1">RAPPORT DE STAGE D'INITIATION</div>
+    <div class="t2">Découverte de l'entreprise SECUREX<br>et de son site web de gestion<br>des rendez-vous de contrôle technique</div>
+    <div class="t3">« SECUREX CONNECT »</div>
+  </div>
+  <div class="infos">
+    <div>
+      <b>Réalisé par :</b><br>
+      Ismail MSALI<br>
+      1<sup>ère</sup> année — EST Oujda
+    </div>
+    <div>
+      <b>Organisme d'accueil :</b><br>
+      SECUREX S.A. — Agadir<br>
+      Centre de contrôle technique agréé
+    </div>
+  </div>
+  <div>
+    <b>Encadrant de stage :</b> M. Lahcen SALMI (Chef de centre)<br>
+    <b>Période de stage :</b> Juin — Juillet 2026<br>
+    <b>Année universitaire :</b> 2025 / 2026
+  </div>
+</div>
+
+<!-- ============ REMERCIEMENTS ============ -->
+<div class="page">
+  <h1>Remerciements</h1>
+  <p>Avant de commencer ce rapport, je tiens à remercier toutes les personnes qui m'ont aidé pendant mon stage.</p>
+  <p>Je remercie d'abord <b>M. Abdellatif KHALIL</b>, directeur de la société SECUREX, de m'avoir accepté comme stagiaire dans son entreprise.</p>
+  <p>Je remercie aussi <b>M. Lahcen SALMI</b>, chef de centre et mon encadrant de stage, pour son accueil, sa patience et ses explications claires pendant toute la période du stage.</p>
+  <p>Mes remerciements vont également à <b>M. Fahd KHALIL</b> ainsi qu'à tous les agents visiteurs du centre : <b>M. Nourdine GHAZALI</b>, <b>M. Mohammed SBAI</b>, <b>M. Sofiane MAZOUANE</b> et <b>M. Faycal YOUSSEF</b>, qui ont répondu à toutes mes questions avec gentillesse.</p>
+  <p>Enfin, je remercie mes professeurs de l'<b>EST Oujda</b> qui m'ont donné les connaissances de base qui m'ont permis de comprendre le fonctionnement de l'entreprise et de son système informatique.</p>
+</div>
+
+<!-- ============ SOMMAIRE ============ -->
+<div class="page">
+  <h1>Sommaire</h1>
+  <ol class="sommaire">
+    <li><b>Introduction générale</b></li>
+    <li><b>Chapitre 1 : Présentation de l'entreprise SECUREX</b>
+      <ol>
+        <li>Fiche d'identité de l'entreprise</li>
+        <li>Activité de l'entreprise</li>
+        <li>Organigramme</li>
+        <li>Déroulement d'un contrôle technique</li>
+      </ol>
+    </li>
+    <li><b>Chapitre 2 : Le site web SECUREX CONNECT</b>
+      <ol>
+        <li>Pourquoi un site web ?</li>
+        <li>Les fonctionnalités du site</li>
+        <li>Les captures d'écran</li>
+      </ol>
+    </li>
+    <li><b>Chapitre 3 : Analyse et conception (Merise)</b>
+      <ol>
+        <li>Le dictionnaire de données</li>
+        <li>Le MCD (Modèle Conceptuel de Données)</li>
+        <li>Le MLD (Modèle Logique de Données)</li>
+        <li>Le MPD (Modèle Physique de Données)</li>
+      </ol>
+    </li>
+    <li><b>Chapitre 4 : Les technologies utilisées</b></li>
+    <li><b>Conclusion générale</b></li>
+  </ol>
+</div>
+
+<!-- ============ INTRODUCTION ============ -->
+<div class="page">
+  <h1>Introduction générale</h1>
+  <p>Dans le cadre de ma première année à l'École Supérieure de Technologie d'Oujda (filière <b>Systèmes d'Information et Ingénierie de Données</b>), j'ai effectué un stage d'initiation au sein de la société <b>SECUREX</b> à Agadir, un centre agréé de contrôle technique des véhicules.</p>
+  <p>Le but de ce stage est simple :</p>
+  <ul>
+    <li>Découvrir le monde du travail et la vie d'une entreprise réelle ;</li>
+    <li>Comprendre comment l'entreprise organise son activité au quotidien ;</li>
+    <li>Étudier le <b>site web de l'entreprise</b> (SECUREX CONNECT) qui permet aux clients de prendre rendez-vous en ligne, et faire le lien avec ce que j'ai appris en cours (base de données, méthode Merise : MCD, MLD, MPD).</li>
+  </ul>
+  <p>Ce rapport est organisé en quatre chapitres : le premier présente l'entreprise, le deuxième présente le site web, le troisième explique l'analyse et la conception de la base de données avec la méthode Merise, et le dernier présente les technologies utilisées.</p>
+</div>
+
+<!-- ============ CHAPITRE 1 ============ -->
+<div class="page">
+  <h1>Chapitre 1 : Présentation de l'entreprise SECUREX</h1>
+
+  <h2>1.1 Fiche d'identité de l'entreprise</h2>
+  <table>
+    <tr><th>Élément</th><th>Information</th></tr>
+    <tr><td>Raison sociale</td><td>SECUREX S.A.</td></tr>
+    <tr><td>Forme juridique</td><td>Société Anonyme (S.A.)</td></tr>
+    <tr><td>Capital</td><td>100 000 DH</td></tr>
+    <tr><td>Registre de commerce</td><td>RC 54205 — Agadir</td></tr>
+    <tr><td>Activité</td><td>Contrôle technique des véhicules (centre agréé par l'État)</td></tr>
+    <tr><td>Adresse</td><td>14, Rue Cadi Ayad, Quartier Industriel, Agadir 80000</td></tr>
+    <tr><td>Téléphone</td><td>05 28 22 04 12</td></tr>
+    <tr><td>E-mail</td><td>securexagadir@yahoo.fr</td></tr>
+    <tr><td>Horaires</td><td>Lundi–Vendredi : 8h–16h · Samedi : 8h–12h · Dimanche : fermé</td></tr>
+  </table>
+
+  <h2>1.2 Activité de l'entreprise</h2>
+  <p>SECUREX est un <b>centre de visite technique agréé</b> installé dans le quartier industriel d'Agadir. Son métier principal est de vérifier que les véhicules respectent les normes de sécurité et de pollution imposées par la loi marocaine.</p>
+  <p>Au Maroc, chaque véhicule doit passer un contrôle technique périodique (la « visite technique »). Le centre SECUREX contrôle plusieurs types de véhicules :</p>
+  <ul>
+    <li><b>Les voitures</b> (véhicules légers) ;</li>
+    <li><b>Les motos</b> et cyclomoteurs ;</li>
+    <li><b>Les camions</b> (poids lourds) ;</li>
+    <li><b>Les véhicules utilitaires</b>.</li>
+  </ul>
+  <p>Pendant la visite, les agents contrôlent les points essentiels du véhicule : les <b>freins</b>, les <b>feux</b> (éclairage), les <b>pneus</b>, la <b>pollution</b> (émissions) et la <b>carrosserie</b>. Si le véhicule est en bon état, le client reçoit un certificat officiel. Sinon, il doit réparer les points défaillants puis revenir pour une <b>contre-visite</b>.</p>
+<!--SUITE1-->
+</div>
+
+<!-- ============ ORGANIGRAMME ============ -->
+<div class="page">
+  <h2>1.3 Organigramme de l'entreprise</h2>
+  <p>L'organigramme montre l'organisation des personnes qui travaillent dans le centre :</p>
+  <svg viewBox="0 0 900 560" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+    <defs>
+      <style>
+        .box { fill:#0b7a55; rx:10; }
+        .box2 { fill:#14926b; }
+        .box3 { fill:#e6f7f0; stroke:#0b7a55; stroke-width:2; }
+        .t { fill:white; font-family:Segoe UI,Arial; text-anchor:middle; }
+        .t3 { fill:#0b4f38; font-family:Segoe UI,Arial; text-anchor:middle; }
+        .line { stroke:#0b7a55; stroke-width:2.5; fill:none; }
+      </style>
+    </defs>
+    <!-- Directeur -->
+    <rect class="box" x="330" y="20" width="240" height="80" rx="12"/>
+    <text class="t" x="450" y="53" font-size="17" font-weight="bold">Directeur</text>
+    <text class="t" x="450" y="78" font-size="15">M. Abdellatif KHALIL</text>
+    <!-- ligne -->
+    <path class="line" d="M450 100 V140"/>
+    <!-- Gérant -->
+    <rect class="box box2" x="330" y="140" width="240" height="80" rx="12"/>
+    <text class="t" x="450" y="173" font-size="16" font-weight="bold">Gérant</text>
+    <text class="t" x="450" y="198" font-size="15">M. Fahd KHALIL</text>
+    <!-- ligne -->
+    <path class="line" d="M450 220 V260"/>
+    <!-- Chef de centre -->
+    <rect class="box box2" x="330" y="260" width="240" height="80" rx="12"/>
+    <text class="t" x="450" y="293" font-size="16" font-weight="bold">Chef de centre</text>
+    <text class="t" x="450" y="318" font-size="15">M. Lahcen SALMI</text>
+    <!-- lignes vers agents -->
+    <path class="line" d="M450 340 V380 M450 380 H115 M450 380 H785 M115 380 V420 M338 380 V420 M562 380 V420 M785 380 V420"/>
+    <!-- Agents visiteurs -->
+    <rect class="box3" x="20" y="420" width="190" height="90" rx="12"/>
+    <text class="t3" x="115" y="455" font-size="14" font-weight="bold">Agent visiteur</text>
+    <text class="t3" x="115" y="482" font-size="13.5">M. Nourdine GHAZALI</text>
+    <rect class="box3" x="243" y="420" width="190" height="90" rx="12"/>
+    <text class="t3" x="338" y="455" font-size="14" font-weight="bold">Agent visiteur</text>
+    <text class="t3" x="338" y="482" font-size="13.5">M. Mohammed SBAI</text>
+    <rect class="box3" x="467" y="420" width="190" height="90" rx="12"/>
+    <text class="t3" x="562" y="455" font-size="14" font-weight="bold">Agent visiteur</text>
+    <text class="t3" x="562" y="482" font-size="13.5">M. Sofiane MAZOUANE</text>
+    <rect class="box3" x="690" y="420" width="190" height="90" rx="12"/>
+    <text class="t3" x="785" y="455" font-size="14" font-weight="bold">Agent visiteur</text>
+    <text class="t3" x="785" y="482" font-size="13.5">M. Faycal YOUSSEF</text>
+  </svg>
+  <p class="legende">Figure 1 : Organigramme de la société SECUREX</p>
+
+  <h2>1.4 Déroulement d'un contrôle technique</h2>
+  <p>Voici les étapes qu'un client suit quand il vient au centre :</p>
+  <ol>
+    <li><b>Prise de rendez-vous</b> : le client réserve par téléphone, sur place, ou directement sur le site web ;</li>
+    <li><b>Accueil</b> : à son arrivée, le client présente les papiers du véhicule (carte grise) ;</li>
+    <li><b>Contrôle</b> : un agent visiteur contrôle le véhicule sur la ligne de contrôle (freins, feux, pneus, pollution, carrosserie) — environ 30 minutes ;</li>
+    <li><b>Résultat</b> : si tout est bon, le client paye et reçoit son certificat. Sinon, il doit réparer et revenir pour une contre-visite.</li>
+  </ol>
+</div>
+
+<!-- ============ CHAPITRE 2 ============ -->
+<div class="page">
+  <h1>Chapitre 2 : Le site web SECUREX CONNECT</h1>
+
+  <h2>2.1 Pourquoi un site web ?</h2>
+  <p>Avant, les clients devaient téléphoner ou se déplacer pour prendre un rendez-vous. Cela posait des problèmes : lignes occupées, files d'attente, oublis... Pour améliorer ce service, l'entreprise a mis en place un site web appelé <b>SECUREX CONNECT</b>.</p>
+  <div class="encadre">
+    <b>Adresse du site :</b> https://securex-agadir-fta3.vercel.app
+  </div>
+  <p>Grâce à ce site, le client peut voir les tarifs, prendre rendez-vous en ligne en 2 minutes, et suivre ses rendez-vous depuis son espace personnel.</p>
+
+  <h2>2.2 Les fonctionnalités du site</h2>
+  <h3>a) La partie publique (visible par tout le monde)</h3>
+  <table>
+    <tr><th>Page</th><th>Rôle</th></tr>
+    <tr><td>Accueil</td><td>Présente le centre, ses services et ses points forts</td></tr>
+    <tr><td>Tarifs</td><td>Affiche les prix des visites pour chaque type de véhicule (voiture, moto, camion, utilitaire)</td></tr>
+    <tr><td>Rendez-vous</td><td>Formulaire pour réserver un créneau en ligne</td></tr>
+    <tr><td>Documents</td><td>Liste des papiers à apporter le jour de la visite</td></tr>
+    <tr><td>FAQ</td><td>Réponses aux questions fréquentes des clients</td></tr>
+    <tr><td>Contact</td><td>Adresse, téléphone, horaires et plan d'accès</td></tr>
+  </table>
+  <h3>b) L'espace client</h3>
+  <p>Le client peut créer un compte avec son téléphone et son e-mail. Il peut ensuite :</p>
+  <ul>
+    <li>Voir ses rendez-vous (en attente, confirmés, terminés) ;</li>
+    <li>Voir l'historique de ses visites et leurs résultats ;</li>
+    <li>Gérer ses véhicules et son profil.</li>
+  </ul>
+  <h3>c) L'espace administrateur</h3>
+  <p>Les employés du centre ont un espace privé pour gérer l'activité :</p>
+  <ul>
+    <li><b>Tableau de bord</b> : statistiques du jour (nombre de rendez-vous, etc.) ;</li>
+    <li><b>Gestion des rendez-vous</b> : confirmer ou refuser les demandes des clients ;</li>
+    <li><b>Check-in par QR code</b> : à l'arrivée du client, l'agent scanne le QR code du rendez-vous ;</li>
+    <li><b>Résultats</b> : enregistrer le résultat du contrôle (freins, feux, pneus, pollution, carrosserie) ;</li>
+    <li><b>Gestion des tarifs et catégories</b> : modifier les prix et les prestations ;</li>
+    <li><b>Gestion du contenu du site</b> : modifier les textes de la page d'accueil ;</li>
+    <li><b>Gestion des utilisateurs</b> : créer les comptes des employés (Super Admin, RDV, Réception).</li>
+  </ul>
+<!--SUITE2-->
+</div>
+
+<!-- ============ CAPTURES ============ -->
+<div class="page">
+  <h2>2.3 Les captures d'écran du site</h2>
+  <div class="capture">📷 Capture d'écran n°1 — La page d'accueil du site</div>
+  <p class="legende">Figure 2 : Page d'accueil de SECUREX CONNECT</p>
+  <div class="capture">📷 Capture d'écran n°2 — La page des tarifs</div>
+  <p class="legende">Figure 3 : Page des tarifs par type de véhicule</p>
+  <div class="capture">📷 Capture d'écran n°3 — Le formulaire de prise de rendez-vous</div>
+  <p class="legende">Figure 4 : Prise de rendez-vous en ligne</p>
+  <div class="capture">📷 Capture d'écran n°4 — L'espace administrateur (tableau de bord)</div>
+  <p class="legende">Figure 5 : Tableau de bord de l'administrateur</p>
+</div>
+
+<!-- ============ CHAPITRE 3 ============ -->
+<div class="page">
+  <h1>Chapitre 3 : Analyse et conception (méthode Merise)</h1>
+  <p>Pour comprendre comment le site enregistre les informations, j'ai étudié sa base de données avec la <b>méthode Merise</b> que j'ai apprise en cours. Cette méthode passe par trois étapes : le <b>MCD</b>, puis le <b>MLD</b>, puis le <b>MPD</b>.</p>
+
+  <h2>3.1 Le dictionnaire de données</h2>
+  <p>C'est la liste des informations importantes que le site doit enregistrer :</p>
+  <table>
+    <tr><th>Donnée</th><th>Description</th><th>Type</th></tr>
+    <tr><td>nomClient</td><td>Nom complet du client</td><td>Texte</td></tr>
+    <tr><td>telephone</td><td>Numéro de téléphone du client</td><td>Texte</td></tr>
+    <tr><td>email</td><td>Adresse e-mail du client</td><td>Texte</td></tr>
+    <tr><td>matricule</td><td>Plaque d'immatriculation du véhicule</td><td>Texte</td></tr>
+    <tr><td>marque / modele</td><td>Marque et modèle du véhicule</td><td>Texte</td></tr>
+    <tr><td>nomCategorie</td><td>Type de véhicule (Voiture, Moto, Camion, Utilitaire)</td><td>Texte</td></tr>
+    <tr><td>nomPrestation</td><td>Nom du service (visite technique, contre-visite...)</td><td>Texte</td></tr>
+    <tr><td>prix</td><td>Prix de la prestation en dirhams</td><td>Nombre</td></tr>
+    <tr><td>dateRdv / heureRdv</td><td>Date et heure du rendez-vous</td><td>Date / Heure</td></tr>
+    <tr><td>statut</td><td>État du rendez-vous (en attente, confirmé, terminé, annulé)</td><td>Texte</td></tr>
+    <tr><td>resultatGlobal</td><td>Résultat du contrôle (accepté ou refusé)</td><td>Texte</td></tr>
+  </table>
+
+  <h2>3.2 Le MCD (Modèle Conceptuel de Données)</h2>
+  <p>Le MCD représente les <b>entités</b> (les « choses » importantes : client, véhicule, rendez-vous...) et les <b>associations</b> entre elles, avec les cardinalités :</p>
+  <svg viewBox="0 0 940 640" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+    <defs>
+      <style>
+        .ent { fill:#e6f7f0; stroke:#0b7a55; stroke-width:2.5; }
+        .enth { fill:#0b7a55; }
+        .asso { fill:#fff7e6; stroke:#d97706; stroke-width:2; }
+        .tt { font-family:Segoe UI,Arial; text-anchor:middle; }
+        .lien { stroke:#475569; stroke-width:2; fill:none; }
+        .card { font-family:Segoe UI,Arial; font-size:12.5px; fill:#b91c1c; font-weight:bold; }
+      </style>
+    </defs>
+    <!-- CLIENT -->
+    <rect class="ent" x="30" y="40" width="200" height="118" rx="6"/>
+    <rect class="enth" x="30" y="40" width="200" height="30" rx="6"/>
+    <text class="tt" x="130" y="61" fill="white" font-size="15" font-weight="bold">CLIENT</text>
+    <text class="tt" x="130" y="92" font-size="12.5">idClient</text>
+    <text class="tt" x="130" y="112" font-size="12.5">nomClient</text>
+    <text class="tt" x="130" y="132" font-size="12.5">telephone</text>
+    <text class="tt" x="130" y="152" font-size="12.5">email</text>
+    <!-- VEHICULE -->
+    <rect class="ent" x="30" y="440" width="200" height="118" rx="6"/>
+    <rect class="enth" x="30" y="440" width="200" height="30" rx="6"/>
+    <text class="tt" x="130" y="461" fill="white" font-size="15" font-weight="bold">VEHICULE</text>
+    <text class="tt" x="130" y="492" font-size="12.5">idVehicule</text>
+    <text class="tt" x="130" y="512" font-size="12.5">matricule</text>
+    <text class="tt" x="130" y="532" font-size="12.5">marque</text>
+    <text class="tt" x="130" y="552" font-size="12.5">modele</text>
+    <!-- RENDEZVOUS -->
+    <rect class="ent" x="380" y="250" width="200" height="118" rx="6"/>
+    <rect class="enth" x="380" y="250" width="200" height="30" rx="6"/>
+    <text class="tt" x="480" y="271" fill="white" font-size="15" font-weight="bold">RENDEZ-VOUS</text>
+    <text class="tt" x="480" y="302" font-size="12.5">idRdv</text>
+    <text class="tt" x="480" y="322" font-size="12.5">dateRdv</text>
+    <text class="tt" x="480" y="342" font-size="12.5">heureRdv</text>
+    <text class="tt" x="480" y="362" font-size="12.5">statut</text>
+    <!-- PRESTATION -->
+    <rect class="ent" x="710" y="40" width="200" height="118" rx="6"/>
+    <rect class="enth" x="710" y="40" width="200" height="30" rx="6"/>
+    <text class="tt" x="810" y="61" fill="white" font-size="15" font-weight="bold">PRESTATION</text>
+    <text class="tt" x="810" y="92" font-size="12.5">idPrestation</text>
+    <text class="tt" x="810" y="112" font-size="12.5">nomPrestation</text>
+    <text class="tt" x="810" y="132" font-size="12.5">prix</text>
+    <text class="tt" x="810" y="152" font-size="12.5">duree</text>
+    <!-- CATEGORIE -->
+    <rect class="ent" x="710" y="440" width="200" height="98" rx="6"/>
+    <rect class="enth" x="710" y="440" width="200" height="30" rx="6"/>
+    <text class="tt" x="810" y="461" fill="white" font-size="15" font-weight="bold">CATEGORIE</text>
+    <text class="tt" x="810" y="492" font-size="12.5">idCategorie</text>
+    <text class="tt" x="810" y="512" font-size="12.5">nomCategorie</text>
+    <!-- RESULTAT -->
+    <rect class="ent" x="380" y="480" width="200" height="118" rx="6"/>
+    <rect class="enth" x="380" y="480" width="200" height="30" rx="6"/>
+    <text class="tt" x="480" y="501" fill="white" font-size="15" font-weight="bold">RESULTAT</text>
+    <text class="tt" x="480" y="532" font-size="12.5">idResultat</text>
+    <text class="tt" x="480" y="552" font-size="12.5">resultatGlobal</text>
+    <text class="tt" x="480" y="572" font-size="12.5">freins, feux, pneus...</text>
+    <!-- Association posséder -->
+    <ellipse class="asso" cx="130" cy="300" rx="72" ry="30"/>
+    <text class="tt" x="130" y="306" font-size="13.5" font-weight="bold">posséder</text>
+    <path class="lien" d="M130 158 V270 M130 330 V440"/>
+    <text class="card" x="142" y="195">1,n</text>
+    <text class="card" x="142" y="420">1,1</text>
+    <!-- Association réserver -->
+    <ellipse class="asso" cx="300" cy="180" rx="70" ry="30"/>
+    <text class="tt" x="300" y="186" font-size="13.5" font-weight="bold">réserver</text>
+    <path class="lien" d="M215 130 Q265 145 285 152 M320 208 Q370 245 395 260"/>
+    <text class="card" x="235" y="130">1,n</text>
+    <text class="card" x="330" y="240">1,1</text>
+    <!-- Association concerner (prestation) -->
+    <ellipse class="asso" cx="660" cy="180" rx="72" ry="30"/>
+    <text class="tt" x="660" y="186" font-size="13.5" font-weight="bold">concerner</text>
+    <path class="lien" d="M575 260 Q610 225 635 205 M690 155 Q720 130 740 115"/>
+    <text class="card" x="590" y="235">1,1</text>
+    <text class="card" x="700" y="145">0,n</text>
+    <!-- Association appartenir -->
+    <ellipse class="asso" cx="810" cy="300" rx="76" ry="30"/>
+    <text class="tt" x="810" y="306" font-size="13.5" font-weight="bold">appartenir</text>
+    <path class="lien" d="M810 158 V270 M810 330 V440"/>
+    <text class="card" x="822" y="195">1,1</text>
+    <text class="card" x="822" y="420">1,n</text>
+    <!-- Association donner -->
+    <ellipse class="asso" cx="480" cy="424" rx="66" ry="28"/>
+    <text class="tt" x="480" y="430" font-size="13.5" font-weight="bold">donner</text>
+    <path class="lien" d="M480 368 V396 M480 452 V480"/>
+    <text class="card" x="492" y="388">0,1</text>
+    <text class="card" x="492" y="472">1,1</text>
+  </svg>
+  <p class="legende">Figure 6 : MCD simplifié du site SECUREX CONNECT</p>
+  <div class="encadre">
+    <b>Lecture simple :</b> un CLIENT peut posséder plusieurs VÉHICULES (1,n) mais un véhicule appartient à un seul client (1,1). Un CLIENT peut réserver plusieurs RENDEZ-VOUS. Chaque rendez-vous concerne une seule PRESTATION, et chaque prestation appartient à une seule CATÉGORIE. À la fin, un rendez-vous peut donner un RÉSULTAT (0,1).
+  </div>
+<!--SUITE3-->
+</div>
+
+<!-- ============ MLD / MPD ============ -->
+<div class="page">
+  <h2>3.3 Le MLD (Modèle Logique de Données)</h2>
+  <p>On transforme le MCD en tables. Les règles sont simples : chaque entité devient une <b>table</b>, et les associations (1,1)–(1,n) deviennent des <b>clés étrangères</b> (notées avec #).</p>
+  <div class="encadre" style="font-family:Consolas,monospace;font-size:13px;line-height:2;">
+    CLIENT (<u>idClient</u>, nomClient, telephone, email, motDePasse)<br>
+    VEHICULE (<u>idVehicule</u>, matricule, marque, modele, annee, #idClient)<br>
+    CATEGORIE (<u>idCategorie</u>, nomCategorie, description)<br>
+    PRESTATION (<u>idPrestation</u>, nomPrestation, prix, duree, #idCategorie)<br>
+    RENDEZVOUS (<u>idRdv</u>, dateRdv, heureRdv, statut, #idClient, #idVehicule, #idPrestation)<br>
+    RESULTAT (<u>idResultat</u>, resultatGlobal, freins, feux, pneus, pollution, carrosserie, #idRdv)
+  </div>
+  <p class="legende">La clé primaire est soulignée. Le # indique une clé étrangère.</p>
+
+  <h2>3.4 Le MPD (Modèle Physique de Données)</h2>
+  <p>Le MPD est la traduction du MLD en langage <b>SQL</b>, pour créer réellement les tables dans la base de données (ici PostgreSQL). Voici un exemple simplifié :</p>
+  <pre>
+CREATE TABLE CLIENT (
+  idClient     SERIAL PRIMARY KEY,
+  nomClient    VARCHAR(100) NOT NULL,
+  telephone    VARCHAR(20)  UNIQUE NOT NULL,
+  email        VARCHAR(100) UNIQUE NOT NULL,
+  motDePasse   VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE CATEGORIE (
+  idCategorie  SERIAL PRIMARY KEY,
+  nomCategorie VARCHAR(50) NOT NULL,
+  description  TEXT
+);
+
+CREATE TABLE PRESTATION (
+  idPrestation SERIAL PRIMARY KEY,
+  nomPrestation VARCHAR(100) NOT NULL,
+  prix         DECIMAL(8,2) NOT NULL,
+  duree        INT,
+  idCategorie  INT REFERENCES CATEGORIE(idCategorie)
+);
+
+CREATE TABLE VEHICULE (
+  idVehicule   SERIAL PRIMARY KEY,
+  matricule    VARCHAR(20) NOT NULL,
+  marque       VARCHAR(50),
+  modele       VARCHAR(50),
+  annee        INT,
+  idClient     INT REFERENCES CLIENT(idClient)
+);
+
+CREATE TABLE RENDEZVOUS (
+  idRdv        SERIAL PRIMARY KEY,
+  dateRdv      DATE NOT NULL,
+  heureRdv     VARCHAR(5) NOT NULL,
+  statut       VARCHAR(20) DEFAULT 'EN_ATTENTE',
+  idClient     INT REFERENCES CLIENT(idClient),
+  idVehicule   INT REFERENCES VEHICULE(idVehicule),
+  idPrestation INT REFERENCES PRESTATION(idPrestation)
+);
+
+CREATE TABLE RESULTAT (
+  idResultat    SERIAL PRIMARY KEY,
+  resultatGlobal VARCHAR(10),
+  freins        VARCHAR(10),
+  feux          VARCHAR(10),
+  pneus         VARCHAR(10),
+  pollution     VARCHAR(10),
+  carrosserie   VARCHAR(10),
+  idRdv         INT UNIQUE REFERENCES RENDEZVOUS(idRdv)
+);</pre>
+  <p class="legende">Figure 7 : MPD — script SQL de création des tables (version simplifiée)</p>
+</div>
+
+<!-- ============ CHAPITRE 4 ============ -->
+<div class="page">
+  <h1>Chapitre 4 : Les technologies utilisées</h1>
+  <p>Le site SECUREX CONNECT utilise des technologies modernes. Voici une explication simple de chacune :</p>
+  <table>
+    <tr><th>Technologie</th><th>C'est quoi ? (explication simple)</th></tr>
+    <tr><td><b>Next.js (React)</b></td><td>Un outil pour créer des sites web modernes et rapides. Il gère les pages du site (accueil, tarifs, etc.).</td></tr>
+    <tr><td><b>TypeScript</b></td><td>Le langage de programmation utilisé pour écrire le code du site (c'est du JavaScript amélioré).</td></tr>
+    <tr><td><b>Tailwind CSS</b></td><td>Un outil pour le design : les couleurs, les tailles, la mise en page.</td></tr>
+    <tr><td><b>PostgreSQL</b></td><td>La base de données qui enregistre les clients, les véhicules et les rendez-vous (hébergée sur Supabase).</td></tr>
+    <tr><td><b>Prisma</b></td><td>Un outil qui fait le lien entre le code du site et la base de données (il traduit le code en SQL).</td></tr>
+    <tr><td><b>Vercel</b></td><td>La plateforme d'hébergement : c'est elle qui met le site en ligne sur Internet.</td></tr>
+  </table>
+
+  <h2>Exemple de code simple</h2>
+  <p>Voici un petit exemple de code qui va chercher la liste des catégories de véhicules dans la base de données pour les afficher sur la page des tarifs :</p>
+  <pre>
+// On demande à la base de données la liste des catégories,
+// avec leurs prestations, triées par ordre d'affichage
+const categories = await db.category.findMany({
+  orderBy: { sort: "asc" },
+  include: { services: true },
+});</pre>
+  <p>Traduction en français simple : « donne-moi toutes les catégories, dans l'ordre, avec leurs prestations ». Le résultat est ensuite affiché dans la page Tarifs.</p>
+</div>
+
+<!-- ============ CONCLUSION ============ -->
+<div class="page">
+  <h1>Conclusion générale</h1>
+  <p>Ce stage d'initiation chez SECUREX a été une expérience très enrichissante pour moi.</p>
+  <p>Sur le plan humain, j'ai découvert la vie d'une vraie entreprise : le travail en équipe, le contact avec les clients, le respect des horaires et l'importance de la communication.</p>
+  <p>Sur le plan technique, j'ai pu voir comment un site web réel fonctionne, de la prise de rendez-vous en ligne jusqu'à l'enregistrement du résultat du contrôle. J'ai surtout pu appliquer la <b>méthode Merise</b> (MCD, MLD, MPD) apprise en cours sur un cas réel, ce qui m'a aidé à mieux comprendre les bases de données.</p>
+  <p>Ce stage m'a donné envie de continuer dans le domaine du développement web et des systèmes d'information, et d'approfondir mes connaissances pendant les prochaines années de ma formation à l'EST Oujda.</p>
+  <div class="footer-note">Rapport de stage — Ismail MSALI — EST Oujda — Année universitaire 2025/2026</div>
+</div>
+
+</body>
+</html>

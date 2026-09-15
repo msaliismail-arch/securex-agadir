@@ -20,6 +20,7 @@ import {
   Globe2,
   ExternalLink,
   UserCircle,
+  TicketPercent,
 } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { Logo } from "@/components/shared/logo";
@@ -48,6 +49,7 @@ const NAV: NavItem[] = [
   { label: "Gestion du site", href: "/admin/dashboard/website", icon: Globe2, featured: true },
   { label: "Catégories & Services", href: "/admin/dashboard/categories", icon: FolderTree },
   { label: "Tarifs", href: "/admin/dashboard/tarifs", icon: Tag },
+  { label: "Codes d'acompte", href: "/admin/dashboard/codes-promo", icon: TicketPercent },
   { label: "Annonces", href: "/admin/dashboard/annonces", icon: Megaphone },
   { label: "Rendez-vous", href: "/admin/dashboard/appointments", icon: CalendarDays },
   { label: "Clients", href: "/admin/dashboard/clients", icon: Users },

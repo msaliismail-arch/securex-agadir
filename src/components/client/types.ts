@@ -47,6 +47,11 @@ export interface AppointmentItem {
   vehiclePlate: string;
   vehicleDesc: string;
   vehicleId: string | null;
+  totalAmountCents: number;
+  depositAmountCents: number;
+  amountPaidCents: number;
+  balanceDueCents: number;
+  paymentStatus: "NOT_REQUIRED" | "PENDING" | "PAID" | "WAIVED" | "FAILED" | "EXPIRED" | "REFUNDED";
   category: CategoryItem;
   service: ServiceItem;
   result: InspectionResultItem | null;

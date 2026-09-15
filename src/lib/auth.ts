@@ -2,12 +2,16 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import type { AdminRole } from "./constants";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
 
 const SESSION_COOKIE = "sx_session";
 const PENDING_COOKIE = "sx_pending";
-const SESSION_SECRET = new TextEncoder().encode(
-  process.env.SESSION_SECRET || "securex-connect-dev-secret-change-in-production-32b"
-);
+function sessionSecret() {
+  const value = process.env.SESSION_SECRET;
+  if (!value || value.length < 32) throw new Error("SESSION_SECRET doit contenir au moins 32 caractères");
+  return new TextEncoder().encode(value);
+}
 
 /** Session lifetime: 3 hours (per spec). */
 const SESSION_TTL_SECONDS = 60 * 60 * 3;
@@ -71,7 +75,7 @@ export async function createSession(payload: Omit<SessionPayload, "iat" | "exp">
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("3h")
-    .sign(SESSION_SECRET);
+    .sign(sessionSecret());
   const store = await cookies();
   store.set(SESSION_COOKIE, token, COOKIE_OPTS);
   return token;
@@ -83,7 +87,7 @@ export async function createPendingSession(payload: Omit<PendingPayload, "iat" |
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("5m")
-    .sign(SESSION_SECRET);
+    .sign(sessionSecret());
   const store = await cookies();
   store.set(PENDING_COOKIE, token, PENDING_OPTS);
   return token;
@@ -95,7 +99,7 @@ export async function getPendingSession(): Promise<PendingPayload | null> {
   const token = store.get(PENDING_COOKIE)?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, SESSION_SECRET);
+    const { payload } = await jwtVerify(token, sessionSecret());
     return payload as unknown as PendingPayload;
   } catch {
     return null;
@@ -110,10 +114,46 @@ export async function destroyPendingSession() {
 export async function getSession(): Promise<SessionPayload | null> {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
+  if (token) {
+    try {
+      const { payload } = await jwtVerify(token, sessionSecret());
+      return payload as unknown as SessionPayload;
+    } catch {
+      // Continue with Supabase Auth for client sessions.
+    }
+  }
+
   try {
-    const { payload } = await jwtVerify(token, SESSION_SECRET);
-    return payload as unknown as SessionPayload;
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user?.email || !data.user.email_confirmed_at) return null;
+
+    const metadata = data.user.user_metadata as { name?: string; phone?: string };
+    let client = await db.client.findUnique({ where: { supabaseUserId: data.user.id } });
+    if (!client) {
+      const existing = await db.client.findUnique({
+        where: { email: data.user.email.toLowerCase() },
+      });
+      if (!existing || !metadata.phone) return null;
+      client = await db.client.update({
+        where: { id: existing.id },
+        data: { supabaseUserId: data.user.id },
+      });
+    }
+    if (client.email !== data.user.email.toLowerCase()) {
+      client = await db.client.update({
+        where: { id: client.id },
+        data: { email: data.user.email.toLowerCase() },
+      });
+    }
+
+    return {
+      sub: client.id,
+      role: "CLIENT",
+      name: client.name,
+      email: client.email,
+      phone: client.phone,
+    };
   } catch {
     return null;
   }
@@ -123,6 +163,12 @@ export async function destroySession() {
   const store = await cookies();
   store.delete(SESSION_COOKIE);
   store.delete(PENDING_COOKIE);
+  try {
+    const supabase = await createSupabaseServerClient();
+    await supabase.auth.signOut();
+  } catch {
+    // Supabase can be absent while the project is being configured locally.
+  }
 }
 
 /** Server-side guard for admin roles. Returns session or null. */

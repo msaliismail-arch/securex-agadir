@@ -31,13 +31,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const existing = await db.appointment.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (status === "APPROVED" && !["PAID", "WAIVED", "NOT_REQUIRED"].includes(existing.paymentStatus)) {
+    return NextResponse.json({ error: "Le rendez-vous ne peut pas être confirmé avant le paiement de l’acompte ou l’application d’un code valide." }, { status: 409 });
+  }
 
   const isRdv = guard.session.role === "RDV";
   const data: any = {};
 
   // RDV admin: ONLY the status field (and only to allowed values).
   if (isRdv) {
-    const allowed = ["PENDING", "APPROVED", "COMPLETED", "CANCELLED"];
+    const allowed = ["PENDING", "APPROVED", "REJECTED", "COMPLETED", "CANCELLED"];
     if (!status || !allowed.includes(status)) {
       return NextResponse.json({ error: "Le RDV Admin ne peut modifier que le statut." }, { status: 403 });
     }

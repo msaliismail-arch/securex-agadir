@@ -134,6 +134,7 @@ function computeStats(
     total: appts.length,
     pending: counts.PENDING,
     approved: counts.APPROVED,
+    rejected: counts.REJECTED,
     completed: counts.COMPLETED,
     cancelled: counts.CANCELLED,
     todayAppts,

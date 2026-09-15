@@ -115,6 +115,11 @@ type Appointment = {
   clientPhone: string;
   vehiclePlate: string;
   vehicleDesc: string;
+  totalAmountCents: number;
+  depositAmountCents: number;
+  amountPaidCents: number;
+  balanceDueCents: number;
+  paymentStatus: string;
   category?: Category;
   service?: Service;
   result?: Inspection;
@@ -634,6 +639,11 @@ export default function AppointmentsPage() {
                     label="File d'attente"
                     value={detailAppt.queueNumber ? `#${detailAppt.queueNumber}` : "—"}
                     sub={detailAppt.qrToken ? "QR généré ✓" : "Pas de QR"}
+                  />
+                  <InfoBlock
+                    label="Paiement"
+                    value={detailAppt.paymentStatus === "PAID" ? "Acompte payé" : detailAppt.paymentStatus === "WAIVED" ? "Acompte exempté" : detailAppt.paymentStatus}
+                    sub={`Payé en ligne : ${(detailAppt.amountPaidCents / 100).toFixed(2)} MAD · solde agence : ${(detailAppt.balanceDueCents / 100).toFixed(2)} MAD`}
                   />
                 </div>
 

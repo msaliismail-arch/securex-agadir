@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rapport Technique — SÉCUREX CONNECT</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: "base", themeVariables: {
+    primaryColor: "#E8FFF8", primaryBorderColor: "#00A87E", primaryTextColor: "#1A2332",
+    lineColor: "#00A87E", fontFamily: "Segoe UI, Arial, sans-serif"
+  }});
+</script>
+<style>
+  :root { --green:#00C896; --green-d:#00876A; --ink:#1A2332; --muted:#6B7280; --line:#E5E7EB; --soft:#F7FAF9; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Calibri, Arial, sans-serif; color: var(--ink); line-height: 1.6;
+    max-width: 950px; margin: 0 auto; padding: 0 28px 80px; background: #fff; }
+  h1,h2,h3,h4 { line-height: 1.25; }
+  h2 { color: var(--green-d); border-bottom: 3px solid var(--green); padding-bottom: 6px; margin-top: 48px; font-size: 1.6rem; }
+  h3 { color: var(--ink); margin-top: 30px; font-size: 1.2rem; }
+  h4 { color: var(--green-d); margin-top: 22px; font-size: 1.02rem; }
+  p, li { font-size: 0.98rem; }
+  a { color: var(--green-d); }
+  code { background: var(--soft); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px;
+    font-family: "Consolas", monospace; font-size: 0.86em; color: #0a6b53; }
+  pre { background: #0f172a; color: #e2e8f0; padding: 16px 18px; border-radius: 8px; overflow-x: auto;
+    font-size: 0.82rem; line-height: 1.45; }
+  pre code { background: none; border: none; color: inherit; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 0.9rem; }
+  th, td { border: 1px solid var(--line); padding: 8px 11px; text-align: left; vertical-align: top; }
+  th { background: var(--green-d); color: #fff; font-weight: 600; }
+  tr:nth-child(even) td { background: var(--soft); }
+  .cover { text-align: center; padding: 90px 20px 70px; border-bottom: 4px solid var(--green); margin-bottom: 20px; }
+  .cover .badge { display:inline-block; background: var(--green); color:#fff; font-weight:600; letter-spacing:1px;
+    padding: 6px 18px; border-radius: 30px; font-size: 0.8rem; }
+  .cover h1 { font-size: 2.9rem; margin: 22px 0 6px; letter-spacing: -1px; }
+  .cover .sub { color: var(--muted); font-size: 1.15rem; }
+  .cover .meta { margin-top: 40px; color: var(--muted); font-size: 0.92rem; }
+  .diagram { background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 22px;
+    margin: 22px 0; text-align: center; }
+  .diagram .mermaid { display:block; }
+  .callout { border-left: 4px solid var(--green); background: var(--soft); padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 18px 0; }
+  .warn { border-left: 4px solid #F2994A; background: #FFF8F0; padding: 12px 18px; border-radius: 0 8px 8px 0; margin: 18px 0; }
+  .toc { background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 20px 28px; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc li { margin: 5px 0; }
+  .tag { display:inline-block; background:#E8FFF8; color:var(--green-d); border:1px solid var(--green);
+    border-radius:20px; padding:2px 12px; font-size:0.8rem; margin:2px; }
+  footer { margin-top: 60px; border-top: 1px solid var(--line); padding-top: 18px; color: var(--muted); font-size: 0.82rem; text-align:center; }
+  @media print { .diagram { break-inside: avoid; } h2 { break-after: avoid; } body { padding: 0 10px; } }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <span class="badge">RAPPORT TECHNIQUE</span>
+  <h1>SÉCUREX CONNECT</h1>
+  <p class="sub">Plateforme web de prise de rendez-vous pour le contrôle technique automobile</p>
+  <div class="meta">
+    Analyse d'architecture et documentation technique du projet<br>
+    Application Next.js / React / TypeScript / PostgreSQL
+  </div>
+</div>
+
+<div class="toc">
+  <strong>Sommaire</strong>
+  <ol>
+    <li>Présentation générale du projet</li>
+    <li>Objectifs et besoins fonctionnels</li>
+    <li>Technologies et outils utilisés</li>
+    <li>Architecture générale de l'application</li>
+    <li>Structure du projet (arborescence)</li>
+    <li>Modèle de données (base de données)</li>
+    <li>Authentification et sécurité</li>
+    <li>Rôles et permissions</li>
+    <li>Modules fonctionnels</li>
+    <li>API REST (interfaces serveur)</li>
+    <li>Logique métier clé</li>
+    <li>Parcours utilisateurs (workflows)</li>
+    <li>Points forts et axes d'amélioration</li>
+    <li>Conclusion</li>
+  </ol>
+</div>
+
+<h2>1. Présentation générale du projet</h2>
+<p>
+<strong>SÉCUREX CONNECT</strong> est une application web complète destinée à un centre de
+<strong>contrôle technique automobile agréé</strong> situé à Agadir (Maroc). Elle permet aux clients de
+<strong>prendre rendez-vous en ligne</strong> pour l'inspection technique de leur véhicule, de gérer leur compte et de
+suivre leurs contrôles, tout en offrant à l'équipe du centre un back-office complet pour gérer les rendez-vous,
+la capacité journalière, la vérification des passages par QR code et l'émission des certificats.
+</p>
+<p>
+Le projet couvre trois grands périmètres&nbsp;: un <strong>site web public</strong> (vitrine + réservation),
+un <strong>espace client</strong> personnel, et une <strong>interface d'administration</strong> à trois niveaux de rôle.
+L'ensemble forme une application « full-stack » unique développée avec le framework <strong>Next.js</strong>,
+où le front-end et l'API back-end cohabitent dans le même projet.
+</p>
+
+<h2>2. Objectifs et besoins fonctionnels</h2>
+<p>Les besoins couverts par l'application sont les suivants&nbsp;:</p>
+<table>
+  <tr><th>Acteur</th><th>Besoins couverts</th></tr>
+  <tr><td>Visiteur / Client</td><td>Consulter les prestations et tarifs, connaître les documents requis, prendre rendez-vous en ligne, créer un compte, suivre ses rendez-vous et l'état de ses véhicules, récupérer son QR code de validation.</td></tr>
+  <tr><td>Super Admin</td><td>Gérer l'ensemble du système&nbsp;: contenu du site, catégories/services/tarifs, annonces, administrateurs, rendez-vous, statistiques, journal d'audit et paramètres.</td></tr>
+  <tr><td>RDV Admin</td><td>Gérer le cycle de vie des rendez-vous (statuts) et la capacité journalière du centre.</td></tr>
+  <tr><td>Agent de réception</td><td>Vérifier à l'accueil les rendez-vous par scan de QR code ou saisie du code à 6 caractères.</td></tr>
+</table>
+
+<h2>3. Technologies et outils utilisés</h2>
+<table>
+  <tr><th>Couche</th><th>Technologies</th></tr>
+  <tr><td>Framework</td><td>Next.js 16 (App Router), React 19</td></tr>
+  <tr><td>Langage</td><td>TypeScript</td></tr>
+  <tr><td>Interface (UI)</td><td>Tailwind CSS 4, shadcn/ui (Radix UI), lucide-react (icônes), Framer Motion (animations), next-themes (mode clair/sombre)</td></tr>
+  <tr><td>Formulaires & validation</td><td>react-hook-form, Zod</td></tr>
+  <tr><td>Base de données</td><td>PostgreSQL, ORM Prisma</td></tr>
+  <tr><td>Authentification</td><td>JWT via la librairie <code>jose</code>, hachage des mots de passe avec <code>bcryptjs</code>, cookies httpOnly</td></tr>
+  <tr><td>Fonctions métier</td><td><code>qrcode</code> (génération QR), <code>jspdf</code> (certificats PDF), date-fns</td></tr>
+  <tr><td>État & données</td><td>TanStack Query / Table, Zustand, Recharts (graphiques)</td></tr>
+</table>
+<p>
+  <span class="tag">Next.js 16</span><span class="tag">React 19</span><span class="tag">TypeScript</span>
+  <span class="tag">Tailwind CSS 4</span><span class="tag">Prisma</span><span class="tag">PostgreSQL</span>
+  <span class="tag">JWT / jose</span><span class="tag">bcrypt</span><span class="tag">Zod</span><span class="tag">jsPDF</span><span class="tag">QRCode</span>
+</p>
+
+<h2>4. Architecture générale de l'application</h2>
+<p>
+L'application suit une architecture <strong>monolithique full-stack</strong> propre à Next.js&nbsp;: le navigateur
+communique avec des <strong>composants serveur</strong> (rendu des pages) et des <strong>routes d'API</strong>
+(<code>/api/*</code>) hébergées dans le même projet. Ces routes accèdent à la base PostgreSQL via l'ORM Prisma.
+La session utilisateur est portée par un <strong>jeton JWT signé</strong>, stocké dans un cookie sécurisé.
+</p>
+<div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  subgraph CLIENT["Navigateur (Client)"]
+    A["Site public<br/>(Accueil, Tarifs, FAQ...)"]
+    B["Assistant de réservation"]
+    C["Espace client"]
+    D["Interface Admin<br/>(Dashboard, RDV, Check-in)"]
+  end
+
+  subgraph SERVER["Serveur Next.js"]
+    E["Composants serveur<br/>(rendu des pages)"]
+    F["Routes API REST<br/>/api/*"]
+    G["Librairies métier<br/>auth · qr · pdf · audit"]
+    H["Middleware d'authentification<br/>(JWT / cookies)"]
+  end
+
+  subgraph DATA["Persistance"]
+    I[("PostgreSQL")]
+    J["ORM Prisma"]
+  end
+
+  A & B & C & D --> E
+  B & C & D --> F
+  F --> H
+  F --> G
+  E --> J
+  F --> J
+  J --> I
+</pre>
+</div>
+
+<h2>5. Structure du projet (arborescence)</h2>
+<p>Le code source est organisé selon les conventions de l'App Router de Next.js&nbsp;:</p>
+<pre><code>src/
+├── app/
+│   ├── (public)/          → Site vitrine (layout commun + SEO)
+│   │   ├── page.tsx       → Accueil
+│   │   ├── tarifs/        → Grille tarifaire
+│   │   ├── documents/     → Documents requis
+│   │   ├── faq/           → Questions fréquentes
+│   │   └── contact/       → Formulaire de contact
+│   ├── rendez-vous/       → Assistant de réservation (4 étapes)
+│   ├── espace-client/     → Espace client (connexion + tableau de bord)
+│   │   ├── rdv/  historique/  profil/
+│   ├── admin/             → Back-office
+│   │   ├── login/  select-account/
+│   │   ├── dashboard/     → Super Admin (catégories, clients, annonces,
+│   │   │                    audit, users, website, settings, analytics...)
+│   │   ├── rdv/           → Gestion des rendez-vous (RDV Admin)
+│   │   └── checkin/       → Vérification QR (Réception)
+│   └── api/               → Routes API REST (auth, appointments, slots,
+│                            capacity, verify, clients, services...)
+├── components/            → Composants UI (public, client, admin, ui/, shared/)
+├── lib/                   → auth · api-auth · db · qr · pdf · audit ·
+│                            content · constants · utils
+└── hooks/                 → Hooks React réutilisables
+
+prisma/
+├── schema.prisma         → Modèle de données (12 entités)
+└── seed.ts               → Données de démonstration</code></pre>
+
+<h2>6. Modèle de données (base de données)</h2>
+<p>
+La base PostgreSQL est décrite par le schéma Prisma. Elle comporte <strong>13 entités</strong> couvrant les comptes
+(administrateurs et clients), le catalogue (catégories, services), les rendez-vous et leurs résultats d'inspection,
+la capacité, les annonces, le contenu éditable du site, la traçabilité (journal d'audit) et les paramètres.
+</p>
+<div class="diagram">
+<pre class="mermaid">
+erDiagram
+  CLIENT ||--o{ VEHICLE : possede
+  CLIENT ||--o{ APPOINTMENT : reserve
+  VEHICLE ||--o{ APPOINTMENT : concerne
+  CATEGORY ||--o{ SERVICE : contient
+  CATEGORY ||--o{ APPOINTMENT : classe
+  SERVICE ||--o{ APPOINTMENT : type
+  APPOINTMENT ||--o| INSPECTIONRESULT : produit
+
+  CLIENT {
+    string id PK
+    string phone UK
+    string email UK
+    string name
+    string passwordHash
+    string channel
+  }
+  VEHICLE {
+    string id PK
+    string clientId FK
+    string plate
+    string brand
+    string model
+    int year
+    string category
+  }
+  CATEGORY {
+    string id PK
+    string name
+    string slug UK
+    string color
+    int sort
+  }
+  SERVICE {
+    string id PK
+    string categoryId FK
+    string name
+    int durationMin
+    float price
+    bool active
+  }
+  APPOINTMENT {
+    string id PK
+    string code UK
+    string clientId FK
+    string vehicleId FK
+    string serviceId FK
+    datetime date
+    string slot
+    string status
+    string qrToken
+    datetime checkedInAt
+    int queueNumber
+  }
+  INSPECTIONRESULT {
+    string id PK
+    string appointmentId FK
+    string overallResult
+    string brakes
+    string lights
+    string tires
+    string emissions
+  }
+</pre>
+</div>
+<h4>Entités complémentaires</h4>
+<table>
+  <tr><th>Entité</th><th>Rôle</th></tr>
+  <tr><td><code>AdminUser</code></td><td>Comptes administrateurs (username, rôle SUPER/RDV/RECEPTION, mot de passe haché).</td></tr>
+  <tr><td><code>DailyCapacity</code></td><td>Capacité maximale de rendez-vous confirmés par jour (20 par défaut).</td></tr>
+  <tr><td><code>Announcement</code></td><td>Annonces publiées (INFO, PROMO, MAINTENANCE, ALERT).</td></tr>
+  <tr><td><code>WebsiteContent</code></td><td>Blocs de contenu éditables de la page d'accueil (mini-CMS).</td></tr>
+  <tr><td><code>AuditLog</code></td><td>Journal immuable de toutes les actions administratives (avec IP).</td></tr>
+  <tr><td><code>Setting</code> / <code>OtpRequest</code></td><td>Paramètres généraux et gestion des codes à usage unique.</td></tr>
+</table>
+
+<h2>7. Authentification et sécurité</h2>
+<p>Le mécanisme d'authentification est développé sur mesure (librairie <code>src/lib/auth.ts</code>)&nbsp;:</p>
+<ul>
+  <li><strong>Mots de passe</strong>&nbsp;: jamais stockés en clair, hachés avec <strong>bcrypt</strong> (10 tours).</li>
+  <li><strong>Session</strong>&nbsp;: après connexion, un <strong>jeton JWT</strong> signé (algorithme HS256, librairie <code>jose</code>) est déposé dans un <strong>cookie httpOnly</strong>, avec une durée de vie de <strong>3 heures</strong>.</li>
+  <li><strong>Cookies</strong>&nbsp;: attributs <code>httpOnly</code>, <code>sameSite=lax</code>, et <code>secure</code> en production.</li>
+  <li><strong>Contrôle d'accès serveur</strong>&nbsp;: chaque route API sensible appelle un garde (<code>requireAdminRole</code>) qui vérifie la validité de la session et le rôle autorisé, renvoyant 401 (non authentifié) ou 403 (accès refusé).</li>
+  <li><strong>Traçabilité</strong>&nbsp;: connexions, échecs de connexion, changements de statut et vérifications sont enregistrés dans le journal d'audit avec l'adresse IP.</li>
+</ul>
+<div class="warn">
+  <strong>Point de sécurité à corriger avant la mise en production&nbsp;:</strong> le secret de signature des sessions
+  possède une <strong>valeur par défaut codée en dur</strong> dans le code. Il doit impérativement être défini via une
+  variable d'environnement (<code>SESSION_SECRET</code>) sur le serveur de production.
+</div>
+
+<h2>8. Rôles et permissions</h2>
+<p>Le système distingue quatre profils, dont trois profils administrateurs hiérarchisés&nbsp;:</p>
+<div class="diagram">
+<pre class="mermaid">
+flowchart TD
+  U["Utilisateurs"]
+  U --> CL["👤 CLIENT<br/>Réservation, espace personnel, QR"]
+  U --> SUP["🟢 SUPER ADMIN (niveau 3)<br/>Accès total au système"]
+  U --> RDV["🔵 RDV ADMIN (niveau 2)<br/>Statuts des RDV + capacité"]
+  U --> REC["🟠 RÉCEPTION (niveau 1)<br/>Vérification QR / code à l'accueil"]
+
+  SUP --> S1["Gestion du site, catégories,<br/>services, tarifs, annonces"]
+  SUP --> S2["Gestion des administrateurs"]
+  SUP --> S3["Statistiques, audit, paramètres"]
+  RDV --> R1["En attente → Confirmé →<br/>Terminé → Annulé"]
+  REC --> C1["Scan QR + compteur du jour"]
+</pre>
+</div>
+<table>
+  <tr><th>Rôle</th><th>Route d'accueil</th><th>Permissions principales</th></tr>
+  <tr><td>Super Admin</td><td><code>/admin/dashboard</code></td><td>Tous les modules sans restriction.</td></tr>
+  <tr><td>RDV Admin</td><td><code>/admin/rdv</code></td><td>Modification du <em>statut</em> des rendez-vous et de la capacité journalière uniquement.</td></tr>
+  <tr><td>Réception</td><td><code>/admin/checkin</code></td><td>Vérification des QR codes et des codes à 6 caractères, compteur des validations.</td></tr>
+  <tr><td>Client</td><td><code>/espace-client</code></td><td>Réservation, suivi de ses rendez-vous et véhicules.</td></tr>
+</table>
+
+<h2>9. Modules fonctionnels</h2>
+
+<h3>9.1 Site web public</h3>
+<p>
+Rendu majoritairement côté serveur, le site public comprend l'accueil (héro éditable, statistiques animées,
+catégories et tarifs dynamiques), la page <strong>Tarifs</strong> (grille par catégorie, prix en dirhams),
+la page <strong>Documents</strong> (pièces requises par type de véhicule), la <strong>FAQ</strong> (accordéon)
+et la page <strong>Contact</strong> (coordonnées, carte Google Maps, formulaire). Le référencement est soigné
+(métadonnées par page, Open Graph, données structurées JSON-LD de type <em>LocalBusiness</em>).
+</p>
+
+<h3>9.2 Assistant de réservation</h3>
+<p>Cœur de l'application, il guide le client en <strong>4 étapes</strong>&nbsp;:</p>
+<ol>
+  <li><strong>Véhicule</strong>&nbsp;: choix de la catégorie.</li>
+  <li><strong>Service &amp; Créneau</strong>&nbsp;: choix de la prestation, de la date (calendrier qui grise les dimanches, dates passées et jours complets) et d'un créneau horaire (les créneaux pris ou passés sont désactivés).</li>
+  <li><strong>Informations</strong>&nbsp;: coordonnées, mot de passe, immatriculation marocaine (validée), marque, modèle, année, canal de contact.</li>
+  <li><strong>Confirmation</strong>&nbsp;: récapitulatif et envoi. Le client obtient un <strong>code de référence à 6 caractères</strong> et un numéro de passage. Le compte client est créé automatiquement s'il n'existe pas.</li>
+</ol>
+
+<h3>9.3 Espace client</h3>
+<p>
+Après connexion (e-mail + mot de passe) ou inscription, le client accède à un tableau de bord&nbsp;: statistiques
+(rendez-vous à venir, contrôles validés, véhicules), cartes d'état par véhicule (statut et date d'expiration
+calculés), liste des prochains rendez-vous et affichage du <strong>QR code</strong> pour les rendez-vous confirmés.
+</p>
+
+<h3>9.4 Administration</h3>
+<p>
+Le back-office est segmenté par rôle&nbsp;: le <strong>Super Admin</strong> dispose d'un tableau de bord complet
+(catégories, services, tarifs, clients, annonces, contenu du site, utilisateurs, statistiques, audit, paramètres)&nbsp;;
+le <strong>RDV Admin</strong> gère le flux des rendez-vous (calendrier, en attente, confirmés) et la capacité&nbsp;;
+l'<strong>agent de réception</strong> dispose d'un écran de <strong>check-in</strong> par scan de QR code ou saisie de code.
+</p>
+
+<h2>10. API REST (interfaces serveur)</h2>
+<p>Les principales routes d'API (dossier <code>src/app/api</code>)&nbsp;:</p>
+<table>
+  <tr><th>Route</th><th>Méthodes</th><th>Rôle</th></tr>
+  <tr><td><code>/api/auth/admin-login</code></td><td>POST</td><td>Connexion administrateur (username + mot de passe).</td></tr>
+  <tr><td><code>/api/auth/client-login</code> · <code>client-register</code></td><td>POST</td><td>Connexion / inscription client (e-mail + mot de passe).</td></tr>
+  <tr><td><code>/api/auth/me</code> · <code>logout</code></td><td>GET / POST</td><td>Session courante / déconnexion.</td></tr>
+  <tr><td><code>/api/appointments</code></td><td>GET, POST</td><td>Liste (admin) et création publique d'un rendez-vous.</td></tr>
+  <tr><td><code>/api/appointments/[id]</code></td><td>GET, PATCH, DELETE</td><td>Consultation, mise à jour du statut, suppression.</td></tr>
+  <tr><td><code>/api/slots</code></td><td>GET</td><td>Créneaux déjà réservés pour une date.</td></tr>
+  <tr><td><code>/api/capacity</code></td><td>GET, PUT, DELETE</td><td>Disponibilités par jour, gestion de la capacité.</td></tr>
+  <tr><td><code>/api/verify</code></td><td>POST</td><td>Vérification (check-in) par QR ou code — usage unique.</td></tr>
+  <tr><td><code>/api/categories</code> · <code>/api/services</code></td><td>GET, POST, PATCH, DELETE</td><td>Gestion du catalogue.</td></tr>
+  <tr><td><code>/api/stats</code> · <code>/api/audit</code></td><td>GET</td><td>Statistiques et journal d'audit.</td></tr>
+</table>
+
+<h2>11. Logique métier clé</h2>
+<h4>Gestion de la capacité</h4>
+<p>Chaque jour possède une capacité maximale (20 par défaut, modifiable par le RDV Admin). Seuls les rendez-vous
+<strong>confirmés (APPROVED)</strong> comptent dans cette limite. Un jour complet est automatiquement grisé dans le calendrier de réservation.</p>
+<h4>Créneaux horaires</h4>
+<p>Les créneaux respectent les horaires réels d'ouverture&nbsp;: lundi–vendredi matin et après-midi, samedi matin uniquement, dimanche fermé. Les créneaux passés (pour le jour même) et déjà réservés sont bloqués.</p>
+<h4>QR code à usage unique</h4>
+<p>À la confirmation d'un rendez-vous, un <strong>jeton QR unique</strong> est généré. Lors du passage, l'agent le vérifie&nbsp;;
+le code est alors « consommé » (<code>checkedInAt</code>) et <strong>toute seconde tentative est rejetée</strong>, ce qui empêche la réutilisation frauduleuse.</p>
+<h4>Certificat d'inspection</h4>
+<p>Un certificat PDF officiel (généré avec jsPDF) reprend la référence, les informations du véhicule, le résultat et un QR de vérification.</p>
+
+<h2>12. Parcours utilisateurs (workflows)</h2>
+
+<h3>12.1 Cycle de vie d'un rendez-vous</h3>
+<div class="diagram">
+<pre class="mermaid">
+stateDiagram-v2
+  [*] --> PENDING : Réservation client
+  PENDING --> APPROVED : Confirmation admin<br/>(génère le QR)
+  PENDING --> CANCELLED : Annulation
+  APPROVED --> COMPLETED : Contrôle effectué<br/>(+ résultat d'inspection)
+  APPROVED --> CANCELLED : Annulation
+  COMPLETED --> [*]
+  CANCELLED --> [*]
+</pre>
+</div>
+
+<h3>12.2 Prise de rendez-vous (réservation en ligne)</h3>
+<div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+  actor C as Client
+  participant W as Assistant réservation
+  participant API as API /appointments
+  participant DB as Base de données
+
+  C->>W: Choisit véhicule, service, date, créneau
+  W->>API: GET /capacity & /slots (disponibilités)
+  API->>DB: Vérifie capacité et créneaux pris
+  DB-->>W: Jours/créneaux disponibles
+  C->>W: Saisit ses informations + confirme
+  W->>API: POST /appointments
+  API->>API: Valide (téléphone, date, capacité)
+  API->>DB: Crée client (si nouveau) + véhicule + RDV (PENDING)
+  DB-->>API: Rendez-vous créé
+  API-->>W: Code à 6 caractères + n° de passage
+  W-->>C: Écran de confirmation
+</pre>
+</div>
+
+<h3>12.3 Vérification à l'accueil (check-in par QR)</h3>
+<div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+  actor A as Agent réception
+  participant S as Écran Check-in
+  participant API as API /verify
+  participant DB as Base de données
+
+  A->>S: Scanne le QR / saisit le code
+  S->>API: POST /verify { qrToken | code }
+  API->>DB: Recherche le rendez-vous
+  alt Déjà vérifié
+    DB-->>API: checkedInAt existe
+    API-->>S: Refusé (usage unique)
+  else Rendez-vous valide
+    API->>DB: Enregistre checkedInAt + agent
+    API->>DB: Écrit dans le journal d'audit
+    API-->>S: Validé ✔ (infos du RDV)
+  end
+</pre>
+</div>
+
+<h2>13. Points forts et axes d'amélioration</h2>
+<h4>Points forts</h4>
+<ul>
+  <li>Architecture moderne et cohérente (Next.js full-stack, TypeScript, Prisma).</li>
+  <li>Séparation claire des rôles avec contrôle d'accès serveur systématique.</li>
+  <li>Logique métier robuste&nbsp;: gestion fine de la capacité et des créneaux, QR à usage unique, journal d'audit immuable.</li>
+  <li>Interface soignée, responsive, avec mode clair/sombre et bon référencement (SEO, JSON-LD).</li>
+  <li>Mini-CMS intégré permettant d'éditer le contenu du site sans toucher au code.</li>
+</ul>
+<h4>Axes d'amélioration</h4>
+<ul>
+  <li>Externaliser le secret de session dans une variable d'environnement.</li>
+  <li>Connecter réellement le formulaire de contact (actuellement simulé, sans envoi).</li>
+  <li>Uniformiser les horaires d'ouverture (incohérence entre les constantes et certains textes FAQ/SEO).</li>
+  <li>Ajouter des tests automatisés et une notification effective (SMS/e-mail/WhatsApp) lors des rappels.</li>
+</ul>
+
+<h2>14. Conclusion</h2>
+<p>
+SÉCUREX CONNECT constitue une solution complète et bien structurée pour la digitalisation d'un centre de contrôle
+technique&nbsp;: elle relie de façon fluide la réservation en ligne, la gestion administrative et la vérification physique
+des passages. Le socle technique (Next.js, TypeScript, Prisma, PostgreSQL) est solide et maintenable, et la logique
+métier répond aux contraintes réelles du métier (capacité, horaires, traçabilité, sécurité des passages). Moyennant
+quelques ajustements de production (secret de session, formulaire de contact, harmonisation des horaires), le projet
+est prêt à être déployé et exploité.
+</p>
+
+<footer>
+  Rapport technique — SÉCUREX CONNECT · Analyse du code source du projet · Document généré pour usage documentaire.
+</footer>
+
+</body>
+</html>

@@ -230,6 +230,9 @@ function AppointmentFullCard({
                 <Badge variant="outline" className="text-primary">
                   {formatMAD(appt.service.price)}
                 </Badge>
+                <Badge variant="outline" className={appt.paymentStatus === "PAID" || appt.paymentStatus === "WAIVED" ? "border-primary/30 text-primary" : "border-amber-300 text-amber-700"}>
+                  {appt.paymentStatus === "PAID" ? "Acompte payé" : appt.paymentStatus === "WAIVED" ? "Acompte exempté" : "Acompte en attente"}
+                </Badge>
               </div>
             </div>
           </div>

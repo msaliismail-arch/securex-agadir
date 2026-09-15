@@ -25,7 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { cn, formatDate } from "@/lib/utils";
-import type { Appointment } from "../../rdv/_components/types";
+import type { Appointment } from "../rdv/_components/types";
 
 type VerifyResult =
   | { kind: "success"; appt: Appointment }
