@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { SignedIn, SignedOut, SignInButton, SignUpButton, useUser } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -20,11 +21,8 @@ import {
   Plus,
   Clock,
   Mail,
-  Lock,
   User,
   Phone,
-  Eye,
-  EyeOff,
   LogIn,
   UserPlus,
 } from "lucide-react";
@@ -33,7 +31,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { COLOR_MAP } from "@/lib/constants";
 import { cn, formatDate, isValidMaPhone, normalizePhone } from "@/lib/utils";
 import {
@@ -47,46 +44,67 @@ import { StatusBadge } from "@/components/client/badges";
 import { QrDialog } from "@/components/client/qr-dialog";
 
 export default function EspaceClientPage() {
-  const [sessionChecked, setSessionChecked] = React.useState(false);
-  const [hasSession, setHasSession] = React.useState(false);
-
-  React.useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const res = await fetch("/api/auth/me", { cache: "no-store" });
-        if (!active) return;
-        const data = await res.json();
-        setHasSession(!!(data && data.role === "CLIENT"));
-      } catch {
-        if (active) setHasSession(false);
-      } finally {
-        if (active) setSessionChecked(true);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  if (!sessionChecked) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-7 w-7 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  return hasSession ? <Dashboard /> : (
-    <React.Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div>}>
-      <LoginScreen />
+  return (
+    <React.Suspense fallback={<LoadingScreen />}>
+      <SignedOut>
+        <LoginScreen />
+      </SignedOut>
+      <SignedIn>
+        <ClientGate />
+      </SignedIn>
     </React.Suspense>
   );
 }
 
-/* --------------------------------- Login ---------------------------------- */
+function LoadingScreen() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <Loader2 className="h-7 w-7 animate-spin text-primary" />
+    </div>
+  );
+}
+
+function ClientGate() {
+  const { user, isLoaded } = useUser();
+  const searchParams = useSearchParams();
+  const [state, setState] = useState<"loading" | "onboarding" | "ready">("loading");
+
+  React.useEffect(() => {
+    if (!isLoaded || !user) return;
+    let active = true;
+    fetch("/api/clients/me", { cache: "no-store" })
+      .then((response) => {
+        if (!active) return;
+        setState(response.ok ? "ready" : "onboarding");
+      })
+      .catch(() => active && setState("onboarding"));
+    return () => {
+      active = false;
+    };
+  }, [isLoaded, user]);
+
+  React.useEffect(() => {
+    if (state !== "ready") return;
+    const requestedNext = searchParams.get("next");
+    if (requestedNext?.startsWith("/") && !requestedNext.startsWith("//") && requestedNext !== "/espace-client") {
+      window.location.replace(requestedNext);
+    }
+  }, [searchParams, state]);
+
+  if (!isLoaded || state === "loading") return <LoadingScreen />;
+  if (state === "onboarding") {
+    return (
+      <ProfileSetup
+        defaultName={user?.fullName || ""}
+        email={user?.primaryEmailAddress?.emailAddress || ""}
+        onComplete={() => window.location.reload()}
+      />
+    );
+  }
+  return <Dashboard />;
+}
+
 function LoginScreen() {
-  const [tab, setTab] = useState<"login" | "register">("login");
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col items-center px-4 py-10 md:py-16">
@@ -107,24 +125,21 @@ function LoginScreen() {
         </div>
 
         <Card className="glass-card border-primary/20 shadow-card">
-          <CardContent className="p-6">
-            <Tabs value={tab} onValueChange={(v) => setTab(v as "login" | "register")}>
-              <TabsList className="mb-5 grid w-full grid-cols-2">
-                <TabsTrigger value="login" className="gap-1.5">
-                  <LogIn className="h-4 w-4" /> Connexion
-                </TabsTrigger>
-                <TabsTrigger value="register" className="gap-1.5">
-                  <UserPlus className="h-4 w-4" /> Inscription
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="login">
-                <LoginForm />
-              </TabsContent>
-              <TabsContent value="register">
-                <RegisterForm />
-              </TabsContent>
-            </Tabs>
+          <CardContent className="space-y-4 p-6">
+            <p className="text-center text-sm text-muted-foreground">
+              Continuez avec Google, ou utilisez votre adresse email et un mot de passe.
+              Toute nouvelle adresse email doit être vérifiée avant l’accès.
+            </p>
+            <SignInButton mode="modal" fallbackRedirectUrl="/espace-client">
+              <Button className="w-full bg-brand-gradient text-white hover:opacity-90">
+                <LogIn className="mr-2 h-4 w-4" /> Se connecter
+              </Button>
+            </SignInButton>
+            <SignUpButton mode="modal" fallbackRedirectUrl="/espace-client">
+              <Button variant="outline" className="w-full">
+                <UserPlus className="mr-2 h-4 w-4" /> Créer mon compte
+              </Button>
+            </SignUpButton>
           </CardContent>
         </Card>
 
@@ -140,169 +155,32 @@ function LoginScreen() {
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          Pas encore de compte ?{" "}
-          <a href="/rendez-vous" className="font-medium text-primary hover:underline">
-            Créez-en un lors de votre premier rendez-vous
-          </a>
-          .
+          L&apos;authentification de l&apos;espace client est sécurisée par Clerk.
         </p>
       </motion.div>
     </div>
   );
 }
 
-/* ------------------------------ Login Form -------------------------------- */
-function LoginForm() {
-  const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim() || !password) {
-      toast.error("Veuillez saisir votre email et votre mot de passe.");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const res = await fetch("/api/auth/client-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), password }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.error || "Identifiants incorrects");
-      }
-      toast.success(`Bienvenue${data?.name ? `, ${data.name}` : ""} !`);
-      const requestedNext = searchParams.get("next");
-      window.location.href = requestedNext?.startsWith("/") && !requestedNext.startsWith("//")
-        ? requestedNext
-        : "/espace-client";
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur de connexion");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="login-email">Email</Label>
-        <div className="relative">
-          <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="login-email"
-            type="email"
-            autoComplete="email"
-            placeholder="vous@exemple.com"
-            className="pl-9"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={submitting}
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="login-password">Mot de passe</Label>
-        <div className="relative">
-          <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="login-password"
-            type={showPassword ? "text" : "password"}
-            autoComplete="current-password"
-            placeholder="••••••••"
-            className="pl-9 pr-9"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={submitting}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((s) => !s)}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
-            aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-            tabIndex={-1}
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
-
-      <Button
-        type="submit"
-        className="w-full bg-brand-gradient text-white hover:opacity-90"
-        disabled={submitting}
-      >
-        {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Se connecter
-      </Button>
-      <a href="/mot-de-passe-oublie" className="block text-center text-xs font-medium text-primary hover:underline">
-        Mot de passe oublié ?
-      </a>
-    </form>
-  );
-}
-
-/* ----------------------------- Register Form ------------------------------ */
-function RegisterForm() {
-  const searchParams = useSearchParams();
+function ProfileSetup({
+  defaultName,
+  email,
+  onComplete,
+}: {
+  defaultName: string;
+  email: string;
+  onComplete: () => void;
+}) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("+212 ");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [confirmationEmail, setConfirmationEmail] = useState<string | null>(null);
-  const [verificationCode, setVerificationCode] = useState("");
 
-  const verifyEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!confirmationEmail || !/^\d{6}$/.test(verificationCode)) {
-      toast.error("Saisissez le code à 6 chiffres reçu par email.");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const res = await fetch("/api/auth/verify-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: confirmationEmail, token: verificationCode }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Code incorrect ou expiré");
-      toast.success("Adresse email confirmée. Votre compte est prêt.");
-      const requestedNext = searchParams.get("next");
-      window.location.href = requestedNext?.startsWith("/") && !requestedNext.startsWith("//")
-        ? requestedNext
-        : "/espace-client";
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Vérification impossible");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const resendCode = async () => {
-    if (!confirmationEmail) return;
-    const res = await fetch("/api/auth/resend-code", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: confirmationEmail }),
-    });
-    toast[res.ok ? "success" : "error"](res.ok ? "Nouveau code envoyé." : "Envoi impossible.");
-  };
+  React.useEffect(() => setName(defaultName), [defaultName]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const trimmedName = name.trim();
-    const trimmedEmail = email.trim();
-
     if (!trimmedName) {
       toast.error("Veuillez saisir votre nom complet.");
       return;
@@ -311,76 +189,38 @@ function RegisterForm() {
       toast.error("Numéro marocain invalide (format +212).");
       return;
     }
-    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      toast.error("Adresse email invalide.");
-      return;
-    }
-    if (password.length < 8) {
-      toast.error("Le mot de passe doit contenir au moins 8 caractères.");
-      return;
-    }
-
     setSubmitting(true);
     try {
-      const res = await fetch("/api/auth/client-register", {
+      const res = await fetch("/api/clients/me", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: trimmedName,
-          phone: normalizePhone(phone),
-          email: trimmedEmail,
-          password,
-        }),
+        body: JSON.stringify({ name: trimmedName, phone: normalizePhone(phone) }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
       if (!res.ok) {
-        if (res.status === 409) {
-          throw new Error("Email ou téléphone déjà utilisé");
-        }
-        throw new Error(data?.error || "Inscription impossible");
+        throw new Error(data?.error || "Création du profil impossible");
       }
-      setConfirmationEmail(data.email || trimmedEmail.toLowerCase());
-      toast.success("Un code de vérification vient de vous être envoyé.");
+      toast.success("Votre espace client est prêt.");
+      onComplete();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de l'inscription");
+      toast.error(err instanceof Error ? err.message : "Erreur lors de la création du profil");
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (confirmationEmail) {
-    return (
-      <form onSubmit={verifyEmail} className="space-y-4">
-        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
-          Saisissez le code à 6 chiffres envoyé à <strong className="text-foreground">{confirmationEmail}</strong>.
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="verification-code">Code de vérification</Label>
-          <Input
-            id="verification-code"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={6}
-            placeholder="123456"
-            className="text-center font-mono text-xl tracking-[0.4em]"
-            value={verificationCode}
-            onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ""))}
-            disabled={submitting}
-          />
-        </div>
-        <Button type="submit" className="w-full bg-brand-gradient text-white hover:opacity-90" disabled={submitting}>
-          {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Vérifier et continuer
-        </Button>
-        <Button type="button" variant="ghost" className="w-full" onClick={resendCode} disabled={submitting}>
-          Renvoyer le code
-        </Button>
-      </form>
-    );
-  }
-
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <div className="mx-auto w-full max-w-md px-4 py-10 md:py-16">
+      <Card className="glass-card border-primary/20 shadow-card">
+        <CardContent className="space-y-5 p-6">
+          <div className="text-center">
+            <User className="mx-auto h-9 w-9 text-primary" />
+            <h1 className="mt-3 text-2xl font-bold">Compléter votre profil</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Votre email Clerk est vérifié. Ajoutez vos coordonnées pour vos rendez-vous.
+            </p>
+          </div>
+          <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="reg-name">Nom complet</Label>
         <div className="relative">
@@ -418,47 +258,17 @@ function RegisterForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="reg-email">Email</Label>
+        <Label htmlFor="reg-email">Email vérifié</Label>
         <div className="relative">
           <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id="reg-email"
             type="email"
-            autoComplete="email"
-            placeholder="vous@exemple.com"
-            className="pl-9"
+            className="bg-muted/30 pl-9"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={submitting}
+            readOnly
           />
         </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="reg-password">Mot de passe</Label>
-        <div className="relative">
-          <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="reg-password"
-            type={showPassword ? "text" : "password"}
-            autoComplete="new-password"
-            placeholder="8 caractères minimum"
-            className="pl-9 pr-9"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={submitting}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((s) => !s)}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
-            aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-            tabIndex={-1}
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
-        <p className="text-xs text-muted-foreground">8 caractères minimum.</p>
       </div>
 
       <Button
@@ -467,9 +277,12 @@ function RegisterForm() {
         disabled={submitting}
       >
         {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Créer mon compte
+        Enregistrer et continuer
       </Button>
-    </form>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

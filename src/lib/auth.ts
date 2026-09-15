@@ -1,8 +1,8 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import type { AdminRole } from "./constants";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 
 const SESSION_COOKIE = "sx_session";
@@ -31,6 +31,12 @@ export interface SessionPayload {
   username?: string;
   iat?: number;
   exp?: number;
+}
+
+export interface ClerkClientIdentity {
+  userId: string;
+  email: string;
+  name: string;
 }
 
 /** Pending payload — issued after step 1 (username + password) verified. */
@@ -118,34 +124,14 @@ export async function getSession(): Promise<SessionPayload | null> {
     try {
       const { payload } = await jwtVerify(token, sessionSecret());
       return payload as unknown as SessionPayload;
-    } catch {
-      // Continue with Supabase Auth for client sessions.
-    }
+    } catch {}
   }
 
   try {
-    const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user?.email || !data.user.email_confirmed_at) return null;
-
-    const metadata = data.user.user_metadata as { name?: string; phone?: string };
-    let client = await db.client.findUnique({ where: { supabaseUserId: data.user.id } });
-    if (!client) {
-      const existing = await db.client.findUnique({
-        where: { email: data.user.email.toLowerCase() },
-      });
-      if (!existing || !metadata.phone) return null;
-      client = await db.client.update({
-        where: { id: existing.id },
-        data: { supabaseUserId: data.user.id },
-      });
-    }
-    if (client.email !== data.user.email.toLowerCase()) {
-      client = await db.client.update({
-        where: { id: client.id },
-        data: { email: data.user.email.toLowerCase() },
-      });
-    }
+    const identity = await getVerifiedClerkClientIdentity();
+    if (!identity) return null;
+    const client = await db.client.findUnique({ where: { email: identity.email } });
+    if (!client) return null;
 
     return {
       sub: client.id,
@@ -159,16 +145,37 @@ export async function getSession(): Promise<SessionPayload | null> {
   }
 }
 
+/** Verified Clerk identity for CLIENT flows only. Admin auth never calls Clerk. */
+export async function getVerifiedClerkClientIdentity(): Promise<ClerkClientIdentity | null> {
+  const { userId } = await auth();
+  if (!userId) return null;
+
+  const user = await currentUser();
+  if (!user) return null;
+
+  const verifiedEmail = user.emailAddresses.find(
+    (address) =>
+      address.id === user.primaryEmailAddressId &&
+      address.verification?.status === "verified"
+  );
+  if (!verifiedEmail) return null;
+
+  const name =
+    user.fullName?.trim() ||
+    [user.firstName, user.lastName].filter(Boolean).join(" ").trim() ||
+    verifiedEmail.emailAddress.split("@")[0];
+
+  return {
+    userId,
+    email: verifiedEmail.emailAddress.toLowerCase(),
+    name,
+  };
+}
+
 export async function destroySession() {
   const store = await cookies();
   store.delete(SESSION_COOKIE);
   store.delete(PENDING_COOKIE);
-  try {
-    const supabase = await createSupabaseServerClient();
-    await supabase.auth.signOut();
-  } catch {
-    // Supabase can be absent while the project is being configured locally.
-  }
 }
 
 /** Server-side guard for admin roles. Returns session or null. */

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useClerk } from "@clerk/nextjs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -57,6 +58,7 @@ const channelOptions = [
 
 export default function ProfilPage() {
   const router = useRouter();
+  const { signOut } = useClerk();
   const { data, loading, error, unauthorized, refresh } = useClientData();
   const [saving, setSaving] = useState(false);
 
@@ -89,7 +91,6 @@ export default function ProfilPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: values.name,
-          email: values.email?.trim() || null,
           channel: values.channel,
         }),
       });
@@ -97,7 +98,7 @@ export default function ProfilPage() {
       if (!res.ok) {
         throw new Error(body?.error || "Erreur lors de l'enregistrement");
       }
-      toast.success(body.emailConfirmationRequired ? "Profil mis à jour. Confirmez votre nouvelle adresse via l’email Supabase." : "Profil mis à jour avec succès.");
+      toast.success("Profil mis à jour avec succès.");
       await refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erreur lors de l'enregistrement");
@@ -110,7 +111,7 @@ export default function ProfilPage() {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
     } finally {
-      window.location.href = "/";
+      await signOut({ redirectUrl: "/" });
     }
   };
 
@@ -209,8 +210,9 @@ export default function ProfilPage() {
                       <FormItem>
                         <FormLabel>E-mail</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="vous@exemple.com" autoComplete="email" {...field} />
+                          <Input type="email" readOnly className="bg-muted/30" {...field} />
                         </FormControl>
+                        <FormDescription>Gérez votre adresse et votre mot de passe depuis le menu Clerk.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}

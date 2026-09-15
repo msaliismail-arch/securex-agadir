@@ -3,7 +3,8 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { UserButton, useClerk } from "@clerk/nextjs";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -40,7 +41,7 @@ function isActive(pathname: string, href: string, exact?: boolean) {
 
 export function ClientSpaceShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
+  const { signOut } = useClerk();
   const [session, setSession] = useState<SessionInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -76,8 +77,7 @@ export function ClientSpaceShell({ children }: { children: React.ReactNode }) {
       await fetch("/api/auth/logout", { method: "POST" });
     } finally {
       setSession(null);
-      router.push("/");
-      router.refresh();
+      await signOut({ redirectUrl: "/" });
     }
   };
 
@@ -112,6 +112,7 @@ export function ClientSpaceShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3">
             {session ? (
               <>
+                <UserButton />
                 <div className="hidden items-center gap-2.5 sm:flex">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-gradient text-sm font-bold text-white">
                     {initials(session.name) || "CL"}

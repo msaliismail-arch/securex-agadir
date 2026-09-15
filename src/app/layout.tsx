@@ -1,3 +1,5 @@
+import { ClerkProvider } from "@clerk/nextjs";
+import { shadcn } from "@clerk/ui/themes";
 import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -51,15 +53,17 @@ export default function RootLayout({
         className="font-sans antialiased bg-background text-foreground"
         suppressHydrationWarning
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          disableTransitionOnChange
-        >
-          {children}
-          <Toaster />
-          <SonnerToaster richColors position="top-right" />
-        </ThemeProvider>
+        <ClerkProvider appearance={{ theme: shadcn }}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            disableTransitionOnChange
+          >
+            {children}
+            <Toaster />
+            <SonnerToaster richColors position="top-right" />
+          </ThemeProvider>
+        </ClerkProvider>
       </body>
     </html>
   );
