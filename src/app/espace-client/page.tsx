@@ -2,11 +2,12 @@
 
 import * as React from "react";
 import Link from "next/link";
+
 import {
-  SignedIn,
-  SignedOut,
+  Show,
   useUser,
 } from "@clerk/nextjs";
+
 import { toast } from "sonner";
 
 import {
@@ -25,10 +26,12 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
+
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
@@ -101,13 +104,13 @@ async function readJsonSafely<T>(
 export default function EspaceClientPage() {
   return (
     <>
-      <SignedOut>
+      <Show when="signed-out">
         <LoginScreen />
-      </SignedOut>
+      </Show>
 
-      <SignedIn>
+      <Show when="signed-in">
         <ClientGate />
-      </SignedIn>
+      </Show>
     </>
   );
 }
@@ -287,12 +290,6 @@ function ClientGate() {
     checkProfile,
   ]);
 
-  /*
-   * IMPORTANT:
-   *
-   * TypeScript sait maintenant que "user"
-   * n'est pas null après cette condition.
-   */
   if (
     !isLoaded ||
     !user
@@ -435,10 +432,6 @@ function ProfileSetup({
       return;
     }
 
-    /*
-     * Validation volontairement souple:
-     * +212..., 06..., 07...
-     */
     const phoneDigits =
       cleanPhone.replace(
         /\D/g,
@@ -595,7 +588,7 @@ function ProfileSetup({
               />
 
               <p className="text-xs text-muted-foreground">
-                Cette adresse provient de votre compte sécurisé Clerk.
+                Cette adresse provient de votre compte Clerk.
               </p>
             </div>
 
@@ -820,8 +813,6 @@ function Dashboard() {
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 md:py-10">
       <div className="space-y-7">
-        {/* Header */}
-
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-medium text-primary">
@@ -848,8 +839,6 @@ function Dashboard() {
             </Link>
           </Button>
         </div>
-
-        {/* Summary */}
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <DashboardStat
@@ -891,8 +880,6 @@ function Dashboard() {
           />
         </div>
 
-        {/* Quick links */}
-
         <div className="grid gap-3 sm:grid-cols-3">
           <QuickLink
             href="/espace-client/rdv"
@@ -921,8 +908,6 @@ function Dashboard() {
             description="Informations personnelles"
           />
         </div>
-
-        {/* Next appointment */}
 
         <section>
           <div className="mb-3 flex items-center justify-between">
@@ -972,17 +957,13 @@ function Dashboard() {
           )}
         </section>
 
-        {/* Vehicles */}
-
         <section>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-lg font-bold text-foreground">
               Mes véhicules
             </h2>
 
-            <Badge
-              variant="outline"
-            >
+            <Badge variant="outline">
               {data.vehicles.length}
             </Badge>
           </div>
@@ -1048,9 +1029,7 @@ function Dashboard() {
         onOpenChange={(
           open,
         ) => {
-          if (
-            !open
-          ) {
+          if (!open) {
             setQrAppointment(
               null,
             );
