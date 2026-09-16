@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getAppUrl, getStripe } from "@/lib/stripe";
+import { generateQrToken } from "@/lib/qr";
 
 import {
   generateCode,
@@ -101,10 +102,6 @@ function parseYmd(
     0,
   );
 
-  /*
-   * Évite par exemple:
-   * 2026-02-31 -> mars
-   */
   if (
     date.getFullYear() !== year ||
     date.getMonth() !==
@@ -177,7 +174,7 @@ export async function POST(
 ) {
   try {
     /* ---------------------------------------------------------------------- */
-    /*                              Authentication                            */
+    /*                           Authentication                               */
     /* ---------------------------------------------------------------------- */
 
     const session =
@@ -243,7 +240,7 @@ export async function POST(
     } = body;
 
     /* ---------------------------------------------------------------------- */
-    /*                             Required fields                            */
+    /*                           Required fields                              */
     /* ---------------------------------------------------------------------- */
 
     if (
@@ -269,7 +266,7 @@ export async function POST(
     }
 
     /* ---------------------------------------------------------------------- */
-    /*                           Vehicle validation                           */
+    /*                         Vehicle validation                             */
     /* ---------------------------------------------------------------------- */
 
     const cleanPlate =
@@ -320,7 +317,7 @@ export async function POST(
     }
 
     /* ---------------------------------------------------------------------- */
-    /*                              Date validation                           */
+    /*                            Date validation                             */
     /* ---------------------------------------------------------------------- */
 
     const appointmentDate =
@@ -338,17 +335,19 @@ export async function POST(
       );
     }
 
-    const now = new Date();
+    const now =
+      new Date();
 
-    const today = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-      0,
-      0,
-      0,
-      0,
-    );
+    const today =
+      new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        0,
+        0,
+        0,
+        0,
+      );
 
     if (
       appointmentDate <
@@ -390,15 +389,16 @@ export async function POST(
       );
     }
 
-    /*
-     * Créneau aujourd'hui déjà passé.
-     */
     if (
       ymdKeyLocal(
         appointmentDate,
-      ) === ymdKeyLocal(now)
+      ) ===
+      ymdKeyLocal(now)
     ) {
-      const [hours, minutes] =
+      const [
+        hours,
+        minutes,
+      ] =
         slot
           .split(":")
           .map(Number);
@@ -472,7 +472,7 @@ export async function POST(
     );
 
     /* ---------------------------------------------------------------------- */
-    /*                                 Service                                */
+    /*                                Service                                 */
     /* ---------------------------------------------------------------------- */
 
     const service =
@@ -501,7 +501,7 @@ export async function POST(
     }
 
     /* ---------------------------------------------------------------------- */
-    /*                                  Client                                */
+    /*                                 Client                                 */
     /* ---------------------------------------------------------------------- */
 
     let client =
@@ -513,11 +513,6 @@ export async function POST(
           })
         : null;
 
-    /*
-     * CLIENT connecté via Clerk:
-     * ses informations viennent uniquement
-     * de PostgreSQL, jamais du formulaire.
-     */
     if (
       isClient &&
       !client
@@ -534,8 +529,7 @@ export async function POST(
     }
 
     /*
-     * Permet de conserver la création
-     * de rendez-vous par un admin.
+     * Création de RDV depuis l'administration.
      */
     if (!client) {
       const cleanName =
@@ -596,8 +590,11 @@ export async function POST(
         client =
           await db.client.create({
             data: {
-              name: cleanName,
+              name:
+                cleanName,
+
               phone,
+
               email:
                 cleanEmail,
 
@@ -681,7 +678,7 @@ export async function POST(
       );
 
     /* ---------------------------------------------------------------------- */
-    /*                                  Promo                                 */
+    /*                           Code d'exemption                             */
     /* ---------------------------------------------------------------------- */
 
     const normalizedPromo =
@@ -709,14 +706,19 @@ export async function POST(
       const valid =
         promo &&
         promo.active &&
-        promo.validFrom <= now &&
-        (!promo.expiresAt ||
+        promo.validFrom <=
+          now &&
+        (
+          !promo.expiresAt ||
           promo.expiresAt >=
-            now) &&
-        (promo.maxUses ===
-          null ||
+            now
+        ) &&
+        (
+          promo.maxUses ===
+            null ||
           promo.usageCount <
-            promo.maxUses);
+            promo.maxUses
+        );
 
       if (
         !valid ||
@@ -733,12 +735,45 @@ export async function POST(
         );
       }
 
+      /*
+       * Vérification rapide avant transaction.
+       * La contrainte UNIQUE de PostgreSQL reste
+       * la vraie sécurité finale.
+       */
+      const alreadyUsed =
+        await db.promoCodeUsage.findUnique({
+          where: {
+            promoCodeId_clientId: {
+              promoCodeId:
+                promo.id,
+              clientId:
+                client.id,
+            },
+          },
+
+          select: {
+            id: true,
+          },
+        });
+
+      if (alreadyUsed) {
+        return NextResponse.json(
+          {
+            error:
+              "Ce code d’exemption a déjà été utilisé par votre compte",
+          },
+          {
+            status: 409,
+          },
+        );
+      }
+
       promoId =
         promo.id;
     }
 
     /* ---------------------------------------------------------------------- */
-    /*                         Appointment transaction                        */
+    /*                       Appointment transaction                          */
     /* ---------------------------------------------------------------------- */
 
     const code =
@@ -755,14 +790,9 @@ export async function POST(
       appointment =
         await db.$transaction(
           async (tx) => {
-            /*
-             * IMPORTANT:
-             * Re-vérification dans la transaction.
-             *
-             * Cela évite que deux personnes
-             * réservent le même créneau presque
-             * simultanément.
-             */
+            /* -------------------------------------------------------------- */
+            /*                     Capacité / créneau                          */
+            /* -------------------------------------------------------------- */
 
             const [
               capacity,
@@ -770,14 +800,12 @@ export async function POST(
               occupied,
             ] =
               await Promise.all([
-                tx.dailyCapacity.findUnique(
-                  {
-                    where: {
-                      date:
-                        dayStart,
-                    },
+                tx.dailyCapacity.findUnique({
+                  where: {
+                    date:
+                      dayStart,
                   },
-                ),
+                }),
 
                 tx.appointment.count({
                   where: {
@@ -797,31 +825,29 @@ export async function POST(
                   },
                 }),
 
-                tx.appointment.findFirst(
-                  {
-                    where: {
-                      date: {
-                        gte:
-                          dayStart,
-                        lte:
-                          dayEnd,
-                      },
-
-                      slot,
-
-                      status: {
-                        in: [
-                          "PENDING",
-                          "APPROVED",
-                        ],
-                      },
+                tx.appointment.findFirst({
+                  where: {
+                    date: {
+                      gte:
+                        dayStart,
+                      lte:
+                        dayEnd,
                     },
 
-                    select: {
-                      id: true,
+                    slot,
+
+                    status: {
+                      in: [
+                        "PENDING",
+                        "APPROVED",
+                      ],
                     },
                   },
-                ),
+
+                  select: {
+                    id: true,
+                  },
+                }),
               ]);
 
             const maxCapacity =
@@ -844,52 +870,73 @@ export async function POST(
             }
 
             /* -------------------------------------------------------------- */
-            /*                               Promo                            */
+            /*                       Promo verification                        */
             /* -------------------------------------------------------------- */
 
+            let currentPromo:
+              | Awaited<
+                  ReturnType<
+                    typeof tx.promoCode.findUnique
+                  >
+                >
+              | null = null;
+
             if (promoId) {
-              const currentPromo =
-                await tx.promoCode.findUnique(
-                  {
-                    where: {
-                      id: promoId,
-                    },
+              currentPromo =
+                await tx.promoCode.findUnique({
+                  where: {
+                    id:
+                      promoId,
                   },
-                );
+                });
 
               if (
                 !currentPromo ||
                 !currentPromo.active ||
                 currentPromo.validFrom >
                   now ||
-                (currentPromo.expiresAt &&
+                (
+                  currentPromo.expiresAt &&
                   currentPromo.expiresAt <
-                    now) ||
-                (currentPromo.maxUses !==
-                  null &&
+                    now
+                ) ||
+                (
+                  currentPromo.maxUses !==
+                    null &&
                   currentPromo.usageCount >=
-                    currentPromo.maxUses)
+                    currentPromo.maxUses
+                )
               ) {
                 throw new Error(
                   "PROMO_UNAVAILABLE",
                 );
               }
 
-              await tx.promoCode.update({
-                where: {
-                  id: promoId,
-                },
-
-                data: {
-                  usageCount: {
-                    increment: 1,
+              const existingUsage =
+                await tx.promoCodeUsage.findUnique({
+                  where: {
+                    promoCodeId_clientId: {
+                      promoCodeId:
+                        promoId,
+                      clientId:
+                        client.id,
+                    },
                   },
-                },
-              });
+
+                  select: {
+                    id: true,
+                  },
+                });
+
+              if (existingUsage) {
+                throw new Error(
+                  "PROMO_ALREADY_USED",
+                );
+              }
             }
 
             /* -------------------------------------------------------------- */
-            /*                         Queue number                           */
+            /*                         Queue number                            */
             /* -------------------------------------------------------------- */
 
             const countToday =
@@ -904,17 +951,50 @@ export async function POST(
                 },
               });
 
+            const usingPromo =
+              Boolean(
+                promoId,
+              );
+
             /*
-             * Code promo = acompte supprimé.
+             * Client avec Stripe:
+             * acompte = 25 %
+             *
+             * Client avec code:
+             * acompte en ligne = 0
+             *
+             * Admin:
+             * paiement en ligne non requis.
              */
             const depositAmountCents =
               isClient &&
-              !promoId
+              !usingPromo
                 ? standardDepositAmountCents
                 : 0;
 
-            return tx.appointment.create(
-              {
+            /*
+             * QR immédiatement disponible
+             * uniquement pour le code validé.
+             *
+             * Pour Stripe, le webhook le générera
+             * après confirmation réelle du paiement.
+             */
+            const qrToken =
+              usingPromo
+                ? generateQrToken()
+                : null;
+
+            const qrGeneratedAt =
+              usingPromo
+                ? new Date()
+                : null;
+
+            /* -------------------------------------------------------------- */
+            /*                    Création du rendez-vous                      */
+            /* -------------------------------------------------------------- */
+
+            const createdAppointment =
+              await tx.appointment.create({
                 data: {
                   code,
 
@@ -933,9 +1013,13 @@ export async function POST(
                   slot,
 
                   status:
-                    promoId
+                    usingPromo
                       ? "APPROVED"
                       : "PENDING",
+
+                  qrToken,
+
+                  qrGeneratedAt,
 
                   clientName:
                     client.name,
@@ -946,7 +1030,8 @@ export async function POST(
                   vehiclePlate:
                     vehicle.plate,
 
-                  vehicleDesc: `${vehicle.brand} ${vehicle.model} (${vehicle.year})`,
+                  vehicleDesc:
+                    `${vehicle.brand} ${vehicle.model} (${vehicle.year})`,
 
                   queueNumber:
                     countToday +
@@ -959,13 +1044,18 @@ export async function POST(
                   amountPaidCents:
                     0,
 
+                  /*
+                   * Code exemption:
+                   * rien payé en ligne,
+                   * donc tout reste à payer à l'agence.
+                   */
                   balanceDueCents:
                     totalAmountCents,
 
                   paymentStatus:
                     !isClient
                       ? "NOT_REQUIRED"
-                      : promoId
+                      : usingPromo
                         ? "WAIVED"
                         : "PENDING",
 
@@ -977,8 +1067,88 @@ export async function POST(
                   category: true,
                   service: true,
                 },
-              },
-            );
+              });
+
+            /* -------------------------------------------------------------- */
+            /*                    Enregistrement utilisation                   */
+            /* -------------------------------------------------------------- */
+
+            if (
+              promoId &&
+              currentPromo
+            ) {
+              try {
+                await tx.promoCodeUsage.create({
+                  data: {
+                    promoCodeId:
+                      promoId,
+
+                    clientId:
+                      client.id,
+
+                    appointmentId:
+                      createdAppointment.id,
+                  },
+                });
+              } catch (error) {
+                /*
+                 * Sécurité finale:
+                 * @@unique([promoCodeId, clientId])
+                 */
+                if (
+                  error instanceof
+                    Prisma.PrismaClientKnownRequestError &&
+                  error.code ===
+                    "P2002"
+                ) {
+                  throw new Error(
+                    "PROMO_ALREADY_USED",
+                  );
+                }
+
+                throw error;
+              }
+
+              /*
+               * Optimistic locking:
+               * usageCount doit être toujours
+               * exactement celui qu'on vient de lire.
+               *
+               * Si une autre réservation utilise
+               * la dernière place simultanément,
+               * cette transaction échoue.
+               */
+              const incrementResult =
+                await tx.promoCode.updateMany({
+                  where: {
+                    id:
+                      promoId,
+
+                    active:
+                      true,
+
+                    usageCount:
+                      currentPromo.usageCount,
+                  },
+
+                  data: {
+                    usageCount: {
+                      increment: 1,
+                    },
+                  },
+                });
+
+              if (
+                incrementResult.count !==
+                1
+              ) {
+                throw new Error(
+                  "PROMO_UNAVAILABLE",
+                );
+              }
+            }
+
+            return createdAppointment;
           },
           {
             isolationLevel:
@@ -1023,18 +1193,54 @@ export async function POST(
 
         if (
           error.message ===
-          "PROMO_UNAVAILABLE"
+          "PROMO_ALREADY_USED"
         ) {
           return NextResponse.json(
             {
               error:
-                "Ce code d’exemption vient d’être épuisé",
+                "Ce code d’exemption a déjà été utilisé par votre compte",
             },
             {
               status: 409,
             },
           );
         }
+
+        if (
+          error.message ===
+          "PROMO_UNAVAILABLE"
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                "Ce code d’exemption est invalide, expiré ou vient d’être épuisé",
+            },
+            {
+              status: 409,
+            },
+          );
+        }
+      }
+
+      /*
+       * PostgreSQL Serializable peut demander
+       * de réessayer une transaction concurrente.
+       */
+      if (
+        error instanceof
+          Prisma.PrismaClientKnownRequestError &&
+        error.code ===
+          "P2034"
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Une autre réservation vient d’être effectuée. Veuillez réessayer.",
+          },
+          {
+            status: 409,
+          },
+        );
       }
 
       console.error(
@@ -1054,15 +1260,16 @@ export async function POST(
     }
 
     /* ---------------------------------------------------------------------- */
-    /*                       No Stripe payment required                       */
+    /*                    Pas de Stripe nécessaire                            */
     /* ---------------------------------------------------------------------- */
 
     /*
      * Admin:
      * paiement géré à l'agence.
      *
-     * Promo:
-     * acompte exempté.
+     * Code d'exemption:
+     * RDV confirmé immédiatement
+     * + QR généré.
      */
     if (
       !isClient ||
@@ -1071,10 +1278,14 @@ export async function POST(
       return NextResponse.json(
         {
           ...appointment,
+
           confirmed:
             Boolean(
               promoId,
             ),
+
+          paymentRequired:
+            false,
         },
         {
           status: 201,
@@ -1083,7 +1294,7 @@ export async function POST(
     }
 
     /* ---------------------------------------------------------------------- */
-    /*                              Stripe Checkout                           */
+    /*                           Stripe Checkout                              */
     /* ---------------------------------------------------------------------- */
 
     try {
@@ -1095,10 +1306,6 @@ export async function POST(
           {
             mode: "payment",
 
-            /*
-             * L'email peut être nullable
-             * dans certaines anciennes lignes DB.
-             */
             ...(client.email
               ? {
                   customer_email:
@@ -1118,9 +1325,11 @@ export async function POST(
                     standardDepositAmountCents,
 
                   product_data: {
-                    name: `Acompte 25 % — ${service.name}`,
+                    name:
+                      `Acompte 25 % — ${service.name}`,
 
-                    description: `Rendez-vous ${code} · solde à régler à l’agence`,
+                    description:
+                      `Rendez-vous ${code} · solde à régler à l’agence`,
                   },
                 },
               },
@@ -1144,17 +1353,16 @@ export async function POST(
               },
             },
 
-            success_url: `${getAppUrl(
-              request,
-            )}/paiement/success?session_id={CHECKOUT_SESSION_ID}`,
+            success_url:
+              `${getAppUrl(
+                request,
+              )}/paiement/success?session_id={CHECKOUT_SESSION_ID}`,
 
-            cancel_url: `${getAppUrl(
-              request,
-            )}/paiement/cancel?appointment=${appointment.id}`,
+            cancel_url:
+              `${getAppUrl(
+                request,
+              )}/paiement/cancel?appointment=${appointment.id}`,
 
-            /*
-             * Durée du Checkout.
-             */
             expires_at:
               Math.floor(
                 Date.now() /
@@ -1163,7 +1371,8 @@ export async function POST(
               31 * 60,
           },
           {
-            idempotencyKey: `appointment-${appointment.id}`,
+            idempotencyKey:
+              `appointment-${appointment.id}`,
           },
         );
 
@@ -1196,6 +1405,12 @@ export async function POST(
 
           checkoutUrl:
             checkout.url,
+
+          confirmed:
+            false,
+
+          paymentRequired:
+            true,
         },
         {
           status: 201,
@@ -1208,8 +1423,8 @@ export async function POST(
       );
 
       /*
-       * Le Checkout n'a pas pu démarrer.
-       * On libère immédiatement le créneau.
+       * Impossible de démarrer Stripe:
+       * libération immédiate du créneau.
        */
       await db.appointment
         .update({
@@ -1308,9 +1523,10 @@ export async function GET(
 
     const {
       searchParams,
-    } = new URL(
-      request.url,
-    );
+    } =
+      new URL(
+        request.url,
+      );
 
     const status =
       searchParams.get(
@@ -1327,11 +1543,12 @@ export async function GET(
         .get("q")
         ?.trim();
 
-    const where: Prisma.AppointmentWhereInput =
+    const where:
+      Prisma.AppointmentWhereInput =
       {};
 
     /* ---------------------------------------------------------------------- */
-    /*                              Status filter                             */
+    /*                             Status filter                              */
     /* ---------------------------------------------------------------------- */
 
     if (status) {
@@ -1356,7 +1573,7 @@ export async function GET(
     }
 
     /* ---------------------------------------------------------------------- */
-    /*                               Date filter                              */
+    /*                              Date filter                               */
     /* ---------------------------------------------------------------------- */
 
     if (date) {
@@ -1400,38 +1617,44 @@ export async function GET(
       );
 
       where.date = {
-        gte: start,
-        lte: end,
+        gte:
+          start,
+        lte:
+          end,
       };
     }
 
     /* ---------------------------------------------------------------------- */
-    /*                              Search filter                             */
+    /*                             Search filter                              */
     /* ---------------------------------------------------------------------- */
 
     if (q) {
       where.OR = [
         {
           code: {
-            contains: q,
+            contains:
+              q,
           },
         },
 
         {
           clientName: {
-            contains: q,
+            contains:
+              q,
           },
         },
 
         {
           clientPhone: {
-            contains: q,
+            contains:
+              q,
           },
         },
 
         {
           vehiclePlate: {
-            contains: q,
+            contains:
+              q,
           },
         },
       ];
@@ -1442,19 +1665,33 @@ export async function GET(
         where,
 
         include: {
-          category: true,
-          service: true,
-          result: true,
-          payments: true,
-          promoCode: true,
+          category:
+            true,
+
+          service:
+            true,
+
+          result:
+            true,
+
+          payments:
+            true,
+
+          promoCode:
+            true,
+
+          promoUsage:
+            true,
         },
 
         orderBy: [
           {
-            date: "asc",
+            date:
+              "asc",
           },
           {
-            slot: "asc",
+            slot:
+              "asc",
           },
         ],
 

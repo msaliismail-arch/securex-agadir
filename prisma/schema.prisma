@@ -1,11 +1,12 @@
 // SÉCUREX CONNECT — Prisma schema
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider  = "postgresql"
-    url       = env("POSTGRES_PRISMA_URL")
+  url       = env("POSTGRES_PRISMA_URL")
   directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
@@ -15,19 +16,16 @@ model AdminUser {
   email         String
   firstName     String
   lastName      String
-  name          String   // derived: firstName + " " + lastName (kept for compat)
-  role          String   // SUPER | RDV | RECEPTION
+  name          String
+  role          String
   phone         String?
   passwordHash  String
-  twoFactorCode String?  // deprecated — 2FA removed; kept for schema compat
+  twoFactorCode String?
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
 
-/// Editable website content blocks (Super Admin "Gestion du site").
-/// Keys: hero.title, hero.subtitle, hero.ctaPrimary, hero.ctaSecondary,
-///       stats.*, features.*, about.*, etc.
 model WebsiteContent {
   id        String   @id
   value     String
@@ -35,145 +33,205 @@ model WebsiteContent {
 }
 
 model Client {
-  id             String       @id @default(cuid())
-  supabaseUserId String?      @unique
-  phone          String       @unique
-  email          String       @unique
+  id             String  @id @default(cuid())
+  supabaseUserId String? @unique
+  phone          String  @unique
+  email          String  @unique
   name           String
-  passwordHash   String?      // legacy only; new clients authenticate with Supabase Auth
-  channel        String       @default("SMS") // SMS | EMAIL | WHATSAPP
-  vehicles       Vehicle[]
-  appointments   Appointment[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  passwordHash   String?
+  channel        String  @default("SMS")
+
+  vehicles        Vehicle[]
+  appointments    Appointment[]
+  promoCodeUsages PromoCodeUsage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Vehicle {
-  id           String       @id @default(cuid())
-  clientId     String
-  client       Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  plate        String
-  brand        String
-  model        String
-  year         Int
-  category     String       // VOITURE | MOTO | CAMION | UTILITAIRE
-  fuel         String?
+  id String @id @default(cuid())
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  plate    String
+  brand    String
+  model    String
+  year     Int
+  category String
+  fuel     String?
+
   appointments Appointment[]
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([clientId])
 }
 
 model Category {
-  id           String        @id @default(cuid())
-  name         String
-  slug         String        @unique
-  description  String
-  icon         String
-  color        String        // CategoryColor key
-  sort         Int           @default(0)
+  id          String @id @default(cuid())
+  name        String
+  slug        String @unique
+  description String
+  icon        String
+  color       String
+  sort        Int    @default(0)
+
   services     Service[]
   appointments Appointment[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Service {
-  id          String        @id @default(cuid())
-  categoryId  String
-  category    Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  id String @id @default(cuid())
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
   name        String
-  slug        String        @unique
+  slug        String  @unique
   description String
-  durationMin Int           @default(30)
+  durationMin Int     @default(30)
   price       Float
-  active      Boolean       @default(true)
+  active      Boolean @default(true)
+
   appointments Appointment[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([categoryId])
 }
 
 model Appointment {
-  id            String       @id @default(cuid())
-  code          String       @unique // 6-char reference
-  clientId      String
-  client        Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  vehicleId     String?
-  vehicle       Vehicle?     @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
-  categoryId    String
-  category      Category     @relation(fields: [categoryId], references: [id])
-  serviceId     String
-  service       Service      @relation(fields: [serviceId], references: [id])
-  date          DateTime
-  slot          String       // HH:mm
-  status        String       @default("PENDING") // PENDING (à confirmer) | APPROVED (confirmé) | COMPLETED | CANCELLED
+  id   String @id @default(cuid())
+  code String @unique
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  vehicleId String?
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  date   DateTime
+  slot   String
+  status String   @default("PENDING")
+
   qrToken       String?
   qrGeneratedAt DateTime?
-  checkedInAt   DateTime?   // one-time use: set on first successful check-in, blocks re-verification
-  checkedInBy   String?
-  queueNumber   Int?
-  notes         String?
-  clientName    String
-  clientPhone   String
-  vehiclePlate  String
-  vehicleDesc   String
-  totalAmountCents    Int          @default(0)
-  depositAmountCents  Int          @default(0)
-  amountPaidCents     Int          @default(0)
-  balanceDueCents     Int          @default(0)
-  paymentStatus       String       @default("NOT_REQUIRED") // NOT_REQUIRED | PENDING | PAID | WAIVED | FAILED | EXPIRED | REFUNDED
-  promoCodeId         String?
-  promoCode           PromoCode?   @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
-  payments            Payment[]
-  result        InspectionResult?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+
+  checkedInAt DateTime?
+  checkedInBy String?
+  queueNumber Int?
+  notes       String?
+
+  clientName   String
+  clientPhone  String
+  vehiclePlate String
+  vehicleDesc  String
+
+  totalAmountCents   Int @default(0)
+  depositAmountCents Int @default(0)
+  amountPaidCents    Int @default(0)
+  balanceDueCents    Int @default(0)
+
+  paymentStatus String @default("NOT_REQUIRED")
+
+  promoCodeId String?
+  promoCode   PromoCode? @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
+
+  promoUsage PromoCodeUsage?
+
+  payments Payment[]
+
+  result InspectionResult?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([date, status])
   @@index([clientId, paymentStatus])
 }
 
-/// A Super Admin generated code that waives the 25% online deposit.
-/// It does not discount the service: the full amount remains payable at the agency.
 model PromoCode {
-  id           String        @id @default(cuid())
-  code         String        @unique
-  description  String?
-  active       Boolean       @default(true)
-  maxUses      Int?
-  usageCount   Int           @default(0)
-  validFrom    DateTime      @default(now())
-  expiresAt    DateTime?
-  createdById  String
+  id            String    @id @default(cuid())
+  code          String    @unique
+  description   String?
+  active        Boolean   @default(true)
+  maxUses       Int?
+  usageCount    Int       @default(0)
+  validFrom     DateTime  @default(now())
+  expiresAt     DateTime?
+  createdById   String
   createdByName String
+
   appointments Appointment[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  usages       PromoCodeUsage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([active, validFrom, expiresAt])
 }
 
-/// Immutable-ish record of each Stripe Checkout attempt.
+//
+// IMPORTANT:
+//
+// Un même PromoCode peut être utilisé par plusieurs comptes.
+//
+// Mais un même compte ne peut utiliser
+// le même PromoCode qu'une seule fois.
+//
+model PromoCodeUsage {
+  id String @id @default(cuid())
+
+  promoCodeId String
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  appointmentId String?      @unique
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  usedAt DateTime @default(now())
+
+  @@unique([promoCodeId, clientId])
+  @@index([clientId, usedAt])
+  @@index([promoCodeId, usedAt])
+}
+
 model Payment {
-  id                      String      @id @default(cuid())
-  appointmentId           String
-  appointment             Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  stripeCheckoutSessionId String      @unique
-  stripePaymentIntentId   String?     @unique
-  amountCents             Int
-  currency                String      @default("mad")
-  status                  String      @default("PENDING") // PENDING | PAID | FAILED | EXPIRED | REFUNDED
-  paidAt                  DateTime?
-  createdAt               DateTime    @default(now())
-  updatedAt               DateTime    @updatedAt
+  id String @id @default(cuid())
+
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  stripeCheckoutSessionId String  @unique
+  stripePaymentIntentId   String? @unique
+
+  amountCents Int
+  currency    String @default("mad")
+  status      String @default("PENDING")
+
+  paidAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([appointmentId, status])
 }
 
-/// Guarantees idempotent processing when Stripe retries a webhook.
 model StripeWebhookEvent {
   id            String   @id @default(cuid())
   stripeEventId String   @unique
@@ -181,28 +239,33 @@ model StripeWebhookEvent {
   processedAt   DateTime @default(now())
 }
 
-/// Daily capacity — managed ONLY by RDV admin. Default 20 if not set.
 model DailyCapacity {
   id          String   @id @default(cuid())
-  date        DateTime @unique // the calendar day (midnight)
+  date        DateTime @unique
   capaciteMax Int      @default(20)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model InspectionResult {
-  id            String      @id @default(cuid())
+  id String @id @default(cuid())
+
   appointmentId String      @unique
   appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  overallResult String      // PASS | FAIL
-  brakes        String      @default("PASS")
-  lights        String      @default("PASS")
-  tires         String      @default("PASS")
-  emissions     String      @default("PASS")
-  bodywork      String      @default("PASS")
-  inspector     String?
-  notes         String?
-  createdAt     DateTime    @default(now())
+
+  overallResult String
+
+  brakes    String @default("PASS")
+  lights    String @default("PASS")
+  tires     String @default("PASS")
+  emissions String @default("PASS")
+  bodywork  String @default("PASS")
+
+  inspector String?
+  notes     String?
+
+  createdAt DateTime @default(now())
 }
 
 model Announcement {
@@ -211,7 +274,7 @@ model Announcement {
   content     String
   pinned      Boolean  @default(false)
   visible     Boolean  @default(true)
-  category    String   @default("INFO") // INFO | PROMO | MAINTENANCE | ALERT
+  category    String   @default("INFO")
   publishedAt DateTime @default(now())
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -221,7 +284,7 @@ model AuditLog {
   id        String   @id @default(cuid())
   adminId   String?
   adminName String
-  adminRole String   // SUPER | VALIDATION | RECEPTION | SYSTEM
+  adminRole String
   action    String
   target    String?
   details   String?
@@ -239,7 +302,7 @@ model Setting {
 
 model OtpRequest {
   id        String   @id @default(cuid())
-  key       String   // email or phone
+  key       String
   code      String
   consumed  Boolean  @default(false)
   expiresAt DateTime

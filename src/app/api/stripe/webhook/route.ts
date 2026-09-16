@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
 import { getStripe } from "@/lib/stripe";
+import { generateQrToken } from "@/lib/qr";
 
 export const runtime = "nodejs";
 
@@ -14,43 +15,63 @@ export const runtime = "nodejs";
 function getPaymentIntentId(
   session: Stripe.Checkout.Session,
 ): string | null {
-  if (typeof session.payment_intent === "string") {
+  if (
+    typeof session.payment_intent ===
+    "string"
+  ) {
     return session.payment_intent;
   }
 
-  return session.payment_intent?.id ?? null;
+  return (
+    session.payment_intent?.id ??
+    null
+  );
 }
 
 function getChargePaymentIntentId(
   charge: Stripe.Charge,
 ): string | null {
-  if (typeof charge.payment_intent === "string") {
+  if (
+    typeof charge.payment_intent ===
+    "string"
+  ) {
     return charge.payment_intent;
   }
 
-  return charge.payment_intent?.id ?? null;
+  return (
+    charge.payment_intent?.id ??
+    null
+  );
 }
 
 /* -------------------------------------------------------------------------- */
 /*                                  Webhook                                   */
 /* -------------------------------------------------------------------------- */
 
-export async function POST(request: Request) {
-  const signature = request.headers.get(
-    "stripe-signature",
-  );
+export async function POST(
+  request: Request,
+) {
+  const signature =
+    request.headers.get(
+      "stripe-signature",
+    );
 
   const webhookSecret =
-    process.env.STRIPE_WEBHOOK_SECRET;
+    process.env
+      .STRIPE_WEBHOOK_SECRET;
 
-  if (!signature || !webhookSecret) {
+  if (
+    !signature ||
+    !webhookSecret
+  ) {
     console.error(
       "[STRIPE_WEBHOOK] Signature ou STRIPE_WEBHOOK_SECRET absent",
     );
 
     return NextResponse.json(
       {
-        error: "Configuration webhook manquante",
+        error:
+          "Configuration webhook manquante",
       },
       {
         status: 400,
@@ -59,7 +80,7 @@ export async function POST(request: Request) {
   }
 
   /* ------------------------------------------------------------------------ */
-  /*                         Verify Stripe signature                           */
+  /*                      Vérification signature Stripe                       */
   /* ------------------------------------------------------------------------ */
 
   let event: Stripe.Event;
@@ -82,7 +103,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        error: "Signature Stripe invalide",
+        error:
+          "Signature Stripe invalide",
       },
       {
         status: 400,
@@ -91,21 +113,21 @@ export async function POST(request: Request) {
   }
 
   /* ------------------------------------------------------------------------ */
-  /*                              Process event                               */
+  /*                         Traitement événement                             */
   /* ------------------------------------------------------------------------ */
 
   try {
     await db.$transaction(
       async (tx) => {
         /*
-         * Stripe peut renvoyer le même événement.
-         *
-         * On vérifie donc s'il a déjà été traité.
+         * Stripe peut renvoyer le même événement
+         * plusieurs fois.
          */
         const alreadyProcessed =
           await tx.stripeWebhookEvent.findUnique({
             where: {
-              stripeEventId: event.id,
+              stripeEventId:
+                event.id,
             },
           });
 
@@ -114,7 +136,7 @@ export async function POST(request: Request) {
         }
 
         /* ------------------------------------------------------------------ */
-        /*                          PAYMENT SUCCESS                           */
+        /*                           PAYMENT SUCCESS                          */
         /* ------------------------------------------------------------------ */
 
         if (
@@ -128,9 +150,11 @@ export async function POST(request: Request) {
               .object as Stripe.Checkout.Session;
 
           /*
-           * checkout.session.completed peut aussi arriver
-           * avant paiement final pour certains moyens
-           * de paiement asynchrones.
+           * checkout.session.completed peut exister
+           * même avant le paiement final pour certains
+           * moyens de paiement.
+           *
+           * On confirme uniquement si Stripe dit PAID.
            */
           if (
             session.payment_status ===
@@ -145,11 +169,12 @@ export async function POST(request: Request) {
               });
 
             /*
-             * Stripe peut être plus rapide que notre
-             * insertion du Payment en DB.
+             * Stripe peut recevoir le webhook
+             * juste avant que notre Payment soit
+             * disponible en DB.
              *
-             * On retourne 500 plus bas afin que Stripe
-             * retente le webhook.
+             * On provoque donc un 500 pour que
+             * Stripe retente automatiquement.
              */
             if (!payment) {
               throw new Error(
@@ -158,11 +183,14 @@ export async function POST(request: Request) {
             }
 
             /*
-             * Ne jamais appliquer le paiement deux fois.
+             * Ne jamais créditer le paiement
+             * une deuxième fois.
              */
             if (
-              payment.status !== "PAID" &&
-              payment.status !== "REFUNDED"
+              payment.status !==
+                "PAID" &&
+              payment.status !==
+                "REFUNDED"
             ) {
               const appointment =
                 await tx.appointment.findUnique({
@@ -173,7 +201,14 @@ export async function POST(request: Request) {
 
                   select: {
                     id: true,
+
                     totalAmountCents:
+                      true,
+
+                    qrToken:
+                      true,
+
+                    qrGeneratedAt:
                       true,
                   },
                 });
@@ -194,13 +229,29 @@ export async function POST(request: Request) {
                     paidAmount,
                 );
 
+              /*
+               * Même logique que le code
+               * d'exemption :
+               *
+               * validation = RDV APPROVED + QR.
+               */
+              const qrToken =
+                appointment.qrToken ??
+                generateQrToken();
+
+              const qrGeneratedAt =
+                appointment.qrGeneratedAt ??
+                new Date();
+
               await tx.payment.update({
                 where: {
-                  id: payment.id,
+                  id:
+                    payment.id,
                 },
 
                 data: {
-                  status: "PAID",
+                  status:
+                    "PAID",
 
                   paidAt:
                     new Date(),
@@ -220,10 +271,11 @@ export async function POST(request: Request) {
 
                 data: {
                   /*
-                   * Paiement de l'acompte confirmé:
-                   * le rendez-vous est validé.
+                   * Stripe a réellement confirmé
+                   * l'acompte.
                    */
-                  status: "APPROVED",
+                  status:
+                    "APPROVED",
 
                   paymentStatus:
                     "PAID",
@@ -233,6 +285,14 @@ export async function POST(request: Request) {
 
                   balanceDueCents:
                     remainingBalance,
+
+                  /*
+                   * QR généré uniquement après
+                   * confirmation réelle Stripe.
+                   */
+                  qrToken,
+
+                  qrGeneratedAt,
                 },
               });
             }
@@ -240,7 +300,7 @@ export async function POST(request: Request) {
         }
 
         /* ------------------------------------------------------------------ */
-        /*                           PAYMENT FAILED                            */
+        /*                           PAYMENT FAILED                           */
         /* ------------------------------------------------------------------ */
 
         else if (
@@ -261,23 +321,26 @@ export async function POST(request: Request) {
 
           if (
             payment &&
-            payment.status !== "PAID" &&
-            payment.status !== "REFUNDED"
+            payment.status !==
+              "PAID" &&
+            payment.status !==
+              "REFUNDED"
           ) {
             await tx.payment.update({
               where: {
-                id: payment.id,
+                id:
+                  payment.id,
               },
 
               data: {
-                status: "FAILED",
+                status:
+                  "FAILED",
               },
             });
 
             /*
-             * Important:
-             * on annule le rendez-vous afin de libérer
-             * le créneau.
+             * Paiement échoué:
+             * on libère le créneau.
              */
             await tx.appointment.updateMany({
               where: {
@@ -289,7 +352,8 @@ export async function POST(request: Request) {
               },
 
               data: {
-                status: "CANCELLED",
+                status:
+                  "CANCELLED",
 
                 paymentStatus:
                   "FAILED",
@@ -299,7 +363,7 @@ export async function POST(request: Request) {
         }
 
         /* ------------------------------------------------------------------ */
-        /*                         CHECKOUT EXPIRED                            */
+        /*                         CHECKOUT EXPIRED                           */
         /* ------------------------------------------------------------------ */
 
         else if (
@@ -320,22 +384,26 @@ export async function POST(request: Request) {
 
           if (
             payment &&
-            payment.status !== "PAID" &&
-            payment.status !== "REFUNDED"
+            payment.status !==
+              "PAID" &&
+            payment.status !==
+              "REFUNDED"
           ) {
             await tx.payment.update({
               where: {
-                id: payment.id,
+                id:
+                  payment.id,
               },
 
               data: {
-                status: "EXPIRED",
+                status:
+                  "EXPIRED",
               },
             });
 
             /*
-             * Le Checkout a expiré.
-             * Le créneau doit être libéré.
+             * Checkout expiré:
+             * on libère le créneau.
              */
             await tx.appointment.updateMany({
               where: {
@@ -347,7 +415,8 @@ export async function POST(request: Request) {
               },
 
               data: {
-                status: "CANCELLED",
+                status:
+                  "CANCELLED",
 
                 paymentStatus:
                   "EXPIRED",
@@ -357,7 +426,7 @@ export async function POST(request: Request) {
         }
 
         /* ------------------------------------------------------------------ */
-        /*                               REFUND                                */
+        /*                                REFUND                              */
         /* ------------------------------------------------------------------ */
 
         else if (
@@ -391,7 +460,9 @@ export async function POST(request: Request) {
                   },
 
                   select: {
-                    id: true,
+                    id:
+                      true,
+
                     totalAmountCents:
                       true,
                   },
@@ -399,7 +470,8 @@ export async function POST(request: Request) {
 
               if (appointment) {
                 /*
-                 * Stripe peut envoyer un refund partiel.
+                 * Stripe peut faire un
+                 * remboursement partiel.
                  */
                 const refundedAmount =
                   Math.min(
@@ -426,12 +498,15 @@ export async function POST(request: Request) {
                   payment.amountCents;
 
                 /*
-                 * Notre schema n'a pas forcément
-                 * PARTIALLY_REFUNDED.
+                 * Pas de statut
+                 * PARTIALLY_REFUNDED
+                 * dans notre schéma.
                  *
-                 * Donc:
-                 * - remboursement total → REFUNDED
-                 * - remboursement partiel → garde PAID
+                 * Total:
+                 * REFUNDED
+                 *
+                 * Partiel:
+                 * PAID
                  */
                 if (
                   fullRefund &&
@@ -440,7 +515,8 @@ export async function POST(request: Request) {
                 ) {
                   await tx.payment.update({
                     where: {
-                      id: payment.id,
+                      id:
+                        payment.id,
                     },
 
                     data: {
@@ -475,7 +551,7 @@ export async function POST(request: Request) {
         }
 
         /* ------------------------------------------------------------------ */
-        /*                          Mark event done                            */
+        /*                         Event traité                               */
         /* ------------------------------------------------------------------ */
 
         await tx.stripeWebhookEvent.create({
@@ -504,12 +580,43 @@ export async function POST(request: Request) {
     if (
       error instanceof
         Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
+      error.code ===
+        "P2002"
     ) {
       return NextResponse.json({
-        received: true,
-        duplicate: true,
+        received:
+          true,
+
+        duplicate:
+          true,
       });
+    }
+
+    /*
+     * Transaction concurrente PostgreSQL.
+     * On retourne 500 afin que Stripe
+     * puisse retenter.
+     */
+    if (
+      error instanceof
+        Prisma.PrismaClientKnownRequestError &&
+      error.code ===
+        "P2034"
+    ) {
+      console.error(
+        `[STRIPE_WEBHOOK_CONCURRENCY_${event.type}]`,
+        error,
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Transaction concurrente, nouvelle tentative nécessaire",
+        },
+        {
+          status: 500,
+        },
+      );
     }
 
     console.error(
@@ -518,10 +625,10 @@ export async function POST(request: Request) {
     );
 
     /*
-     * Important:
-     * PAYMENT_NOT_READY retourne volontairement 500.
+     * PAYMENT_NOT_READY retourne
+     * volontairement 500.
      *
-     * Stripe pourra alors retenter l'événement.
+     * Stripe va retenter.
      */
     return NextResponse.json(
       {
@@ -535,6 +642,7 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({
-    received: true,
+    received:
+      true,
   });
 }
