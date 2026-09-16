@@ -2,33 +2,40 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { auth, currentUser } from "@clerk/nextjs/server";
+
 import type { AdminRole } from "./constants";
 import { db } from "@/lib/db";
 
+/* -------------------------------------------------------------------------- */
+/*                                  Constants                                 */
+/* -------------------------------------------------------------------------- */
+
 const SESSION_COOKIE = "sx_session";
 const PENDING_COOKIE = "sx_pending";
-function sessionSecret() {
-  const value = process.env.SESSION_SECRET;
-  if (!value || value.length < 32) throw new Error("SESSION_SECRET doit contenir au moins 32 caractères");
-  return new TextEncoder().encode(value);
-}
 
-/** Session lifetime: 3 hours (per spec). */
 const SESSION_TTL_SECONDS = 60 * 60 * 3;
-/** Pending (pre-2FA) session: 5 minutes to enter the 2FA code. */
 const PENDING_TTL_SECONDS = 60 * 5;
+
+/* -------------------------------------------------------------------------- */
+/*                                   Types                                    */
+/* -------------------------------------------------------------------------- */
 
 export type SessionRole = AdminRole | "CLIENT";
 
 export interface SessionPayload {
   sub: string;
   role: SessionRole;
+
   name: string;
+
   firstName?: string;
   lastName?: string;
+
   email?: string;
   phone?: string;
+
   username?: string;
+
   iat?: number;
   exp?: number;
 }
@@ -39,16 +46,36 @@ export interface ClerkClientIdentity {
   name: string;
 }
 
-/** Pending payload — issued after step 1 (username + password) verified. */
 export interface PendingPayload {
   sub: string;
   username: string;
   role: string;
   name: string;
   email: string;
+
   iat?: number;
   exp?: number;
 }
+
+/* -------------------------------------------------------------------------- */
+/*                              Session secret                                */
+/* -------------------------------------------------------------------------- */
+
+function sessionSecret() {
+  const value = process.env.SESSION_SECRET;
+
+  if (!value || value.length < 32) {
+    throw new Error(
+      "SESSION_SECRET doit contenir au moins 32 caractères",
+    );
+  }
+
+  return new TextEncoder().encode(value);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               Cookie options                               */
+/* -------------------------------------------------------------------------- */
 
 const COOKIE_OPTS = {
   httpOnly: true,
@@ -66,46 +93,118 @@ const PENDING_OPTS = {
   maxAge: PENDING_TTL_SECONDS,
 };
 
-/** Hash a password (used by seed + create-user flows). */
-export async function hashPassword(plain: string): Promise<string> {
+/* -------------------------------------------------------------------------- */
+/*                             Password helpers                               */
+/* -------------------------------------------------------------------------- */
+
+export async function hashPassword(
+  plain: string,
+): Promise<string> {
   return bcrypt.hash(plain, 10);
 }
 
-/** Verify a password against a hash. */
-export async function verifyPassword(plain: string, hash: string): Promise<boolean> {
+export async function verifyPassword(
+  plain: string,
+  hash: string,
+): Promise<boolean> {
   return bcrypt.compare(plain, hash);
 }
 
-export async function createSession(payload: Omit<SessionPayload, "iat" | "exp">) {
+/* -------------------------------------------------------------------------- */
+/*                           Legacy/Admin session                             */
+/* -------------------------------------------------------------------------- */
+
+export async function createSession(
+  payload: Omit<SessionPayload, "iat" | "exp">,
+) {
   const token = await new SignJWT({ ...payload })
-    .setProtectedHeader({ alg: "HS256" })
+    .setProtectedHeader({
+      alg: "HS256",
+    })
     .setIssuedAt()
     .setExpirationTime("3h")
     .sign(sessionSecret());
+
   const store = await cookies();
-  store.set(SESSION_COOKIE, token, COOKIE_OPTS);
+
+  store.set(
+    SESSION_COOKIE,
+    token,
+    COOKIE_OPTS,
+  );
+
   return token;
 }
 
-/** Step 1 passed — issue a short-lived pending token (NOT a real session). */
-export async function createPendingSession(payload: Omit<PendingPayload, "iat" | "exp">) {
+/**
+ * Lit uniquement l'ancienne session JWT locale.
+ *
+ * Important:
+ * cette fonction ne touche jamais Clerk.
+ * Elle est utilisée notamment par l'authentification admin.
+ */
+async function getLegacySession(): Promise<SessionPayload | null> {
+  const store = await cookies();
+
+  const token = store.get(SESSION_COOKIE)?.value;
+
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const { payload } = await jwtVerify(
+      token,
+      sessionSecret(),
+    );
+
+    return payload as unknown as SessionPayload;
+  } catch {
+    return null;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                            Pending admin session                           */
+/* -------------------------------------------------------------------------- */
+
+export async function createPendingSession(
+  payload: Omit<PendingPayload, "iat" | "exp">,
+) {
   const token = await new SignJWT({ ...payload })
-    .setProtectedHeader({ alg: "HS256" })
+    .setProtectedHeader({
+      alg: "HS256",
+    })
     .setIssuedAt()
     .setExpirationTime("5m")
     .sign(sessionSecret());
+
   const store = await cookies();
-  store.set(PENDING_COOKIE, token, PENDING_OPTS);
+
+  store.set(
+    PENDING_COOKIE,
+    token,
+    PENDING_OPTS,
+  );
+
   return token;
 }
 
-/** Read + verify the pending token (step 2). Returns null if invalid/expired. */
 export async function getPendingSession(): Promise<PendingPayload | null> {
   const store = await cookies();
+
   const token = store.get(PENDING_COOKIE)?.value;
-  if (!token) return null;
+
+  if (!token) {
+    return null;
+  }
+
   try {
-    const { payload } = await jwtVerify(token, sessionSecret());
+    const { payload } = await jwtVerify(
+      token,
+      sessionSecret(),
+    );
+
     return payload as unknown as PendingPayload;
   } catch {
     return null;
@@ -114,24 +213,117 @@ export async function getPendingSession(): Promise<PendingPayload | null> {
 
 export async function destroyPendingSession() {
   const store = await cookies();
+
   store.delete(PENDING_COOKIE);
 }
 
+/* -------------------------------------------------------------------------- */
+/*                               Clerk client                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Retourne l'identité d'un client Clerk uniquement si:
+ *
+ * - l'utilisateur est connecté;
+ * - son utilisateur Clerk existe;
+ * - son adresse email principale est vérifiée.
+ */
+export async function getVerifiedClerkClientIdentity(): Promise<ClerkClientIdentity | null> {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return null;
+    }
+
+    const user = await currentUser();
+
+    if (!user) {
+      return null;
+    }
+
+    const primaryEmail = user.emailAddresses.find(
+      (address) =>
+        address.id === user.primaryEmailAddressId,
+    );
+
+    if (!primaryEmail) {
+      return null;
+    }
+
+    if (primaryEmail.verification?.status !== "verified") {
+      return null;
+    }
+
+    const email = primaryEmail.emailAddress
+      .trim()
+      .toLowerCase();
+
+    if (!email) {
+      return null;
+    }
+
+    const name =
+      user.fullName?.trim() ||
+      [user.firstName, user.lastName]
+        .filter(Boolean)
+        .join(" ")
+        .trim() ||
+      email.split("@")[0];
+
+    return {
+      userId,
+      email,
+      name,
+    };
+  } catch (error) {
+    console.error(
+      "[CLERK_CLIENT_IDENTITY]",
+      error,
+    );
+
+    return null;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                      Unified compatibility session                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Compatibilité avec l'ancien code.
+ *
+ * 1. Cherche d'abord l'ancienne session.
+ * 2. Sinon regarde si un utilisateur Clerk est connecté.
+ * 3. Cherche son profil Client PostgreSQL par email.
+ *
+ * Cela permet aux anciennes APIs utilisant getSession()
+ * de continuer à fonctionner pendant la migration vers Clerk.
+ */
 export async function getSession(): Promise<SessionPayload | null> {
-  const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
-  if (token) {
-    try {
-      const { payload } = await jwtVerify(token, sessionSecret());
-      return payload as unknown as SessionPayload;
-    } catch {}
+  const legacySession = await getLegacySession();
+
+  if (legacySession) {
+    return legacySession;
   }
 
   try {
-    const identity = await getVerifiedClerkClientIdentity();
-    if (!identity) return null;
-    const client = await db.client.findUnique({ where: { email: identity.email } });
-    if (!client) return null;
+    const identity =
+      await getVerifiedClerkClientIdentity();
+
+    if (!identity) {
+      return null;
+    }
+
+    const client = await db.client.findUnique({
+      where: {
+        email: identity.email,
+      },
+    });
+
+    if (!client) {
+      return null;
+    }
 
     return {
       sub: client.id,
@@ -140,56 +332,89 @@ export async function getSession(): Promise<SessionPayload | null> {
       email: client.email,
       phone: client.phone,
     };
-  } catch {
+  } catch (error) {
+    console.error(
+      "[GET_CLIENT_SESSION]",
+      error,
+    );
+
     return null;
   }
 }
 
-/** Verified Clerk identity for CLIENT flows only. Admin auth never calls Clerk. */
-export async function getVerifiedClerkClientIdentity(): Promise<ClerkClientIdentity | null> {
-  const { userId } = await auth();
-  if (!userId) return null;
+/* -------------------------------------------------------------------------- */
+/*                              Destroy session                               */
+/* -------------------------------------------------------------------------- */
 
-  const user = await currentUser();
-  if (!user) return null;
-
-  const verifiedEmail = user.emailAddresses.find(
-    (address) =>
-      address.id === user.primaryEmailAddressId &&
-      address.verification?.status === "verified"
-  );
-  if (!verifiedEmail) return null;
-
-  const name =
-    user.fullName?.trim() ||
-    [user.firstName, user.lastName].filter(Boolean).join(" ").trim() ||
-    verifiedEmail.emailAddress.split("@")[0];
-
-  return {
-    userId,
-    email: verifiedEmail.emailAddress.toLowerCase(),
-    name,
-  };
-}
-
+/**
+ * Supprime uniquement les cookies de l'ancien système.
+ *
+ * Clerk logout doit être géré avec Clerk (SignOutButton/signOut).
+ */
 export async function destroySession() {
   const store = await cookies();
+
   store.delete(SESSION_COOKIE);
   store.delete(PENDING_COOKIE);
 }
 
-/** Server-side guard for admin roles. Returns session or null. */
-export async function requireAdmin(allowed: AdminRole[]): Promise<SessionPayload | null> {
-  const session = await getSession();
-  if (!session) return null;
-  if (session.role === "CLIENT") return null;
-  if (!allowed.includes(session.role as AdminRole)) return null;
+/* -------------------------------------------------------------------------- */
+/*                                Admin guard                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Admin = ancien JWT uniquement.
+ *
+ * Clerk ne doit jamais authentifier un administrateur.
+ */
+export async function requireAdmin(
+  allowed: AdminRole[],
+): Promise<SessionPayload | null> {
+  const session = await getLegacySession();
+
+  if (!session) {
+    return null;
+  }
+
+  if (session.role === "CLIENT") {
+    return null;
+  }
+
+  if (!allowed.includes(session.role as AdminRole)) {
+    return null;
+  }
+
   return session;
 }
 
-/** Client-side token reader (for browser components). */
+/* -------------------------------------------------------------------------- */
+/*                        Browser session compatibility                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Ancien helper encore utilisé éventuellement par certains composants.
+ *
+ * À terme, pour les clients Clerk, préférer directement:
+ * useUser(), useAuth(), SignedIn, SignedOut...
+ */
 export async function getClientSession(): Promise<SessionPayload | null> {
-  const res = await fetch("/api/auth/me", { cache: "no-store" });
-  if (!res.ok) return null;
-  return res.json();
+  try {
+    const response = await fetch("/api/auth/me", {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const text = await response.text();
+
+    if (!text) {
+      return null;
+    }
+
+    return JSON.parse(text) as SessionPayload;
+  } catch {
+    return null;
+  }
 }

@@ -3,6 +3,10 @@ import { getSession } from "@/lib/auth";
 
 export async function GET() {
   const session = await getSession();
-  if (!session) return NextResponse.json(null, { status: 200 });
+
+  if (!session) {
+    return NextResponse.json(null, { status: 200 });
+  }
+
   return NextResponse.json(session);
 }

@@ -1,166 +1,388 @@
 "use client";
 
 import * as React from "react";
-import { useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { SignedIn, SignedOut, SignInButton, SignUpButton, useUser } from "@clerk/nextjs";
-import { motion } from "framer-motion";
-import { toast } from "sonner";
+import Link from "next/link";
 import {
-  Loader2,
-  ShieldCheck,
+  SignedIn,
+  SignedOut,
+  useUser,
+} from "@clerk/nextjs";
+import { toast } from "sonner";
+
+import {
   CalendarDays,
-  Award,
   Car,
-  QrCode,
-  ChevronRight,
-  CalendarClock,
-  AlertTriangle,
-  XCircle,
   CheckCircle2,
-  Plus,
+  ChevronRight,
   Clock,
-  Mail,
-  User,
-  Phone,
+  History,
+  Loader2,
   LogIn,
-  UserPlus,
+  Plus,
+  QrCode,
+  ShieldCheck,
+  UserCircle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { COLOR_MAP } from "@/lib/constants";
-import { cn, formatDate, isValidMaPhone, normalizePhone } from "@/lib/utils";
 import {
-  type AppointmentItem,
-  type VehicleItem,
-  useClientData,
+  Card,
+  CardContent,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+
+import {
   computeVehicleStatus,
   VEHICLE_STATUS_META,
+  useClientData,
+  type AppointmentItem,
+  type VehicleStatus,
 } from "@/components/client/types";
-import { StatusBadge } from "@/components/client/badges";
-import { QrDialog } from "@/components/client/qr-dialog";
+
+import {
+  CategoryBadge,
+  StatusBadge,
+} from "@/components/client/badges";
+
+import {
+  QrDialog,
+} from "@/components/client/qr-dialog";
+
+import {
+  cn,
+  formatDate,
+  formatMAD,
+} from "@/lib/utils";
+
+/* -------------------------------------------------------------------------- */
+/*                                   Types                                    */
+/* -------------------------------------------------------------------------- */
+
+type GateState =
+  | "loading"
+  | "ready"
+  | "onboarding"
+  | "error";
+
+interface ApiErrorBody {
+  error?: string;
+  code?: string;
+  needsOnboarding?: boolean;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               JSON helper                                  */
+/* -------------------------------------------------------------------------- */
+
+async function readJsonSafely<T>(
+  response: Response,
+): Promise<T | null> {
+  const text =
+    await response.text();
+
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(
+      text,
+    ) as T;
+  } catch {
+    return null;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                    Page                                    */
+/* -------------------------------------------------------------------------- */
 
 export default function EspaceClientPage() {
   return (
-    <React.Suspense fallback={<LoadingScreen />}>
+    <>
       <SignedOut>
         <LoginScreen />
       </SignedOut>
+
       <SignedIn>
         <ClientGate />
       </SignedIn>
-    </React.Suspense>
+    </>
   );
 }
 
-function LoadingScreen() {
+/* -------------------------------------------------------------------------- */
+/*                              Signed-out view                               */
+/* -------------------------------------------------------------------------- */
+
+function LoginScreen() {
   return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <Loader2 className="h-7 w-7 animate-spin text-primary" />
-    </div>
+    <main className="flex min-h-[75vh] items-center justify-center px-4 py-12">
+      <Card className="glass-card w-full max-w-md border-primary/20 shadow-card">
+        <CardContent className="p-7 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <UserCircle className="h-9 w-9" />
+          </div>
+
+          <h1 className="mt-5 text-2xl font-bold text-foreground">
+            Espace client
+          </h1>
+
+          <p className="mt-2 text-sm text-muted-foreground">
+            Connectez-vous pour consulter vos rendez-vous,
+            véhicules, QR codes et résultats de contrôle.
+          </p>
+
+          <div className="mt-6 space-y-3">
+            <Button
+              asChild
+              className="w-full bg-brand-gradient text-white hover:opacity-90"
+            >
+              <Link href="/sign-in">
+                <LogIn className="mr-2 h-4 w-4" />
+
+                Se connecter
+              </Link>
+            </Button>
+
+            <Button
+              asChild
+              variant="outline"
+              className="w-full"
+            >
+              <Link href="/sign-up">
+                Créer un compte
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </main>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/*                                Client gate                                 */
+/* -------------------------------------------------------------------------- */
 
 function ClientGate() {
-  const { user, isLoaded } = useUser();
-  const searchParams = useSearchParams();
-  const [state, setState] = useState<"loading" | "onboarding" | "ready">("loading");
+  const {
+    user,
+    isLoaded,
+  } = useUser();
+
+  const [
+    state,
+    setState,
+  ] =
+    React.useState<GateState>(
+      "loading",
+    );
+
+  const [
+    error,
+    setError,
+  ] =
+    React.useState<string | null>(
+      null,
+    );
+
+  const checkProfile =
+    React.useCallback(
+      async () => {
+        if (
+          !isLoaded ||
+          !user
+        ) {
+          return;
+        }
+
+        setState(
+          "loading",
+        );
+
+        setError(
+          null,
+        );
+
+        try {
+          const response =
+            await fetch(
+              "/api/clients/me",
+              {
+                method: "GET",
+                cache: "no-store",
+              },
+            );
+
+          if (
+            response.ok
+          ) {
+            setState(
+              "ready",
+            );
+
+            return;
+          }
+
+          const body =
+            await readJsonSafely<ApiErrorBody>(
+              response,
+            );
+
+          if (
+            response.status ===
+            404
+          ) {
+            setState(
+              "onboarding",
+            );
+
+            return;
+          }
+
+          if (
+            response.status ===
+            401
+          ) {
+            setError(
+              "Votre session n’est plus valide. Reconnectez-vous.",
+            );
+
+            setState(
+              "error",
+            );
+
+            return;
+          }
+
+          throw new Error(
+            body?.error ||
+              `Impossible de charger votre profil (${response.status}).`,
+          );
+        } catch (
+          error
+        ) {
+          setError(
+            error instanceof Error
+              ? error.message
+              : "Impossible de charger votre profil.",
+          );
+
+          setState(
+            "error",
+          );
+        }
+      },
+      [
+        isLoaded,
+        user,
+      ],
+    );
 
   React.useEffect(() => {
-    if (!isLoaded || !user) return;
-    let active = true;
-    fetch("/api/clients/me", { cache: "no-store" })
-      .then((response) => {
-        if (!active) return;
-        setState(response.ok ? "ready" : "onboarding");
-      })
-      .catch(() => active && setState("onboarding"));
-    return () => {
-      active = false;
-    };
-  }, [isLoaded, user]);
+    void checkProfile();
+  }, [
+    checkProfile,
+  ]);
 
-  React.useEffect(() => {
-    if (state !== "ready") return;
-    const requestedNext = searchParams.get("next");
-    if (requestedNext?.startsWith("/") && !requestedNext.startsWith("//") && requestedNext !== "/espace-client") {
-      window.location.replace(requestedNext);
-    }
-  }, [searchParams, state]);
+  /*
+   * IMPORTANT:
+   *
+   * TypeScript sait maintenant que "user"
+   * n'est pas null après cette condition.
+   */
+  if (
+    !isLoaded ||
+    !user
+  ) {
+    return (
+      <ClientLoading />
+    );
+  }
 
-  if (!isLoaded || state === "loading") return <LoadingScreen />;
-  if (state === "onboarding") {
+  if (
+    state ===
+    "loading"
+  ) {
+    return (
+      <ClientLoading />
+    );
+  }
+
+  if (
+    state ===
+    "error"
+  ) {
+    return (
+      <main className="mx-auto max-w-xl px-4 py-12">
+        <Card className="glass-card">
+          <CardContent className="space-y-4 py-10 text-center">
+            <p className="text-sm text-muted-foreground">
+              {error ||
+                "Impossible de charger votre compte."}
+            </p>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                void checkProfile();
+              }}
+            >
+              Réessayer
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  if (
+    state ===
+    "onboarding"
+  ) {
     return (
       <ProfileSetup
-        defaultName={user?.fullName || ""}
-        email={user?.primaryEmailAddress?.emailAddress || ""}
-        onComplete={() => window.location.reload()}
+        defaultName={
+          user.fullName ??
+          ""
+        }
+        email={
+          user.primaryEmailAddress
+            ?.emailAddress ??
+          ""
+        }
+        onComplete={() => {
+          setState(
+            "ready",
+          );
+        }}
       />
     );
   }
-  return <Dashboard />;
-}
-
-function LoginScreen() {
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col items-center px-4 py-10 md:py-16">
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="w-full"
-      >
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-            <ShieldCheck className="h-7 w-7 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground md:text-3xl">Espace Client</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            Connectez-vous pour suivre vos rendez-vous et certificats.
-          </p>
-        </div>
+    <Dashboard />
+  );
+}
 
-        <Card className="glass-card border-primary/20 shadow-card">
-          <CardContent className="space-y-4 p-6">
-            <p className="text-center text-sm text-muted-foreground">
-              Continuez avec Google, ou utilisez votre adresse email et un mot de passe.
-              Toute nouvelle adresse email doit être vérifiée avant l’accès.
-            </p>
-            <SignInButton mode="modal" fallbackRedirectUrl="/espace-client">
-              <Button className="w-full bg-brand-gradient text-white hover:opacity-90">
-                <LogIn className="mr-2 h-4 w-4" /> Se connecter
-              </Button>
-            </SignInButton>
-            <SignUpButton mode="modal" fallbackRedirectUrl="/espace-client">
-              <Button variant="outline" className="w-full">
-                <UserPlus className="mr-2 h-4 w-4" /> Créer mon compte
-              </Button>
-            </SignUpButton>
-          </CardContent>
-        </Card>
+/* -------------------------------------------------------------------------- */
+/*                              Loading screen                                */
+/* -------------------------------------------------------------------------- */
 
-        <div className="mt-4 flex items-start gap-2 rounded-lg border border-info/30 bg-info/5 p-3 text-xs text-muted-foreground">
-          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-info" />
-          <div>
-            <p className="font-medium text-foreground">Espace sécurisé</p>
-            <p className="mt-0.5">
-              Vos données personnelles et l&apos;historique de vos contrôles sont protégés
-              et accessibles uniquement avec votre compte.
-            </p>
-          </div>
-        </div>
-
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          L&apos;authentification de l&apos;espace client est sécurisée par Clerk.
-        </p>
-      </motion.div>
+function ClientLoading() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
     </div>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/*                               Profile setup                                */
+/* -------------------------------------------------------------------------- */
 
 function ProfileSetup({
   defaultName,
@@ -171,372 +393,951 @@ function ProfileSetup({
   email: string;
   onComplete: () => void;
 }) {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("+212 ");
-  const [submitting, setSubmitting] = useState(false);
+  const [
+    name,
+    setName,
+  ] =
+    React.useState(
+      defaultName,
+    );
 
-  React.useEffect(() => setName(defaultName), [defaultName]);
+  const [
+    phone,
+    setPhone,
+  ] =
+    React.useState("");
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [
+    saving,
+    setSaving,
+  ] =
+    React.useState(false);
 
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      toast.error("Veuillez saisir votre nom complet.");
+  async function submitProfile(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    const cleanName =
+      name.trim();
+
+    const cleanPhone =
+      phone.trim();
+
+    if (
+      cleanName.length <
+      3
+    ) {
+      toast.error(
+        "Veuillez saisir votre nom complet.",
+      );
+
       return;
     }
-    if (!isValidMaPhone(phone)) {
-      toast.error("Numéro marocain invalide (format +212).");
+
+    /*
+     * Validation volontairement souple:
+     * +212..., 06..., 07...
+     */
+    const phoneDigits =
+      cleanPhone.replace(
+        /\D/g,
+        "",
+      );
+
+    if (
+      phoneDigits.length <
+        9 ||
+      phoneDigits.length >
+        15
+    ) {
+      toast.error(
+        "Numéro de téléphone invalide.",
+      );
+
       return;
     }
-    setSubmitting(true);
+
+    setSaving(
+      true,
+    );
+
     try {
-      const res = await fetch("/api/clients/me", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmedName, phone: normalizePhone(phone) }),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(data?.error || "Création du profil impossible");
+      const response =
+        await fetch(
+          "/api/clients/me",
+          {
+            method:
+              "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                name:
+                  cleanName,
+
+                phone:
+                  cleanPhone,
+              }),
+          },
+        );
+
+      const body =
+        await readJsonSafely<{
+          error?: string;
+        }>(
+          response,
+        );
+
+      if (
+        !response.ok
+      ) {
+        throw new Error(
+          body?.error ||
+            `Impossible de créer votre profil (${response.status}).`,
+        );
       }
-      toast.success("Votre espace client est prêt.");
+
+      toast.success(
+        "Votre espace client est prêt.",
+      );
+
       onComplete();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de la création du profil");
+    } catch (
+      error
+    ) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Impossible de créer votre profil.",
+      );
     } finally {
-      setSubmitting(false);
+      setSaving(
+        false,
+      );
     }
-  };
+  }
 
   return (
-    <div className="mx-auto w-full max-w-md px-4 py-10 md:py-16">
-      <Card className="glass-card border-primary/20 shadow-card">
-        <CardContent className="space-y-5 p-6">
+    <main className="mx-auto flex min-h-[70vh] max-w-xl items-center px-4 py-12">
+      <Card className="glass-card w-full border-primary/20 shadow-card">
+        <CardContent className="p-6 md:p-8">
           <div className="text-center">
-            <User className="mx-auto h-9 w-9 text-primary" />
-            <h1 className="mt-3 text-2xl font-bold">Compléter votre profil</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Votre email Clerk est vérifié. Ajoutez vos coordonnées pour vos rendez-vous.
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <UserCircle className="h-8 w-8" />
+            </div>
+
+            <h1 className="mt-4 text-2xl font-bold text-foreground">
+              Finaliser votre profil
+            </h1>
+
+            <p className="mt-2 text-sm text-muted-foreground">
+              Quelques informations sont nécessaires avant votre
+              première réservation.
             </p>
           </div>
-          <form onSubmit={onSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="reg-name">Nom complet</Label>
-        <div className="relative">
-          <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="reg-name"
-            type="text"
-            autoComplete="name"
-            placeholder="Mehdi Tazi"
-            className="pl-9"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            disabled={submitting}
-          />
-        </div>
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="reg-phone">Téléphone</Label>
-        <div className="relative">
-          <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="reg-phone"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            placeholder="+212 6 12 34 56 78"
-            className="pl-9"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            disabled={submitting}
-          />
-        </div>
-        <p className="text-xs text-muted-foreground">Format marocain : +212 6/7 XX XX XX XX.</p>
-      </div>
+          <form
+            onSubmit={
+              submitProfile
+            }
+            className="mt-7 space-y-4"
+          >
+            <div className="space-y-2">
+              <label
+                htmlFor="client-name"
+                className="text-sm font-medium text-foreground"
+              >
+                Nom complet
+              </label>
 
-      <div className="space-y-2">
-        <Label htmlFor="reg-email">Email vérifié</Label>
-        <div className="relative">
-          <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="reg-email"
-            type="email"
-            className="bg-muted/30 pl-9"
-            value={email}
-            readOnly
-          />
-        </div>
-      </div>
+              <Input
+                id="client-name"
+                value={
+                  name
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setName(
+                    event.target.value,
+                  )
+                }
+                placeholder="Votre nom complet"
+                autoComplete="name"
+                disabled={
+                  saving
+                }
+                required
+              />
+            </div>
 
-      <Button
-        type="submit"
-        className="w-full bg-brand-gradient text-white hover:opacity-90"
-        disabled={submitting}
-      >
-        {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Enregistrer et continuer
-      </Button>
+            <div className="space-y-2">
+              <label
+                htmlFor="client-email"
+                className="text-sm font-medium text-foreground"
+              >
+                E-mail vérifié
+              </label>
+
+              <Input
+                id="client-email"
+                value={
+                  email
+                }
+                type="email"
+                readOnly
+                className="bg-muted/40"
+              />
+
+              <p className="text-xs text-muted-foreground">
+                Cette adresse provient de votre compte sécurisé Clerk.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="client-phone"
+                className="text-sm font-medium text-foreground"
+              >
+                Téléphone
+              </label>
+
+              <Input
+                id="client-phone"
+                value={
+                  phone
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setPhone(
+                    event.target.value,
+                  )
+                }
+                placeholder="+212 6 00 00 00 00"
+                autoComplete="tel"
+                disabled={
+                  saving
+                }
+                required
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={
+                saving
+              }
+              className="w-full bg-brand-gradient text-white hover:opacity-90"
+            >
+              {saving && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+
+              {saving
+                ? "Création..."
+                : "Accéder à mon espace"}
+            </Button>
           </form>
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }
 
-/* ------------------------------- Dashboard -------------------------------- */
+/* -------------------------------------------------------------------------- */
+/*                                 Dashboard                                  */
+/* -------------------------------------------------------------------------- */
+
 function Dashboard() {
-  const { data, loading, error, unauthorized } = useClientData();
-  const [qrAppt, setQrAppt] = React.useState<AppointmentItem | null>(null);
+  const {
+    data,
+    loading,
+    error,
+    unauthorized,
+    refresh,
+  } =
+    useClientData();
 
-  React.useEffect(() => {
-    if (unauthorized) {
-      // Session expired — force a full reload to show the login screen.
-      window.location.reload();
-    }
-  }, [unauthorized]);
+  const [
+    qrAppointment,
+    setQrAppointment,
+  ] =
+    React.useState<AppointmentItem | null>(
+      null,
+    );
 
-  if (loading || unauthorized) {
+  if (
+    loading
+  ) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-7 w-7 animate-spin text-primary" />
-      </div>
+      <ClientLoading />
     );
   }
-  if (error || !data) {
+
+  if (
+    unauthorized
+  ) {
     return (
-      <Card>
-        <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          {error || "Impossible de charger vos données."}
-        </CardContent>
-      </Card>
+      <main className="mx-auto max-w-lg px-4 py-12">
+        <Card className="glass-card">
+          <CardContent className="space-y-4 py-10 text-center">
+            <p className="text-sm text-muted-foreground">
+              Votre session a expiré.
+            </p>
+
+            <Button
+              asChild
+              className="bg-brand-gradient text-white"
+            >
+              <Link href="/sign-in">
+                Se reconnecter
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
     );
   }
 
-  const now = new Date();
-  const upcoming = data.appointments
-    .filter((a) => (a.status === "PENDING" || a.status === "APPROVED") && new Date(a.date) >= new Date(now.setHours(0, 0, 0, 0)))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  const validated = data.appointments.filter((a) => a.status === "COMPLETED" && a.result?.overallResult === "PASS");
+  if (
+    error ||
+    !data
+  ) {
+    return (
+      <main className="mx-auto max-w-lg px-4 py-12">
+        <Card className="glass-card">
+          <CardContent className="space-y-4 py-10 text-center">
+            <p className="text-sm text-muted-foreground">
+              {error ||
+                "Impossible de charger votre espace client."}
+            </p>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                void refresh();
+              }}
+            >
+              Réessayer
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  const today =
+    new Date();
+
+  today.setHours(
+    0,
+    0,
+    0,
+    0,
+  );
+
+  const upcomingAppointments =
+    data.appointments
+      .filter(
+        (
+          appointment,
+        ) => {
+          const date =
+            new Date(
+              appointment.date,
+            );
+
+          if (
+            Number.isNaN(
+              date.getTime(),
+            )
+          ) {
+            return false;
+          }
+
+          return (
+            date >= today &&
+            (
+              appointment.status ===
+                "PENDING" ||
+              appointment.status ===
+                "APPROVED"
+            )
+          );
+        },
+      )
+      .sort(
+        (
+          a,
+          b,
+        ) => {
+          const aDate =
+            new Date(
+              a.date,
+            ).getTime();
+
+          const bDate =
+            new Date(
+              b.date,
+            ).getTime();
+
+          if (
+            aDate !==
+            bDate
+          ) {
+            return (
+              aDate -
+              bDate
+            );
+          }
+
+          return a.slot.localeCompare(
+            b.slot,
+          );
+        },
+      );
+
+  const nextAppointment =
+    upcomingAppointments[0] ??
+    null;
+
+  const completedCount =
+    data.appointments.filter(
+      (
+        appointment,
+      ) =>
+        appointment.status ===
+        "COMPLETED",
+    ).length;
 
   return (
-    <div className="space-y-6">
-      {/* Welcome */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-            Tableau de bord
-          </p>
-          <h1 className="mt-1 text-2xl font-bold text-foreground md:text-3xl">
-            Bonjour, {data.name.split(" ")[0]} 👋
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Voici l&apos;état de vos rendez-vous et de vos véhicules.
-          </p>
-        </div>
-        <Button asChild className="bg-brand-gradient text-white hover:opacity-90">
-          <a href="/rendez-vous">
-            <Plus className="mr-1.5 h-4 w-4" /> Nouveau RDV
-          </a>
-        </Button>
-      </div>
+    <main className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 md:py-10">
+      <div className="space-y-7">
+        {/* Header */}
 
-      {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard
-          icon={<CalendarDays className="h-5 w-5" />}
-          label="RDV à venir"
-          value={upcoming.length}
-          tone="primary"
-        />
-        <StatCard
-          icon={<Award className="h-5 w-5" />}
-          label="Contrôles validés"
-          value={validated.length}
-          tone="info"
-        />
-        <StatCard
-          icon={<Car className="h-5 w-5" />}
-          label="Véhicules enregistrés"
-          value={data.vehicles.length}
-          tone="purple"
-        />
-      </div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-primary">
+              SÉCUREX CONNECT
+            </p>
 
-      {/* Vehicles */}
-      <section>
-        <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
-          <span className="h-5 w-1 rounded bg-brand-gradient" /> Mes véhicules
-        </h2>
-        {data.vehicles.length === 0 ? (
-          <Card className="glass-card">
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              Aucun véhicule enregistré pour le moment.
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {data.vehicles.map((v) => (
-              <VehicleStatusCard key={v.id} vehicle={v} appointments={data.appointments} />
-            ))}
+            <h1 className="mt-1 text-2xl font-bold text-foreground md:text-3xl">
+              Bonjour {data.name}
+            </h1>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Retrouvez vos rendez-vous, véhicules et contrôles techniques.
+            </p>
           </div>
-        )}
-      </section>
 
-      {/* Upcoming appointments */}
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
-            <span className="h-5 w-1 rounded bg-brand-gradient" /> Prochains rendez-vous
-          </h2>
-          <a
-            href="/espace-client/rdv"
-            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+          <Button
+            asChild
+            className="bg-brand-gradient text-white hover:opacity-90"
           >
-            Tout voir <ChevronRight className="h-4 w-4" />
-          </a>
-        </div>
-        {upcoming.length === 0 ? (
-          <Card className="glass-card">
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              Aucun rendez-vous à venir.{" "}
-              <a href="/rendez-vous" className="font-medium text-primary hover:underline">
-                Prendre rendez-vous
-              </a>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {upcoming.slice(0, 3).map((appt) => (
-              <UpcomingRow key={appt.id} appt={appt} onShowQr={() => setQrAppt(appt)} />
-            ))}
-          </div>
-        )}
-      </section>
+            <Link href="/rendez-vous">
+              <Plus className="mr-2 h-4 w-4" />
 
-      <QrDialog appointment={qrAppt} open={!!qrAppt} onOpenChange={(v) => !v && setQrAppt(null)} />
-    </div>
+              Nouveau rendez-vous
+            </Link>
+          </Button>
+        </div>
+
+        {/* Summary */}
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <DashboardStat
+            icon={
+              <CalendarDays className="h-5 w-5" />
+            }
+            label="À venir"
+            value={
+              upcomingAppointments.length
+            }
+          />
+
+          <DashboardStat
+            icon={
+              <Car className="h-5 w-5" />
+            }
+            label="Véhicules"
+            value={
+              data.vehicles.length
+            }
+          />
+
+          <DashboardStat
+            icon={
+              <CheckCircle2 className="h-5 w-5" />
+            }
+            label="Contrôles réalisés"
+            value={
+              completedCount
+            }
+          />
+
+          <DashboardStat
+            icon={
+              <ShieldCheck className="h-5 w-5" />
+            }
+            label="Compte"
+            value="Vérifié"
+          />
+        </div>
+
+        {/* Quick links */}
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <QuickLink
+            href="/espace-client/rdv"
+            icon={
+              <CalendarDays className="h-5 w-5" />
+            }
+            title="Mes rendez-vous"
+            description="À venir et passés"
+          />
+
+          <QuickLink
+            href="/espace-client/historique"
+            icon={
+              <History className="h-5 w-5" />
+            }
+            title="Historique"
+            description="Résultats et certificats"
+          />
+
+          <QuickLink
+            href="/espace-client/profil"
+            icon={
+              <UserCircle className="h-5 w-5" />
+            }
+            title="Mon profil"
+            description="Informations personnelles"
+          />
+        </div>
+
+        {/* Next appointment */}
+
+        <section>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-foreground">
+              Prochain rendez-vous
+            </h2>
+
+            <Link
+              href="/espace-client/rdv"
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Voir tous
+            </Link>
+          </div>
+
+          {nextAppointment ? (
+            <NextAppointmentCard
+              appointment={
+                nextAppointment
+              }
+              onShowQr={() =>
+                setQrAppointment(
+                  nextAppointment,
+                )
+              }
+            />
+          ) : (
+            <Card className="glass-card">
+              <CardContent className="py-9 text-center">
+                <CalendarDays className="mx-auto h-9 w-9 text-muted-foreground/40" />
+
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Aucun rendez-vous à venir.
+                </p>
+
+                <Button
+                  asChild
+                  size="sm"
+                  className="mt-4 bg-brand-gradient text-white"
+                >
+                  <Link href="/rendez-vous">
+                    Prendre rendez-vous
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </section>
+
+        {/* Vehicles */}
+
+        <section>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-foreground">
+              Mes véhicules
+            </h2>
+
+            <Badge
+              variant="outline"
+            >
+              {data.vehicles.length}
+            </Badge>
+          </div>
+
+          {data.vehicles.length ===
+          0 ? (
+            <Card className="glass-card">
+              <CardContent className="py-9 text-center">
+                <Car className="mx-auto h-9 w-9 text-muted-foreground/40" />
+
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Aucun véhicule enregistré.
+                </p>
+
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Votre premier véhicule sera enregistré lors d&apos;une réservation.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {data.vehicles.map(
+                (
+                  vehicle,
+                ) => {
+                  const vehicleState =
+                    computeVehicleStatus(
+                      vehicle,
+                      data.appointments,
+                    );
+
+                  return (
+                    <VehicleCard
+                      key={
+                        vehicle.id
+                      }
+                      plate={
+                        vehicle.plate
+                      }
+                      description={`${vehicle.brand} ${vehicle.model} · ${vehicle.year}`}
+                      status={
+                        vehicleState.status
+                      }
+                      expiry={
+                        vehicleState.expiry
+                      }
+                    />
+                  );
+                },
+              )}
+            </div>
+          )}
+        </section>
+      </div>
+
+      <QrDialog
+        appointment={
+          qrAppointment
+        }
+        open={Boolean(
+          qrAppointment,
+        )}
+        onOpenChange={(
+          open,
+        ) => {
+          if (
+            !open
+          ) {
+            setQrAppointment(
+              null,
+            );
+          }
+        }}
+      />
+    </main>
   );
 }
 
-function StatCard({
+/* -------------------------------------------------------------------------- */
+/*                              Dashboard stat                                */
+/* -------------------------------------------------------------------------- */
+
+function DashboardStat({
   icon,
   label,
   value,
-  tone,
 }: {
   icon: React.ReactNode;
   label: string;
-  value: number;
-  tone: "primary" | "info" | "purple";
+  value: React.ReactNode;
 }) {
-  const toneClasses = {
-    primary: "bg-primary/10 text-primary",
-    info: "bg-info/10 text-info",
-    purple: "bg-purple-100 text-purple-700",
-  } as const;
   return (
     <Card className="glass-card">
-      <CardContent className="flex items-center gap-4 p-5">
-        <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", toneClasses[tone])}>
+      <CardContent className="flex items-center gap-3 p-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
           {icon}
         </div>
+
         <div>
-          <p className="text-3xl font-bold leading-none text-foreground">{value}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{label}</p>
+          <p className="text-xl font-bold text-foreground">
+            {value}
+          </p>
+
+          <p className="text-xs text-muted-foreground">
+            {label}
+          </p>
         </div>
       </CardContent>
     </Card>
   );
 }
 
-function VehicleStatusCard({
-  vehicle,
-  appointments,
+/* -------------------------------------------------------------------------- */
+/*                                 Quick link                                 */
+/* -------------------------------------------------------------------------- */
+
+function QuickLink({
+  href,
+  icon,
+  title,
+  description,
 }: {
-  vehicle: VehicleItem;
-  appointments: AppointmentItem[];
+  href: string;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
 }) {
-  const { status, lastInspection, expiry } = computeVehicleStatus(vehicle, appointments);
-  const meta = VEHICLE_STATUS_META[status];
-  const color = COLOR_MAP[meta.color];
-  const Icon =
-    meta.icon === "CheckCircle2"
-      ? CheckCircle2
-      : meta.icon === "AlertTriangle"
-      ? AlertTriangle
-      : meta.icon === "XCircle"
-      ? XCircle
-      : CalendarClock;
   return (
-    <Card className={cn("glass-card border-l-4", color.border)}>
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="font-mono text-sm font-semibold uppercase text-foreground">{vehicle.plate}</p>
-            <p className="mt-0.5 truncate text-sm text-muted-foreground">
-              {vehicle.brand} {vehicle.model} · {vehicle.year}
+    <Link href={href}>
+      <Card className="glass-card h-full transition-all hover:-translate-y-0.5 hover:border-primary/30">
+        <CardContent className="flex items-center gap-3 p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            {icon}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-foreground">
+              {title}
+            </p>
+
+            <p className="text-xs text-muted-foreground">
+              {description}
             </p>
           </div>
-          <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", color.soft, color.fg)}>
-            <Icon className="h-5 w-5" />
-          </span>
-        </div>
-        <div className={cn("mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold", color.soft, color.fg)}>
-          {meta.label}
-        </div>
-        <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-          {lastInspection ? (
-            <>
-              <p>Dernier contrôle : <span className="font-medium text-foreground">{formatDate(lastInspection)}</span></p>
-              <p>Expiration : <span className="font-medium text-foreground">{formatDate(expiry!)}</span></p>
-            </>
-          ) : (
-            <p>Aucun contrôle technique enregistré pour ce véhicule.</p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 
-function UpcomingRow({ appt, onShowQr }: { appt: AppointmentItem; onShowQr: () => void }) {
+/* -------------------------------------------------------------------------- */
+/*                         Next appointment card                              */
+/* -------------------------------------------------------------------------- */
+
+function NextAppointmentCard({
+  appointment,
+  onShowQr,
+}: {
+  appointment: AppointmentItem;
+  onShowQr: () => void;
+}) {
+  const canShowQr =
+    appointment.status ===
+      "APPROVED" &&
+    Boolean(
+      appointment.qrToken,
+    );
+
   return (
-    <Card className="glass-card">
-      <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/10 text-center text-primary">
-            <span className="text-sm font-bold leading-none">
-              {new Date(appt.date).toLocaleDateString("fr-FR", { day: "2-digit" })}
-            </span>
-            <span className="text-[10px] uppercase">
-              {new Date(appt.date).toLocaleDateString("fr-FR", { month: "short" })}
-            </span>
-          </div>
+    <Card className="glass-card border-primary/20">
+      <CardContent className="p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-sm font-bold tracking-wider text-foreground">{appt.code}</span>
-              <StatusBadge status={appt.status} />
+              <span className="font-mono text-lg font-bold tracking-wider text-foreground">
+                {appointment.code}
+              </span>
+
+              <StatusBadge
+                status={
+                  appointment.status
+                }
+              />
+
+              <CategoryBadge
+                name={
+                  appointment.category.name
+                }
+                color={
+                  appointment.category.color
+                }
+              />
             </div>
-            <p className="mt-0.5 text-sm text-foreground">{appt.service.name}</p>
-            <p className="text-xs text-muted-foreground">
-              <Clock className="mr-1 inline h-3 w-3" />
-              {appt.slot} · {appt.vehiclePlate} · {appt.vehicleDesc}
+
+            <p className="mt-2 font-medium text-foreground">
+              {appointment.service.name}
             </p>
+
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarDays className="h-4 w-4 text-primary" />
+
+                {formatDate(
+                  appointment.date,
+                )}
+              </span>
+
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="h-4 w-4 text-primary" />
+
+                {appointment.slot}
+              </span>
+
+              <span className="inline-flex items-center gap-1.5">
+                <Car className="h-4 w-4 text-primary" />
+
+                {appointment.vehiclePlate}
+              </span>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Badge
+                variant="outline"
+                className="text-primary"
+              >
+                {formatMAD(
+                  appointment.service.price,
+                )}
+              </Badge>
+
+              {appointment.paymentStatus ===
+              "PAID" ? (
+                <Badge
+                  variant="outline"
+                  className="border-primary/30 text-primary"
+                >
+                  Acompte payé
+                </Badge>
+              ) : appointment.paymentStatus ===
+                "WAIVED" ? (
+                <Badge
+                  variant="outline"
+                  className="border-primary/30 text-primary"
+                >
+                  Acompte exempté
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="border-amber-300 text-amber-700"
+                >
+                  Acompte en attente
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {canShowQr && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={
+                  onShowQr
+                }
+                className="border-primary/30 text-primary"
+              >
+                <QrCode className="mr-2 h-4 w-4" />
+
+                Voir QR
+              </Button>
+            )}
+
+            <Button
+              asChild
+              variant="outline"
+            >
+              <Link href="/espace-client/rdv">
+                Détails
+              </Link>
+            </Button>
           </div>
         </div>
-        <div className="flex items-center gap-2 sm:flex-col sm:items-end">
-          {appt.status === "APPROVED" && appt.qrToken ? (
-            <Button size="sm" variant="outline" onClick={onShowQr} className="border-primary/30 text-primary hover:bg-primary/10">
-              <QrCode className="mr-1.5 h-4 w-4" /> Voir le QR
-            </Button>
-          ) : (
-            <span className="text-xs text-muted-foreground">
-              {appt.status === "PENDING" ? "En attente de validation" : ""}
-            </span>
-          )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               Vehicle card                                 */
+/* -------------------------------------------------------------------------- */
+
+function VehicleCard({
+  plate,
+  description,
+  status,
+  expiry,
+}: {
+  plate: string;
+  description: string;
+  status: VehicleStatus;
+  expiry: Date | null;
+}) {
+  const meta =
+    VEHICLE_STATUS_META[
+      status
+    ];
+
+  const statusClass =
+    status ===
+    "valid"
+      ? "border-primary/30 bg-primary/5 text-primary"
+      : status ===
+          "expiring"
+        ? "border-orange-300 bg-orange-50 text-orange-700"
+        : "border-destructive/30 bg-destructive/5 text-destructive";
+
+  return (
+    <Card className="glass-card">
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Car className="h-5 w-5" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="font-mono font-bold uppercase text-foreground">
+              {plate}
+            </p>
+
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {description}
+            </p>
+
+            <Badge
+              variant="outline"
+              className={cn(
+                "mt-3",
+                statusClass,
+              )}
+            >
+              {meta.label}
+            </Badge>
+
+            {expiry ? (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Échéance :{" "}
+                {expiry.toLocaleDateString(
+                  "fr-FR",
+                )}
+              </p>
+            ) : null}
+          </div>
         </div>
       </CardContent>
     </Card>

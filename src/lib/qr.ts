@@ -1,19 +1,50 @@
 import QRCode from "qrcode";
 
-/** Generate a QR code as a data URL (base64 PNG). */
-export async function generateQrDataUrl(payload: string): Promise<string> {
-  return QRCode.toDataURL(payload, {
-    errorCorrectionLevel: "M",
-    margin: 1,
-    width: 512,
-    color: { dark: "#1A2332", light: "#FFFFFF" },
-  });
+/**
+ * Generate a QR code as a base64 PNG data URL.
+ */
+export async function generateQrDataUrl(
+  payload: string,
+): Promise<string> {
+  const cleanPayload = payload.trim();
+
+  if (!cleanPayload) {
+    throw new Error(
+      "Le contenu du QR code est vide.",
+    );
+  }
+
+  return QRCode.toDataURL(
+    cleanPayload,
+    {
+      errorCorrectionLevel: "M",
+      margin: 1,
+      width: 512,
+
+      color: {
+        dark: "#1A2332",
+        light: "#FFFFFF",
+      },
+    },
+  );
 }
 
-/** Generate a random opaque token used inside the QR payload. */
+/**
+ * Generate a cryptographically secure opaque token.
+ *
+ * randomUUID() provides 128 bits of randomness.
+ * Removing "-" keeps a compact 32-character token.
+ */
 export function generateQrToken(): string {
-  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let out = "";
-  for (let i = 0; i < 32; i++) out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
+  if (
+    !globalThis.crypto?.randomUUID
+  ) {
+    throw new Error(
+      "Secure random generator unavailable.",
+    );
+  }
+
+  return globalThis.crypto
+    .randomUUID()
+    .replaceAll("-", "");
 }
